@@ -9,8 +9,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.resolveH264ProfileLevel
 import info.dvkr.screenstream.rtsp.internal.MasterClock
@@ -21,9 +19,11 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H264Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
 import info.dvkr.screenstream.rtsp.internal.stripAnnexBStartCode
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import io.screenstream.foundation.logging.Logger
 import java.nio.ByteBuffer
 
 internal class VideoEncoder(
+    private val log: Logger,
     private val codecInfo: VideoCodecInfo,
     private val onVideoInfo: (codec: MediaCodec, sps: ByteArray, pps: ByteArray?, vps: ByteArray?) -> Unit,
     private val onVideoFrame: (MediaFrame.VideoFrame) -> Unit,
@@ -47,7 +47,7 @@ internal class VideoEncoder(
     private var currentState = State.IDLE
         set(value) {
             field = value
-            XLog.v(getLog("currentState", "State changed to: $value"))
+            log.v("VideoEncoder.currentState", "State changed to: $value")
         }
 
     private var videoEncoder: MediaCodec? = null
@@ -92,7 +92,7 @@ internal class VideoEncoder(
                     createConfiguredEncoder(createFormat(width = width, height = height, fps = fps, bitRate = bitRate, profileLevel = profileLevel))
                 } catch (cause: Throwable) {
                     if (profileLevel == null) throw cause
-                    XLog.w(getLog("prepare", "MediaCodec failed to configure with H.264 profile $h264Profile. Retrying with AUTO profile."), cause)
+                    log.w("VideoEncoder.prepare", "MediaCodec failed to configure with H.264 profile $h264Profile. Retrying with AUTO profile.", cause)
                     try {
                         createConfiguredEncoder(createFormat(width = width, height = height, fps = fps, bitRate = bitRate))
                     } catch (retryCause: Throwable) {
@@ -102,7 +102,7 @@ internal class VideoEncoder(
                 }
                 videoEncoder = encoder
 
-                eglRenderer = EglRenderer(width, height, encoder.createInputSurface(), onError).apply {
+                eglRenderer = EglRenderer(log, width, height, encoder.createInputSurface(), onError).apply {
                     setFps(fps)
                 }
 
@@ -157,9 +157,9 @@ internal class VideoEncoder(
     }
 
     internal fun start(): Unit = synchronized(encoderLock) {
-        XLog.v(getLog("start"))
+        log.v("VideoEncoder.start")
         if (currentState != State.PREPARED) {
-            XLog.w(getLog("start", "Cannot start unless state is PREPARED. Current: $currentState"))
+            log.w("VideoEncoder.start", "Cannot start unless state is PREPARED. Current: $currentState")
             return
         }
         isCodecConfigSent = false
@@ -167,19 +167,19 @@ internal class VideoEncoder(
         videoEncoder?.start()
         currentState = State.RUNNING
 
-        XLog.v(getLog("start", "Done"))
+        log.v("VideoEncoder.start", "Done")
     }
 
     internal fun stop() {
-        XLog.v(getLog("stop"))
+        log.v("VideoEncoder.stop")
         if (stopInternal(force = false, logTag = "stopInternal").not()) return
-        XLog.v(getLog("stop", "Done"))
+        log.v("VideoEncoder.stop", "Done")
     }
 
     private fun stopInternal(force: Boolean, logTag: String): Boolean {
         val snapshot = synchronized(encoderLock) {
             if (!force && (currentState == State.IDLE || currentState == State.STOPPED)) {
-                XLog.w(getLog("stop", "Cannot stop unless state is PREPARED or RUNNING. Current: $currentState"))
+                log.w("VideoEncoder.stop", "Cannot stop unless state is PREPARED or RUNNING. Current: $currentState")
                 return@synchronized null
             }
 
@@ -196,15 +196,15 @@ internal class VideoEncoder(
         } ?: return false
 
         snapshot.eglRenderer?.runCatching { stop() }?.onFailure {
-            XLog.w(this@VideoEncoder.getLog(logTag, "eglRenderer.stop() exception: ${it.message}"), it)
+            log.w("VideoEncoder.$logTag", "Renderer stop failed", it)
         }
 
         snapshot.videoEncoder?.let { encoder ->
             runCatching { encoder.stop() }.onFailure {
-                XLog.w(this@VideoEncoder.getLog(logTag, "mediaCodec.stop() exception: ${it.message}"), it)
+                log.w("VideoEncoder.$logTag", "Codec stop failed", it)
             }
             runCatching { encoder.release() }.onFailure {
-                XLog.w(this@VideoEncoder.getLog(logTag, "mediaCodec.release() exception: ${it.message}"), it)
+                log.w("VideoEncoder.$logTag", "Codec release failed", it)
             }
         }
 
@@ -213,19 +213,16 @@ internal class VideoEncoder(
         snapshot.handlerThread?.apply {
             quitSafely()
             runCatching { join(250) }.onFailure {
-                XLog.w(this@VideoEncoder.getLog(logTag, "handlerThread.join() interrupted"), it)
+                log.w("VideoEncoder.$logTag", "handlerThread.join() interrupted", it)
             }
             if (isAlive) {
-                XLog.w(this@VideoEncoder.getLog(logTag, "handlerThread.join() took too long, forcing a shutdown"))
+                log.w("VideoEncoder.$logTag", "handlerThread.join() took too long, forcing a shutdown")
                 quit()
                 runCatching { join(250) }.onFailure {
-                    XLog.w(this@VideoEncoder.getLog(logTag, "handlerThread forced join interrupted"), it)
+                    log.w("VideoEncoder.$logTag", "handlerThread forced join interrupted", it)
                 }
                 if (isAlive) {
-                    XLog.w(
-                        this@VideoEncoder.getLog(logTag, "handlerThread did not stop after forced shutdown"),
-                        IllegalStateException("VideoEncoder handlerThread still alive: name=$name, state=$state")
-                    )
+                    log.w("VideoEncoder.$logTag", "Worker still alive after forced shutdown: name=$name, state=$state")
                 }
             }
         }
@@ -238,17 +235,17 @@ internal class VideoEncoder(
 
     internal fun setBitrate(newBitrate: Int): Unit = synchronized(encoderLock) {
         if (currentState != State.RUNNING) {
-            XLog.w(getLog("setBitrate", "Ignoring setBitrate($newBitrate); not in RUNNING state."))
+            log.w("VideoEncoder.setBitrate", "Ignoring setBitrate($newBitrate); not in RUNNING state.")
             return
         }
         if (newBitrate <= 0) {
-            XLog.w(getLog("setBitrate", "Ignoring non-positive bitrate: $newBitrate"))
+            log.w("VideoEncoder.setBitrate", "Ignoring non-positive bitrate: $newBitrate")
             return
         }
         val bitrateRange = codecInfo.capabilities.videoCapabilities?.bitrateRange
         val bitrate = bitrateRange?.let { newBitrate.coerceIn(it.lower, it.upper) } ?: newBitrate
         if (bitrate != newBitrate) {
-            XLog.w(getLog("setBitrate", "Clamped bitrate $newBitrate -> $bitrate"))
+            log.w("VideoEncoder.setBitrate", "Clamped bitrate $newBitrate -> $bitrate")
         }
         if (lastBitrate == bitrate) return
         runCatching {
@@ -256,21 +253,21 @@ internal class VideoEncoder(
         }.onSuccess {
             lastBitrate = bitrate
         }.onFailure {
-            XLog.w(getLog("setBitrate", "Error while updating bitrate; codec in invalid state."), it)
+            log.w("VideoEncoder.setBitrate", "Error while updating bitrate; codec in invalid state.", it)
         }
     }
 
     internal fun requestKeyFrame(): Unit = synchronized(encoderLock) {
         if (currentState != State.RUNNING) {
-            XLog.w(getLog("requestKeyFrame", "Ignoring; encoder not RUNNING (state=$currentState)"))
+            log.w("VideoEncoder.requestKeyFrame", "Ignoring; encoder not RUNNING (state=$currentState)")
             return
         }
         runCatching {
             val bundle = Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0) }
             videoEncoder?.setParameters(bundle)
-            XLog.v(getLog("requestKeyFrame", "Sync frame requested"))
+            log.v("VideoEncoder.requestKeyFrame", "Sync frame requested")
         }.onFailure {
-            XLog.w(getLog("requestKeyFrame", "Failed: ${it.message}"), it)
+            log.w("VideoEncoder.requestKeyFrame", "Keyframe request failed", it)
         }
     }
 
@@ -346,26 +343,22 @@ internal class VideoEncoder(
                 onVideoFrame(videoFrame)
             }.onFailure { cause ->
                 if (!isCodecActive(codec)) {
-                    XLog.v(
-                        this@VideoEncoder.getLog(
-                            "CodecCallback.onOutputBufferAvailable",
-                            "Ignoring stale callback failure: ${cause.message}"
-                        )
+                    log.v(
+                        "VideoEncoder.CodecCallback.onOutputBufferAvailable",
+                        "Ignoring stale codec callback failure"
                     )
                     releaseOutputBufferSafely(codec, index)
                     return@onFailure
                 }
 
-                XLog.w(this@VideoEncoder.getLog("CodecCallback.onOutputBufferAvailable", "onFailure: ${cause.message}"), cause)
+                log.w("VideoEncoder.CodecCallback.onOutputBufferAvailable", "Codec callback failed", cause)
                 releaseOutputBufferSafely(codec, index)
                 if (isCodecActive(codec)) {
                     onError(cause)
                 } else {
-                    XLog.v(
-                        this@VideoEncoder.getLog(
-                            "CodecCallback.onOutputBufferAvailable",
-                            "Ignoring callback failure after stop/reconfigure"
-                        )
+                    log.v(
+                        "VideoEncoder.CodecCallback.onOutputBufferAvailable",
+                        "Ignoring callback failure after stop/reconfigure"
                     )
                 }
             }
@@ -373,10 +366,10 @@ internal class VideoEncoder(
 
         override fun onError(codec: MediaCodec, cause: MediaCodec.CodecException) {
             if (!isCodecActive(codec)) {
-                XLog.v(this@VideoEncoder.getLog("CodecCallback.onError", "Ignoring stale callback error: ${cause.message}"))
+                log.v("VideoEncoder.CodecCallback.onError", "Ignoring stale codec error")
                 return
             }
-            XLog.w(this@VideoEncoder.getLog("CodecCallback.onError", "onFailure: ${cause.message}"), cause)
+            log.w("VideoEncoder.CodecCallback.onError", "Codec callback failed", cause)
             onError(cause)
         }
 
@@ -405,7 +398,7 @@ internal class VideoEncoder(
                 Triple(sps, pps, vps)
             }
 
-            is Codec.Video.AV1 -> Av1Packet.extractObuSeq(this, bufferInfo)?.let { seqHeader ->
+            is Codec.Video.AV1 -> Av1Packet.extractObuSeq(log, this, bufferInfo)?.let { seqHeader ->
                 Triple(seqHeader, null, null)
             }
         }

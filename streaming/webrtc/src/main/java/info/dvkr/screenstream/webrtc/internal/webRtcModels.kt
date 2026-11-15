@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.webrtc.internal
 
 import android.util.Base64
-import info.dvkr.screenstream.common.randomString
 import org.webrtc.AudioTrack
 import org.webrtc.SessionDescription
 import org.webrtc.VideoTrack
@@ -115,4 +114,9 @@ internal data class ClientSessionKey(val clientId: ClientId, val joinAttemptId: 
 
 internal data class NegotiationKey(val session: ClientSessionKey, val attemptId: AttemptId) {
     val clientId: ClientId get() = session.clientId
+}
+
+private fun randomString(size: Int): String {
+    val symbols = "0123456789abcdefghijklmnopqrstuvwxyz"
+    return String(CharArray(size) { symbols.random() })
 }

@@ -11,7 +11,7 @@ android {
     namespace = "io.screenstream.capture"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
-    ndkVersion = "29.0.14206865"
+    ndkVersion = "30.0.16248370"
 
     defaultConfig {
         minSdk = 24

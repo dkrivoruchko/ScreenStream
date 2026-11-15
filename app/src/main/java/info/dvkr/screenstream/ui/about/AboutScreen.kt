@@ -1,5 +1,7 @@
 package info.dvkr.screenstream.ui.about
 
+import android.content.Intent
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
@@ -23,11 +25,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.app.AdMob
-import info.dvkr.screenstream.common.findActivity
-import info.dvkr.screenstream.common.getVersionName
-import info.dvkr.screenstream.common.openStringUrl
+import info.dvkr.screenstream.ads.AdMob
 import org.koin.compose.koinInject
 
 @Composable
@@ -57,8 +57,20 @@ internal fun AboutScreen(
         )
 
         val context = LocalContext.current
+        val activity = LocalActivity.current
+        fun openUrl(url: String): Boolean {
+            val intent = Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            return try {
+                context.startActivity(intent)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        val versionName = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "unknown"
         Text(
-            text = stringResource(id = R.string.app_tab_about_app_version, context.getVersionName()),
+            text = stringResource(id = R.string.app_tab_about_app_version, versionName),
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.titleMedium
         )
@@ -73,37 +85,37 @@ internal fun AboutScreen(
                 iconRes = R.drawable.star_rate_24px,
                 labelRes = R.string.app_tab_about_rate_app,
                 onClick = {
-                    context.openStringUrl("market://details?id=${context.packageName}") {
-                        context.openStringUrl("https://play.google.com/store/apps/details?id=${context.packageName}")
+                    if (!openUrl("market://details?id=${context.packageName}")) {
+                        openUrl("https://play.google.com/store/apps/details?id=${context.packageName}")
                     }
                 },
             )
             AboutActionButton(
                 iconRes = R.drawable.github,
                 labelRes = R.string.app_tab_about_app_sources,
-                onClick = { context.openStringUrl("https://github.com/dkrivoruchko/ScreenStream") },
+                onClick = { openUrl("https://github.com/dkrivoruchko/ScreenStream") },
             )
             AboutActionButton(
                 iconRes = R.drawable.receipt_long_24px,
                 labelRes = R.string.app_tab_about_terms_conditions,
-                onClick = { context.openStringUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/TermsConditions.md") },
+                onClick = { openUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/TermsConditions.md") },
             )
             AboutActionButton(
                 iconRes = R.drawable.privacy_tip_24px,
                 labelRes = R.string.app_tab_about_privacy_policy,
-                onClick = { context.openStringUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md") },
+                onClick = { openUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md") },
             )
             if (adMob.isPrivacyOptionsRequired) {
                 AboutActionButton(
                     iconRes = R.drawable.receipt_long_24px,
                     labelRes = R.string.app_tab_about_privacy_options,
-                    onClick = { adMob.showPrivacyOptionsForm(context.findActivity()) },
+                    onClick = { adMob.showPrivacyOptionsForm(activity ?: error("No Activity found from context")) },
                 )
             }
             AboutActionButton(
                 iconRes = R.drawable.license_24px,
                 labelRes = R.string.app_tab_about_license,
-                onClick = { context.openStringUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/LICENSE") },
+                onClick = { openUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/LICENSE") },
             )
         }
     }

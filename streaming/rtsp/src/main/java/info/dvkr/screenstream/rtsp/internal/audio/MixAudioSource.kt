@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import info.dvkr.screenstream.rtsp.internal.MasterClock
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -21,6 +22,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @RequiresApi(Build.VERSION_CODES.Q)
 internal class MixAudioSource(
+    log: Logger,
     audioParams: AudioSource.Params,
     audioSource: Int,
     mediaProjection: MediaProjection,
@@ -31,8 +33,8 @@ internal class MixAudioSource(
     private val intMixFactor: Float = 0.25f,
 ) : AudioSource {
 
-    private val microphone = MicrophoneSource(audioParams, audioSource, dispatcher, onAudioFrame = { pushToRing(it, micRing) }, onCaptureError)
-    private val internal = InternalAudioSource(audioParams, mediaProjection, dispatcher, onAudioFrame = { pushToRing(it, intRing) }, onCaptureError)
+    private val microphone = MicrophoneSource(log, audioParams, audioSource, dispatcher, onAudioFrame = { pushToRing(it, micRing) }, onCaptureError)
+    private val internal = InternalAudioSource(log, audioParams, mediaProjection, dispatcher, onAudioFrame = { pushToRing(it, intRing) }, onCaptureError)
 
     private val channels = if (audioParams.isStereo) 2 else 1
     private val chunkMs = 20

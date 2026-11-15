@@ -7,16 +7,16 @@ import android.media.projection.MediaProjection
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.AudioCodecInfo
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.MasterClock
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 import java.util.concurrent.ArrayBlockingQueue
 
 internal class AudioEncoder(
+    private val log: Logger,
     private val codecInfo: AudioCodecInfo,
     private val onAudioInfo: (AudioSource.Params) -> Unit,
     private val onAudioFrame: (MediaFrame.AudioFrame) -> Unit,
@@ -37,7 +37,7 @@ internal class AudioEncoder(
     private var currentState = State.IDLE
         set(value) {
             field = value
-            XLog.v(getLog("currentState", "State changed to: $value"))
+            log.v("AudioEncoder.currentState", "State changed to: $value")
         }
 
     private var audioSource: AudioSource? = null
@@ -65,20 +65,20 @@ internal class AudioEncoder(
                     synchronized(encoderLock) {
                         if (currentState != State.RUNNING) return@synchronized
                         if (!frameQueue.offer(audioFrame)) {
-                            XLog.w(getLog("start", "Audio frame queue is full. Dropping frame."))
+                            log.w("AudioEncoder.start", "Audio frame queue is full. Dropping frame.")
                         }
                     }
                 }
 
                 this.audioSource = when {
                     enableMic && enableDeviceAudio ->
-                        MixAudioSource(audioParams, audioSource, mediaProjection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
+                        MixAudioSource(log, audioParams, audioSource, mediaProjection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
 
                     enableMic ->
-                        MicrophoneSource(audioParams, audioSource, dispatcher, onAudioSourceFrame, onAudioCaptureError)
+                        MicrophoneSource(log, audioParams, audioSource, dispatcher, onAudioSourceFrame, onAudioCaptureError)
 
                     enableDeviceAudio ->
-                        InternalAudioSource(audioParams, mediaProjection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
+                        InternalAudioSource(log, audioParams, mediaProjection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
 
                     else -> null
                 }
@@ -148,13 +148,13 @@ internal class AudioEncoder(
 
     internal fun start(): Unit = synchronized(encoderLock) {
         if (audioSource == null) {
-            XLog.i(getLog("start", "No audioSource. Ignoring"))
+            log.i("AudioEncoder.start", "No audioSource. Ignoring")
             return
         }
-        XLog.v(getLog("start"))
+        log.v("AudioEncoder.start")
 
         if (currentState != State.PREPARED) {
-            XLog.w(getLog("start", "Cannot start unless state is PREPARED. Current: $currentState"))
+            log.w("AudioEncoder.start", "Cannot start unless state is PREPARED. Current: $currentState")
             return
         }
 
@@ -164,23 +164,23 @@ internal class AudioEncoder(
 
         currentState = State.RUNNING
 
-        XLog.v(getLog("start", "Done"))
+        log.v("AudioEncoder.start", "Done")
     }
 
     internal fun stop() {
-        XLog.v(getLog("stop"))
+        log.v("AudioEncoder.stop")
         if (stopInternal(force = false, logTag = "stopInternal").not()) return
-        XLog.v(getLog("stop", "Done"))
+        log.v("AudioEncoder.stop", "Done")
     }
 
     private fun stopInternal(force: Boolean, logTag: String): Boolean {
         val snapshot = synchronized(encoderLock) {
             if (audioSource == null && !force) {
-                XLog.i(getLog("stop", "No audioSource. Ignoring"))
+                log.i("AudioEncoder.stop", "No audioSource. Ignoring")
                 return@synchronized null
             }
             if (!force && (currentState == State.IDLE || currentState == State.STOPPED)) {
-                XLog.w(getLog("stop", "Cannot stop unless state is RUNNING. Current: $currentState"))
+                log.w("AudioEncoder.stop", "Cannot stop unless state is RUNNING. Current: $currentState")
                 return@synchronized null
             }
 
@@ -203,7 +203,7 @@ internal class AudioEncoder(
             stop()
             release()
         }?.onFailure {
-            XLog.w(this@AudioEncoder.getLog(logTag, "mediaCodec.stop() exception: ${it.message}"), it)
+            log.w("AudioEncoder.$logTag", "Codec stop failed", it)
         }
 
         snapshot.handler?.removeCallbacksAndMessages(null)
@@ -211,19 +211,16 @@ internal class AudioEncoder(
         snapshot.handlerThread?.apply {
             quitSafely()
             runCatching { join(250) }.onFailure {
-                XLog.w(this@AudioEncoder.getLog(logTag, "handlerThread.join() interrupted"), it)
+                log.w("AudioEncoder.$logTag", "handlerThread.join() interrupted", it)
             }
             if (isAlive) {
-                XLog.w(this@AudioEncoder.getLog(logTag, "handlerThread.join() took too long, forcing a shutdown"))
+                log.w("AudioEncoder.$logTag", "handlerThread.join() took too long, forcing a shutdown")
                 quit()
                 runCatching { join(250) }.onFailure {
-                    XLog.w(this@AudioEncoder.getLog(logTag, "handlerThread forced join interrupted"), it)
+                    log.w("AudioEncoder.$logTag", "handlerThread forced join interrupted", it)
                 }
                 if (isAlive) {
-                    XLog.w(
-                        this@AudioEncoder.getLog(logTag, "handlerThread did not stop after forced shutdown"),
-                        IllegalStateException("AudioEncoder handlerThread still alive: name=$name, state=$state")
-                    )
+                    log.w("AudioEncoder.$logTag", "Worker still alive after forced shutdown: name=$name, state=$state")
                 }
             }
         }
@@ -241,7 +238,7 @@ internal class AudioEncoder(
     }
 
     internal fun setMute(micMute: Boolean, deviceMute: Boolean) {
-        XLog.v(getLog("setMute", "micMute: $micMute, deviceMute: $deviceMute"))
+        log.v("AudioEncoder.setMute", "micMute: $micMute, deviceMute: $deviceMute")
         when (audioSource) {
             is MicrophoneSource -> (audioSource as MicrophoneSource).setMute(micMute)
             is InternalAudioSource -> (audioSource as InternalAudioSource).setMute(deviceMute)
@@ -250,7 +247,7 @@ internal class AudioEncoder(
     }
 
     internal fun setVolume(micVolume: Float, deviceVolume: Float) {
-        XLog.v(getLog("setVolume", "micVolume: $micVolume, deviceVolume: $deviceVolume"))
+        log.v("AudioEncoder.setVolume", "micVolume: $micVolume, deviceVolume: $deviceVolume")
         when (audioSource) {
             is MicrophoneSource -> (audioSource as MicrophoneSource).volume = micVolume
             is InternalAudioSource -> (audioSource as InternalAudioSource).volume = deviceVolume
@@ -291,20 +288,18 @@ internal class AudioEncoder(
                 }
             }.onFailure { cause ->
                 if (!isCallbackCodecActive(codec)) {
-                    XLog.v(
-                        this@AudioEncoder.getLog(
-                            "CodecCallback.onInputBufferAvailable",
-                            "Ignoring stale callback failure: ${cause.message}"
-                        )
+                    log.v(
+                        "AudioEncoder.CodecCallback.onInputBufferAvailable",
+                        "Ignoring stale codec callback failure"
                     )
                     return@onFailure
                 }
 
-                XLog.w(this@AudioEncoder.getLog("CodecCallback.onInputBufferAvailable", "onFailure: ${cause.message}"), cause)
+                log.w("AudioEncoder.CodecCallback.onInputBufferAvailable", "Codec callback failed", cause)
                 if (isCallbackCodecActive(codec)) {
                     onError(cause)
                 } else {
-                    XLog.v(this@AudioEncoder.getLog("CodecCallback.onInputBufferAvailable", "Ignoring callback failure after stop"))
+                    log.v("AudioEncoder.CodecCallback.onInputBufferAvailable", "Ignoring callback failure after stop")
                 }
             }
         }
@@ -346,38 +341,36 @@ internal class AudioEncoder(
                 onAudioFrame(audioFrame)
             }.onFailure { cause ->
                 if (!isCallbackCodecActive(codec)) {
-                    XLog.v(
-                        this@AudioEncoder.getLog(
-                            "CodecCallback.onOutputBufferAvailable",
-                            "Ignoring stale callback failure: ${cause.message}"
-                        )
+                    log.v(
+                        "AudioEncoder.CodecCallback.onOutputBufferAvailable",
+                        "Ignoring stale codec callback failure"
                     )
                     runCatching { codec.releaseOutputBuffer(index, false) }
                     return@onFailure
                 }
 
-                XLog.w(this@AudioEncoder.getLog("CodecCallback.onOutputBufferAvailable", "onFailure: ${cause.message}"), cause)
+                log.w("AudioEncoder.CodecCallback.onOutputBufferAvailable", "Codec callback failed", cause)
                 runCatching { codec.releaseOutputBuffer(index, false) }
                 if (isCallbackCodecActive(codec)) {
                     onError(cause)
                 } else {
-                    XLog.v(this@AudioEncoder.getLog("CodecCallback.onOutputBufferAvailable", "Ignoring callback failure after stop"))
+                    log.v("AudioEncoder.CodecCallback.onOutputBufferAvailable", "Ignoring callback failure after stop")
                 }
             }
         }
 
         override fun onError(codec: MediaCodec, cause: MediaCodec.CodecException) {
             if (!isCallbackCodecActive(codec)) {
-                XLog.v(this@AudioEncoder.getLog("CodecCallback.onError", "Ignoring stale callback error: ${cause.message}"))
+                log.v("AudioEncoder.CodecCallback.onError", "Ignoring stale codec error")
                 return
             }
-            XLog.w(this@AudioEncoder.getLog("CodecCallback.onError", "onFailure: ${cause.message}"), cause)
+            log.w("AudioEncoder.CodecCallback.onError", "Codec callback failed", cause)
             onError(cause)
         }
 
         override fun onOutputFormatChanged(codec: MediaCodec, format: MediaFormat) {
             if (!isCallbackCodecActive(codec)) return
-            XLog.i(this@AudioEncoder.getLog("CodecCallback.onOutputFormatChanged", "[Not handled] codec: $codec, format: $format"))
+            log.i("AudioEncoder.CodecCallback.onOutputFormatChanged", "Output format changed; ignoring")
         }
     }
 }

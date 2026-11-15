@@ -16,6 +16,7 @@ import info.dvkr.screenstream.rtsp.ui.RtspError
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.ServerSocket
 import io.ktor.network.sockets.aSocket
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class RtspServer(
+    private val log: Logger,
     private val appVersion: String,
     private val generation: Long,
     private val onEvent: (RtspStreamingService.InternalEvent) -> Unit,
@@ -201,6 +203,7 @@ internal class RtspServer(
                 }
 
                 val serverConnection = RtspServerConnection(
+                    log = log,
                     parentJob = scopeJob,
                     tcpStreamSocket = TcpStreamSocket(scope.coroutineContext, selectorManager, clientSocket),
                     serverMessageHandler = RtspServerMessageHandler(appVersion, boundSocket.advertisedHost, port, path),

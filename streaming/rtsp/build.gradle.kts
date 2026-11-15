@@ -24,12 +24,24 @@ android {
 }
 
 dependencies {
+    implementation(projects.analytics)
     implementation(projects.common)
+    implementation(projects.foundation)
     implementation(projects.streaming.core)
 
-    implementation(libs.koin.core)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.window)
+    implementation(libs.androidx.window.core)
+
+    implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.koin.compose)
     implementation(libs.koin.annotations)
 
-    implementation(libs.ktor.network)
     implementation(libs.ktor.network.tls)
 }

@@ -16,7 +16,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import info.dvkr.screenstream.app.AnchoredAdaptiveBanner
+import info.dvkr.screenstream.ads.AnchoredAdaptiveBanner
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.module.StreamingModule
 import org.koin.compose.koinInject

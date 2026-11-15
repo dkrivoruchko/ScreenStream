@@ -32,14 +32,14 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.computeWindowSizeClass
-import info.dvkr.screenstream.common.analytics.EntryPoint
-import info.dvkr.screenstream.common.analytics.SessionKey
-import info.dvkr.screenstream.common.analytics.StartFailGroup
-import info.dvkr.screenstream.common.analytics.StreamMode
-import info.dvkr.screenstream.common.analytics.StreamingAnalytics
-import info.dvkr.screenstream.common.analytics.StreamingAnalyticsEvent
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
+import io.screenstream.analytics.EntryPoint
+import io.screenstream.analytics.SessionKey
+import io.screenstream.analytics.StartFailGroup
+import io.screenstream.analytics.StreamMode
+import io.screenstream.analytics.StreamingAnalytics
+import io.screenstream.analytics.StreamingAnalyticsEvent
+import io.screenstream.analytics.StreamingSessionAnalyticsFactory
+import io.screenstream.analytics.StreamingSessionAnalyticsTracker
 import io.screenstream.core.StreamingKoinModule
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.capture.ConsentRequestObserver
@@ -305,7 +305,7 @@ internal class MjpegCaptureTestHost(
         }
 
         override fun beginConsent(key: SessionKey, streamMode: StreamMode, entryPoint: EntryPoint) =
-            StreamingSessionAnalyticsTracker(sink, streamMode, entryPoint)
+            StreamingSessionAnalyticsTracker(sink, streamMode, entryPoint) {}
 
         override fun preflightFailed(streamMode: StreamMode, entryPoint: EntryPoint, startFailGroup: StartFailGroup) = Unit
     }

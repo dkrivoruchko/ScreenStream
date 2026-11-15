@@ -3,9 +3,9 @@ package io.screenstream.core.settings
 import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
-import info.dvkr.screenstream.common.settings.JsonPreferencesStore
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.foundation.logging.Logger
+import io.screenstream.foundation.settings.JsonPreferencesStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred

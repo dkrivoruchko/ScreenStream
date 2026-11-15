@@ -22,16 +22,18 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
-import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.settings.AppSettings
 import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
 import io.screenstream.core.permission.RuntimePermissions
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 import info.dvkr.screenstream.common.R as CommonR
 
 private enum class PermissionPhase { Explanation, SystemDialog, Settings }
@@ -43,6 +45,7 @@ internal fun RuntimePermissionHost(
     content: @Composable () -> Unit,
 ) {
     val activity = checkNotNull(LocalActivity.current)
+    val log: Logger = koinInject(parametersHolder = remember(activity) { parametersOf(activity) })
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     // Only a new UI offers notifications; restored active/null state preserves the prior choice.
     var activePermission by rememberSaveable {
@@ -147,7 +150,7 @@ internal fun RuntimePermissionHost(
                 permissionLauncher.launch(arrayOf(permission.androidPermission))
             }
         } catch (failure: RuntimeException) {
-            XLog.e("Could not open permission UI for $permission", failure)
+            log.e("confirmPermissionRequest", "Could not open permission UI for $permission", failure)
             finishRequest()
         }
     }

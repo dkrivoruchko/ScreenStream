@@ -3,16 +3,15 @@ package info.dvkr.screenstream.webrtc.internal
 import android.content.Context
 import android.os.RemoteException
 import androidx.annotation.AnyThread
-import com.elvishew.xlog.XLog
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.StandardIntegrityException
 import com.google.android.play.core.integrity.StandardIntegrityManager
 import com.google.android.play.core.integrity.model.StandardIntegrityErrorCode
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
+import io.screenstream.foundation.logging.Logger
 import okhttp3.CacheControl
 import okhttp3.Call
 import okhttp3.Callback
@@ -21,7 +20,12 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 
-internal class PlayIntegrity(serviceContext: Context, private val environment: WebRtcEnvironment, private val okHttpClient: OkHttpClient) {
+internal class PlayIntegrity(
+    serviceContext: Context,
+    private val environment: WebRtcEnvironment,
+    private val okHttpClient: OkHttpClient,
+    private val log: Logger
+) {
 
     internal companion object {
         private const val PACKAGE_PLAY_STORE: String = "com.android.vending"
@@ -37,7 +41,7 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
     private val googleApiAvailability: GoogleApiAvailability = GoogleApiAvailability.getInstance()
 
     init {
-        XLog.d(getLog("init"))
+        log.d("PlayIntegrity.init")
         if (standardIntegrityManager == null) {
             standardIntegrityManager = IntegrityManagerFactory.createStandard(appContext)
         }
@@ -57,16 +61,16 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
                         else throw WebRtcError.NetworkError(it.code, it.message, null)
                     }
                 }.onFailure {
-                    XLog.w(this@PlayIntegrity.getLog("getNonce", "Read failed: ${it.message}"))
+                    log.w("PlayIntegrity.getNonce", "Nonce response read failed: type=${it.javaClass.simpleName}")
                     callback(Result.failure(if (it is WebRtcError.NetworkError) it else WebRtcError.NetworkError(0, it.message, it)))
                 }.onSuccess {
-                    XLog.d(this@PlayIntegrity.getLog("getNonce", "Got nonce"))
+                    log.d("PlayIntegrity.getNonce", "Got nonce")
                     callback(Result.success(it))
                 }
             }
 
             override fun onFailure(call: Call, e: IOException) {
-                XLog.w(this@PlayIntegrity.getLog("getNonce", "onFailure: ${e.message}"))
+                log.w("PlayIntegrity.getNonce", "Nonce request failed: type=${e.javaClass.simpleName}")
                 callback(Result.failure(WebRtcError.NetworkError(-1, e.message, e)))
             }
         })
@@ -78,7 +82,7 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
     }
 
     internal fun getToken(nonce: String, forceUpdate: Boolean, callback: Result<PlayIntegrityToken>.() -> Unit) {
-        XLog.d(getLog("getToken"))
+        log.d("PlayIntegrity.getToken")
 
         prepareIntegrityToken(forceUpdate) {
             onSuccess {
@@ -94,12 +98,12 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
         callback: Result<StandardIntegrityManager.StandardIntegrityTokenProvider>.() -> Unit
     ) {
         if (forceUpdate.not()) integrityTokenProvider?.let {
-            XLog.d(getLog("prepareIntegrityToken", "forceUpdate: $forceUpdate. Skipping"))
+            log.d("PlayIntegrity.prepareIntegrityToken", "forceUpdate: $forceUpdate. Skipping")
             callback(Result.success(it))
             return
         }
 
-        XLog.d(getLog("prepareIntegrityToken", "forceUpdate: $forceUpdate"))
+        log.d("PlayIntegrity.prepareIntegrityToken", "forceUpdate: $forceUpdate")
 
         val prepareTokenRequest = StandardIntegrityManager.PrepareIntegrityTokenRequest.builder()
             .setCloudProjectNumber(environment.cloudProjectNumber)
@@ -107,10 +111,13 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
 
         requireNotNull(standardIntegrityManager).prepareIntegrityToken(prepareTokenRequest)
             .addOnSuccessListener { tokenProvider -> // @MainThread
-                XLog.d(getLog("prepareIntegrityToken", "IntegrityTokenProvider updated"))
+                log.d("PlayIntegrity.prepareIntegrityToken", "IntegrityTokenProvider updated")
                 callback(Result.success(tokenProvider))
             }.addOnFailureListener { error -> // @MainThread
-                XLog.e(getLog("prepareIntegrityToken", "Failed: ${error.message}"))
+                log.e(
+                    "PlayIntegrity.prepareIntegrityToken",
+                    "Integrity request failed: type=${error.javaClass.simpleName}, code=${(error as? StandardIntegrityException)?.errorCode}",
+                )
                 val cause = when (error) {
                     is StandardIntegrityException -> error.toWebRtcError()
                     is RemoteException -> WebRtcError.PlayIntegrityError(StandardIntegrityErrorCode.INTERNAL_ERROR, true, error.message)
@@ -126,7 +133,7 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
         requestHash: String,
         callback: Result<PlayIntegrityToken>.() -> Unit
     ) {
-        XLog.d(getLog("getPlayIntegrityToken"))
+        log.d("PlayIntegrity.getPlayIntegrityToken")
 
         val tokenRequest = StandardIntegrityManager.StandardIntegrityTokenRequest.builder()
             .setRequestHash(requestHash)
@@ -135,10 +142,13 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
         tokenProvider.request(tokenRequest)
             .addOnSuccessListener { response -> // @MainThread
                 val integrityToken = PlayIntegrityToken(response.token())
-                XLog.d(getLog("getPlayIntegrityToken", "Success"))
+                log.d("PlayIntegrity.getPlayIntegrityToken", "Success")
                 callback(Result.success(integrityToken))
             }.addOnFailureListener { error -> // @MainThread
-                XLog.e(getLog("getPlayIntegrityToken", "Failed: ${error.message}"))
+                log.e(
+                    "PlayIntegrity.getPlayIntegrityToken",
+                    "Integrity request failed: type=${error.javaClass.simpleName}, code=${(error as? StandardIntegrityException)?.errorCode}",
+                )
                 val cause = when (error) {
                     is StandardIntegrityException -> error.toWebRtcError()
                     is RemoteException -> WebRtcError.PlayIntegrityError(StandardIntegrityErrorCode.INTERNAL_ERROR, true, error.message)

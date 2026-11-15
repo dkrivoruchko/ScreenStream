@@ -1,9 +1,9 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.packets
 
 import android.media.MediaCodec
-import android.util.Log
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
+import io.screenstream.foundation.logging.Logger
 import java.nio.ByteBuffer
 import kotlin.experimental.or
 
@@ -11,11 +11,10 @@ import kotlin.experimental.or
  * Implementation of AV1 over RTP based on
  * https://aomediacodec.github.io/av1-rtp-spec/
  */
-internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
+internal class Av1Packet(private val log: Logger) : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
 
     companion object {
         const val PAYLOAD_TYPE = 96
-        private const val TAG = "Av1Packet"
         private var warnedNoSizeField: Boolean = false
 
         private data class ParsedHeader(
@@ -26,11 +25,11 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         /**
          * Extracts the OBU of type SEQUENCE_HEADER from a keyframe if present.
          */
-        fun extractObuSeq(buffer: ByteBuffer, bufferInfo: MediaCodec.BufferInfo): ByteArray? {
+        fun extractObuSeq(log: Logger, buffer: ByteBuffer, bufferInfo: MediaCodec.BufferInfo): ByteArray? {
             if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME == 0) return null
             val dup = buffer.duplicate()
             val av1Data = ByteArray(dup.remaining()).also { dup.get(it) }
-            return getObus(av1Data)
+            return getObus(log, av1Data)
                 .firstOrNull { getObuType(it.header[0]) == ObuType.SEQUENCE_HEADER }
                 ?.getFullData()
         }
@@ -46,26 +45,26 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         /**
          * Parses a raw AV1 byte array to extract OBUs in sequence.
          */
-        private fun getObus(av1Data: ByteArray): List<Obu> {
+        private fun getObus(log: Logger, av1Data: ByteArray): List<Obu> {
             val obuList = mutableListOf<Obu>()
             var index = 0
 
             while (index < av1Data.size) {
-                val parsedHeader = parseHeader(av1Data, index) ?: break
+                val parsedHeader = parseHeader(log, av1Data, index) ?: break
                 index += parsedHeader.header.size
                 if (index >= av1Data.size) break
 
                 val (obuPayloadSize, leb128BytesUsed, lebBytes) = if (parsedHeader.hasSizeField) {
-                    val (leb128Size, bytesUsed) = readLeb128(av1Data, index)
+                    val (leb128Size, bytesUsed) = readLeb128(log, av1Data, index)
                     // Negative means malformed LEB128 or out-of-bounds
                     if (leb128Size < 0) {
-                        Log.e(TAG, "Malformed or out-of-bounds LEB128. Stopping OBU parsing.")
+                        log.e("Av1Packet", "Malformed or out-of-bounds LEB128. Stopping OBU parsing.")
                         break
                     }
                     Triple(leb128Size.toInt(), bytesUsed, av1Data.sliceArray(index until index + bytesUsed))
                 } else {
                     if (!warnedNoSizeField) {
-                        Log.w(TAG, "OBU has no size field; treating remainder as a single OBU.")
+                        log.w("Av1Packet", "OBU has no size field; treating remainder as a single OBU.")
                         warnedNoSizeField = true
                     }
                     Triple(av1Data.size - index, 0, null)
@@ -76,7 +75,7 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
 
                 // Check that the OBU data fits in the remaining buffer
                 if (obuPayloadSize > av1Data.size - index) {
-                    Log.e(TAG, "OBU size exceeds remaining buffer. Stopping OBU parsing.")
+                    log.e("Av1Packet", "OBU size exceeds remaining buffer. Stopping OBU parsing.")
                     break
                 }
 
@@ -95,7 +94,7 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         /**
          * Reads the OBU header (1 or 2 bytes, depending on extension_flag).
          */
-        private fun parseHeader(av1Data: ByteArray, offset: Int): ParsedHeader? {
+        private fun parseHeader(log: Logger, av1Data: ByteArray, offset: Int): ParsedHeader? {
             if (offset >= av1Data.size) return null
             val info = av1Data[offset].toInt() and 0xFF
             // extension_flag is bit 2 from the right: (info >> 2) & 0x01
@@ -103,7 +102,7 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
             val hasSizeField = ((info ushr 1) and 0x01) == 1
             val headerLen = if (containExtended) 2 else 1
             if (offset + headerLen > av1Data.size) {
-                Log.e(TAG, "Truncated OBU header at offset $offset.")
+                log.e("Av1Packet", "Truncated OBU header at offset $offset.")
                 return null
             }
             val header = if (headerLen == 2) byteArrayOf(av1Data[offset], av1Data[offset + 1]) else byteArrayOf(av1Data[offset])
@@ -114,14 +113,14 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
          * Reads a variable-length integer in LEB128 format, up to 8 bytes.
          * Returns Pair(value, bytesUsed). A negative value indicates malformed data.
          */
-        private fun readLeb128(data: ByteArray, offset: Int): Pair<Long, Int> {
+        private fun readLeb128(log: Logger, data: ByteArray, offset: Int): Pair<Long, Int> {
             var result: Long = 0
             var index = 0
             var shift = 0
             while (true) {
                 if (offset + index >= data.size) {
                     // No more data to read => malformed
-                    Log.e(TAG, "Unexpected end of data while reading LEB128.")
+                    log.e("Av1Packet", "Unexpected end of data while reading LEB128.")
                     return Pair(-1, index)
                 }
                 val b = data[offset + index]
@@ -134,7 +133,7 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
 
                 // If we've read 8 bytes and still haven't encountered a stop bit, treat as malformed
                 if (index >= 8) {
-                    Log.e(TAG, "Malformed LEB128: exceeded 8 bytes without stop bit.")
+                    log.e("Av1Packet", "Malformed LEB128: exceeded 8 bytes without stop bit.")
                     return Pair(-1, index)
                 }
             }
@@ -200,7 +199,7 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         // Do not manually skip TD; parser below will remove TD OBUs safely
 
         // Parse OBUs and keep structured header/leb/payload
-        val parsedObus = getObus(src.toByteArray()).filter { getObuType(it.header[0]) != ObuType.TEMPORAL_DELIMITER }
+        val parsedObus = getObus(log, src.toByteArray()).filter { getObuType(it.header[0]) != ObuType.TEMPORAL_DELIMITER }
         if (parsedObus.isEmpty()) return emptyList()
 
         // Transform to RTP wire-form per RFC: clear HAS_SIZE_FIELD and drop OBU-size LEB for each OBU
@@ -374,13 +373,13 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
 
     fun setSequenceHeader(obuFull: ByteArray) {
         if (obuFull.isEmpty()) return
-        val parsedHeader = parseHeader(obuFull, 0) ?: return
+        val parsedHeader = parseHeader(log, obuFull, 0) ?: return
         val header = parsedHeader.header.copyOf()
         var payloadOffset = parsedHeader.header.size
         var payloadSize = obuFull.size - payloadOffset
 
         if (parsedHeader.hasSizeField) {
-            val (leb128Size, lebBytesUsed) = readLeb128(obuFull, payloadOffset)
+            val (leb128Size, lebBytesUsed) = readLeb128(log, obuFull, payloadOffset)
             if (leb128Size < 0) return
             payloadOffset += lebBytesUsed
             if (payloadOffset > obuFull.size) return

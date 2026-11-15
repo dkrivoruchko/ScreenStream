@@ -12,7 +12,7 @@ This guide follows a value from an editor to the running stream: the saved model
 | --- | --- | --- |
 | [`MjpegSettings`](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettings.kt) | Owns the store, the save transaction and the edit-policy rules | Process singleton |
 | [Settings models](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) | Define the five groups, their defaults, local validation and saved encoding | Immutable values |
-| Shared [`JsonPreferencesStore`](../../../../common/src/main/java/info/dvkr/screenstream/common/settings/JsonPreferencesStore.kt) | Keeps the model as JSON in a Preferences DataStore and recovers from unreadable data | Owned by `MjpegSettings` |
+| Shared [`JsonPreferencesStore`](../../../../foundation/src/main/kotlin/io/screenstream/foundation/settings/JsonPreferencesStore.kt) | Keeps the model as JSON in a Preferences DataStore and recovers from unreadable data | Owned by `MjpegSettings` |
 | Settings editors (`ui/settings`) | Hold drafts and save changed fields | One settings screen; drafts survive UI recreation |
 | `MjpegStreamingModuleController` | Decides which saved values take effect and hands them to their owners | One module instance |
 | HTTP delivery | Creates viewing credentials from the applied access settings | One module instance |
@@ -196,4 +196,4 @@ Seeing defaults does not always mean storage holds defaults. After a failed repa
 
 ## Implementation and verification
 
-The [models](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) own defaults, validation and encoding. [`MjpegSettings`](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettings.kt) owns the transaction and the edit-policy mapping. The shared [JSON store](../../../../common/src/main/java/info/dvkr/screenstream/common/settings/JsonPreferencesStore.kt) owns repair behavior. [Settings scenarios](../03-testing/scenarios/01-settings.md) describe the required histories, and [Testing](../03-testing/01-testing.md) defines the evidence a settings change needs.
+The [models](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) own defaults, validation and encoding. [`MjpegSettings`](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettings.kt) owns the transaction and the edit-policy mapping. The shared [JSON store](../../../../foundation/src/main/kotlin/io/screenstream/foundation/settings/JsonPreferencesStore.kt) owns repair behavior. [Settings scenarios](../03-testing/scenarios/01-settings.md) describe the required histories, and [Testing](../03-testing/01-testing.md) defines the evidence a settings change needs.

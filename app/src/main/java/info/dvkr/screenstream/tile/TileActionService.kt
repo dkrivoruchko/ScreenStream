@@ -12,11 +12,10 @@ import android.os.IBinder
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
-import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.SingleActivity
-import info.dvkr.screenstream.common.getLog
 import io.screenstream.core.StreamingModuleManager
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,12 +26,14 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.get
+import org.koin.android.ext.android.inject
+import org.koin.core.parameter.parametersOf
 
 public class TileActionService : TileService() {
 
     internal companion object {
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        internal fun showAddTileRequest(context: Context) {
+        internal fun showAddTileRequest(context: Context, log: Logger) {
             val statusBarManager = context.getSystemService(StatusBarManager::class.java)
             statusBarManager.requestAddTileService(
                 ComponentName(context, TileActionService::class.java),
@@ -40,11 +41,12 @@ public class TileActionService : TileService() {
                 Icon.createWithResource(context, R.drawable.ic_tile_24dp),
                 { it?.run() }
             ) {
-                XLog.d(getLog("TileActionService", "showAddTileRequest: $it"))
+                log.d("TileActionService", "showAddTileRequest: $it")
             }
         }
     }
 
+    private val log: Logger by inject { parametersOf(this) }
     private var streamingModulesManager: StreamingModuleManager? = null
     private var coroutineScope: CoroutineScope? = null
 
@@ -80,7 +82,7 @@ public class TileActionService : TileService() {
                     updateTile()
                 }
             }
-            .catch { XLog.i(getLog("TileActionService", "onStartListening: ${it.message}"), it) }
+            .catch { log.i("TileActionService", "onStartListening: ${it.message}", it) }
             .launchIn(CoroutineScope(Job() + Dispatchers.Main.immediate).also { coroutineScope = it })
     }
 

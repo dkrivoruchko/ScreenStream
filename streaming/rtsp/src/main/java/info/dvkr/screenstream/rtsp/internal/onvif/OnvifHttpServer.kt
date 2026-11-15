@@ -1,7 +1,5 @@
 package info.dvkr.screenstream.rtsp.internal.onvif
 
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.RtspServerEndpoint
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import io.ktor.network.selector.SelectorManager
@@ -15,6 +13,7 @@ import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.readFully
 import io.ktor.utils.io.readLine
 import io.ktor.utils.io.writeStringUtf8
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -31,6 +30,7 @@ import kotlin.time.Duration.Companion.seconds
 import io.ktor.network.sockets.InetSocketAddress as KtorInetSocketAddress
 
 internal class OnvifHttpServer(
+    private val log: Logger,
     private val deviceInfo: OnvifDeviceInfo,
     private val protocolPolicy: RtspSettings.Values.ProtocolPolicy,
 ) {
@@ -85,7 +85,7 @@ internal class OnvifHttpServer(
                 acceptLoop(clientScope, serverSocket, serviceEndpoint)
             }
 
-            XLog.d(getLog("OnvifHttpServer", "Listening on ${endpoint.bindHost}:${serviceEndpoint.deviceServicePort}"))
+            log.d("OnvifHttpServer", "Listening on ${endpoint.bindHost}:${serviceEndpoint.deviceServicePort}")
             serviceEndpoint
         }
     }
@@ -111,10 +111,10 @@ internal class OnvifHttpServer(
         return runCatching {
             tcp.bind(endpoint.bindHost, PREFERRED_DEVICE_SERVICE_PORT) { reuseAddress = true }
         }.recoverCatching { firstError ->
-            XLog.w(getLog("OnvifHttpServer", "Port $PREFERRED_DEVICE_SERVICE_PORT unavailable on ${endpoint.bindHost}: ${firstError.message}"))
+            log.w("OnvifHttpServer", "Port $PREFERRED_DEVICE_SERVICE_PORT unavailable: ${firstError.javaClass.simpleName}")
             tcp.bind(endpoint.bindHost, 0) { reuseAddress = true }
         }.onFailure { error ->
-            XLog.w(getLog("OnvifHttpServer", "Failed to bind ${endpoint.bindHost}: ${error.message}"), error)
+            log.w("OnvifHttpServer", "Bind failed", error)
         }.getOrNull()
     }
 
@@ -152,7 +152,7 @@ internal class OnvifHttpServer(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
-                    XLog.w(getLog("OnvifHttpServer", "HTTP request failed: ${error.message}"), error)
+                    log.w("OnvifHttpServer", "HTTP request failed: ${error.javaClass.simpleName}")
                 } finally {
                     activeSocketsMutex.withLock { activeSockets -= socket }
                     runCatching { socket.close() }
@@ -166,27 +166,27 @@ internal class OnvifHttpServer(
         val requestLineParts = requestLine.split(' ', limit = 3)
         val method = requestLineParts.getOrNull(0).orEmpty()
         val path = requestLineParts.getOrNull(1)?.substringBefore('?').orEmpty()
-        XLog.v(getLog("OnvifHttpServer", "HTTP request: $method $path"))
+        log.v("OnvifHttpServer", "Request received")
         if ((method != "POST") || (path != endpoint.deviceServicePath)) {
-            XLog.d(getLog("OnvifHttpServer", "HTTP response: $method $path -> 404 Not Found"))
+            log.d("OnvifHttpServer", "HTTP 404: unsupported method or path")
             return sendHttpResponse(writeChannel, 404, "Not Found", "")
         }
 
         val contentLength = readChannel.readContentLength(requestLine.length + 2)
         if (contentLength <= 0) {
-            XLog.d(getLog("OnvifHttpServer", "HTTP response: POST $path -> 404 Not Found, empty body"))
+            log.d("OnvifHttpServer", "HTTP 404: empty body")
             return sendHttpResponse(writeChannel, 404, "Not Found", "")
         }
         if (contentLength > MAX_HTTP_BODY_BYTES) {
-            XLog.d(getLog("OnvifHttpServer", "HTTP response: POST $path -> 413 Payload Too Large, contentLength=$contentLength"))
+            log.d("OnvifHttpServer", "HTTP 413: bodyBytes=$contentLength")
             return sendHttpResponse(writeChannel, 413, "Payload Too Large", "")
         }
-        XLog.v(getLog("OnvifHttpServer", "HTTP body: path=$path contentLength=$contentLength"))
+        log.v("OnvifHttpServer", "Reading bodyBytes=$contentLength")
 
         val requestBody = try {
             ByteArray(contentLength).also { readChannel.readFully(it, 0, contentLength) }.toString(Charsets.UTF_8)
         } catch (_: EOFException) {
-            XLog.d(getLog("OnvifHttpServer", "HTTP client disconnected while reading body: contentLength=$contentLength"))
+            log.d("OnvifHttpServer", "HTTP client disconnected while reading body: contentLength=$contentLength")
             return
         }
         val metadata = videoMetadata.get()
@@ -250,14 +250,9 @@ internal class OnvifHttpServer(
         val isFault = soapResponse.contains("<env:Fault>")
         val statusCode = if (isFault) 500 else 200
         val statusText = if (isFault) "Internal Server Error" else "OK"
-        XLog.d(
-            getLog(
-                "OnvifHttpServer",
-                buildString {
-                    append("SOAP response: action=$action status=$statusCode responseBytes=${soapResponse.toByteArray(Charsets.UTF_8).size}")
-                    faultReason?.let { append(" fault=\"$it\"") }
-                }
-            )
+        log.d(
+            "OnvifHttpServer",
+            "SOAP $action: HTTP $statusCode, bytes=${soapResponse.toByteArray(Charsets.UTF_8).size}, fault=${faultReason ?: "none"}"
         )
         sendHttpResponse(writeChannel, statusCode, statusText, soapResponse)
     }

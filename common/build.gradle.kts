@@ -1,8 +1,6 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.koin.compiler)
 }
 
 kotlin {
@@ -25,27 +23,8 @@ android {
 }
 
 dependencies {
-    api(libs.kotlinReflect)
-    api(libs.kotlinx.coroutines.android)
-    api(libs.kotlinx.serialization.json)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
 
-    api(libs.androidx.core.ktx)
-    api(libs.androidx.activity.compose)
-    api(libs.androidx.fragment)
-    api(libs.androidx.appcompat)
-    api(libs.androidx.lifecycle.runtime.compose)
-    api(libs.androidx.lifecycle.viewmodel.compose)
-    api(libs.androidx.window)
-    api(libs.androidx.datastore.preferences)
-
-    api(platform(libs.androidx.compose.bom))
-    api(libs.androidx.compose.ui)
-    api(libs.androidx.compose.material3)
-    api(libs.androidx.compose.material3.window)
-
-    api(libs.koin.android.compose)
-    implementation(libs.koin.core)
-    implementation(libs.koin.annotations)
-
-    api(libs.xlog)
+    implementation(libs.androidx.core)
 }

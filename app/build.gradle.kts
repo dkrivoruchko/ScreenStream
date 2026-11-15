@@ -122,29 +122,44 @@ tasks.configureEach {
 dependencies {
     coreLibraryDesugaring(libs.android.tools.desugar)
 
+    implementation(projects.analytics)
     implementation(projects.common)
     implementation(projects.foundation)
     implementation(projects.streaming.core)
-
-    implementation(libs.koin.core)
-    implementation(libs.koin.annotations)
-    implementation(libs.kermit)
-
-    implementation(libs.androidx.core.splashscreen)
-    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
-    implementation(libs.androidx.compose.material3.adaptive.layout)
-    implementation(libs.androidx.compose.material3.adaptive.navigation3)
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.androidx.navigation3.ui)
-
     implementation(projects.streaming.mjpeg)
     implementation(projects.streaming.rtsp)
+
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.window.core)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+    implementation(libs.androidx.compose.material3.adaptive.navigation3)
+
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.core)
+
+    implementation(libs.koin.compose)
+    implementation(libs.koin.annotations)
+
+    implementation(libs.kermit)
 
     "PlayStoreImplementation"(projects.streaming.webrtc)
     "PlayStoreImplementation"(libs.play.app.update)
     "PlayStoreImplementation"(libs.play.app.review)
     "PlayStoreImplementation"(libs.ads.mobile.sdk)
-    "PlayStoreImplementation"(libs.androidx.work.runtime) // Override the old transitive WorkManager from ads-mobile-sdk.
+    "PlayStoreImplementation"(libs.user.messaging.platform)
+    // Ads SDK 1.6.0 schedules CONNECTED offline pings using WorkManager 2.7.
+    // WorkManager 2.11.2+ fixes blocked background-network tracking on Android 15+.
+    // Remove this override when the ads SDK requires WorkManager 2.11.2 or newer.
+    "PlayStoreImplementation"(libs.androidx.work.runtime)
     "PlayStoreImplementation"(platform(libs.firebase.bom))
     "PlayStoreImplementation"(libs.firebase.analytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics)

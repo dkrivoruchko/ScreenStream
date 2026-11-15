@@ -26,11 +26,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.util.toClosedRange
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.layout.WindowMetricsCalculator
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
-import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.getVersionName
-import info.dvkr.screenstream.common.isLocalNetworkPermissionGranted
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.RtspModuleService
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.adjustResizeFactor
@@ -52,11 +47,14 @@ import info.dvkr.screenstream.rtsp.ui.RtspError
 import info.dvkr.screenstream.rtsp.ui.RtspMainScreenUI
 import info.dvkr.screenstream.rtsp.ui.RtspState
 import info.dvkr.screenstream.rtsp.ui.isStartupPolicyError
+import io.screenstream.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ConsentLaunchException
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.manager.StreamingModuleActionReceiver
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
+import io.screenstream.core.permission.RuntimePermission
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
@@ -85,6 +83,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.InjectedParam
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.net.URISyntaxException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
@@ -98,10 +99,11 @@ internal class RtspStreamingService(
     private val settings: Lazy<RtspSettings>,
     private val networkHelper: NetworkHelper,
     analyticsFactory: StreamingSessionAnalyticsFactory,
-) : HandlerThread("RTSP-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback, StreamingModule.Controller {
+) : HandlerThread("RTSP-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback, StreamingModule.Controller, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
 
     private val rtspSettings: RtspSettings get() = settings.value
-    private val appVersion = service.getVersionName()
+    private val appVersion = runCatching { service.packageManager.getPackageInfo(service.packageName, 0).versionName }.getOrNull() ?: "unknown"
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
     private val mainHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("RTSP-HT_Dispatcher") }
@@ -112,7 +114,7 @@ internal class RtspStreamingService(
     private val rtspStateFlow = mutableRtspStateFlow.asStateFlow()
     private val admissionGate = Any()
     private val errorGate = Any()
-    private val sessionAnalytics = RtspSessionAnalytics(analyticsFactory)
+    private val sessionAnalytics = RtspSessionAnalytics(analyticsFactory, log)
 
     @Volatile
     private var closing = false
@@ -131,7 +133,7 @@ internal class RtspStreamingService(
     private val cleanupResult: Deferred<Boolean> = CoroutineScope(Dispatchers.Default).async(start = CoroutineStart.LAZY) {
         var succeeded = true
         if (synchronized(admissionGate) { workerStarted }) {
-            runCatching { destroyWorker() }.onFailure { succeeded = false; XLog.e(getLog("cleanup"), it) }
+            runCatching { destroyWorker() }.onFailure { succeeded = false; log.e("cleanup", cause = it) }
         }
         val serviceStopped = runCatching { service.stopAndAwaitDestruction() }.getOrDefault(false)
         succeeded && serviceStopped && !cleanupFailed
@@ -420,13 +422,13 @@ internal class RtspStreamingService(
                 event !is InternalEvent.RtspServer.OnvifDiscoveryChanged &&
                 event.generation != generation
             ) {
-                XLog.d(getLog("RtspServer:${event::class.simpleName}", "Stale generation=${event.generation}. Ignoring."))
+                log.d("RtspServer:${event::class.simpleName}", "Stale generation=${event.generation}. Ignoring.")
                 return
             }
 
             when (event) {
                 is InternalEvent.RtspServer.DiscoverAddress -> {
-                    if (service.isLocalNetworkPermissionGranted().not()) {
+                    if (RuntimePermission.LocalNetwork.isGranted(service).not()) {
                         clearServer()
                         currentError = RtspError.LocalNetworkPermissionRequired()
                         return
@@ -442,7 +444,7 @@ internal class RtspStreamingService(
                             rtspSettings.data.value.enableIPv6,
                         )
 
-                        XLog.d(getLog("DiscoverAddress", "${netInterfaces.size} interfaces discovered (${event.reason})"))
+                        log.d("DiscoverAddress", "${netInterfaces.size} interfaces discovered (${event.reason})")
 
                         if (netInterfaces.isEmpty()) {
                             if (event.attempt < 4) {
@@ -451,7 +453,7 @@ internal class RtspStreamingService(
                                     1000
                                 )
                             } else {
-                                XLog.w(getLog("RtspServer", "No interfaces to bind. Stopping stream and give up."))
+                                log.w("RtspServer", "No interfaces to bind. Stopping stream and give up.")
                                 stopStream(true)
                                 currentError = RtspError.ServerError.AddressNotFoundException()
                             }
@@ -478,6 +480,7 @@ internal class RtspStreamingService(
                                 val admittedGeneration = ++serverGeneration
                                 generation = admittedGeneration
                                 server = RtspServer(
+                                    log = log,
                                     appVersion = appVersion,
                                     generation = admittedGeneration,
                                     onEvent = {
@@ -486,7 +489,7 @@ internal class RtspStreamingService(
                                                 captureAttempt?.consentReuseIneligible = true
                                             }
                                         }
-                                        XLog.d(getLog("RtspServer.onEvent", it.toString()))
+                                        log.d("RtspServer.onEvent", "${it.javaClass.simpleName}, generation=$admittedGeneration")
                                         sendEvent(it)
                                     },
                                     onRequestKeyFrame = {
@@ -507,10 +510,10 @@ internal class RtspStreamingService(
                                 server?.setAudioData(params)
                             }
 
-                            XLog.d(getLog("RtspServer", "(Re)start on ${netInterfaces.size} interfaces, protocol=$protocolPolicy"))
+                            log.d("RtspServer", "(Re)start on ${netInterfaces.size} interfaces, protocol=$protocolPolicy")
                         }
                     }.onFailure {
-                        XLog.w(getLog("DiscoverAddress", "Failed: ${it.message}"), it)
+                        log.w("DiscoverAddress", "Address discovery failed", it)
                         stopStream(true)
                         currentError = RtspError.UnknownError(it)
                     }
@@ -521,6 +524,7 @@ internal class RtspStreamingService(
                     isActive = true
                     currentError = null
                     onvifServer = OnvifServer(
+                        log = log,
                         context = service,
                         deviceId = rtspSettings.data.value.onvifDeviceId,
                         appVersion = appVersion,
@@ -631,7 +635,7 @@ internal class RtspStreamingService(
         private var generation: Long = ++clientGeneration
 
         fun startClient(rtspUrl: RtspUrl, protocol: RtspSettings.Values.ProtocolPolicy, onlyVideo: Boolean, attempt: CaptureAttempt) {
-            if (service.isLocalNetworkPermissionGranted().not()) {
+            if (RuntimePermission.LocalNetwork.isGranted(service).not()) {
                 stop()
                 currentError = RtspError.LocalNetworkPermissionRequired()
                 status = RtspClientStatus.ERROR
@@ -642,12 +646,12 @@ internal class RtspStreamingService(
                 if (!isAttemptCurrent(attempt)) return
                 val admittedGeneration = ++clientGeneration
                 generation = admittedGeneration
-                client = RtspClient(appVersion, admittedGeneration, rtspUrl, protocol, onlyVideo) { event ->
+                client = RtspClient(log, appVersion, admittedGeneration, rtspUrl, protocol, onlyVideo) { event ->
                     if (generation == admittedGeneration && (event is InternalEvent.Error || event is InternalEvent.RtspClient.OnError)) {
                         invalidateConsentReuse(attempt.id)
                     }
                     if (!closing && managerHandle.isCurrent() && generation == admittedGeneration) {
-                        XLog.d(getLog("RtspClient.sendEvent", event.toString()))
+                        log.d("RtspClient.sendEvent", event.javaClass.simpleName)
                         sendEvent(if (event is InternalEvent.Error) event.copy(attempt = attempt.id) else event)
                     }
                 }
@@ -655,7 +659,7 @@ internal class RtspStreamingService(
         }
 
         fun connect(attempt: CaptureAttempt) {
-            if (service.isLocalNetworkPermissionGranted().not()) {
+            if (RuntimePermission.LocalNetwork.isGranted(service).not()) {
                 stop()
                 currentError = RtspError.LocalNetworkPermissionRequired()
                 status = RtspClientStatus.ERROR
@@ -682,7 +686,7 @@ internal class RtspStreamingService(
 
         suspend fun onEvent(event: InternalEvent.RtspClient) {
             if (event.generation != generation) {
-                XLog.d(getLog("RtspClient:${event::class.simpleName}", "Stale generation=${event.generation}. Ignoring."))
+                log.d("RtspClient:${event::class.simpleName}", "Stale generation=${event.generation}. Ignoring.")
                 return
             }
 
@@ -722,12 +726,15 @@ internal class RtspStreamingService(
 
     internal sealed class InternalEvent(priority: Int) : RtspEvent(priority) {
         data class InitState(val mode: RtspSettings.Values.Mode) : InternalEvent(Priority.DESTROY_IGNORE)
-        data class OnVideoCodecChange(val autoSelect: Boolean, val name: String, val profile: RtspSettings.Values.H264Profile) : InternalEvent(Priority.DESTROY_IGNORE)
+        data class OnVideoCodecChange(val autoSelect: Boolean, val name: String, val profile: RtspSettings.Values.H264Profile) :
+            InternalEvent(Priority.DESTROY_IGNORE)
+
         data class OnVideoProfile(
             val codec: MediaCodec,
             val profileIdc: Int?,
             val attempt: StreamingModule.CaptureAttemptId,
         ) : InternalEvent(Priority.DESTROY_IGNORE)
+
         data class OnAudioCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class ModeChanged(val mode: RtspSettings.Values.Mode) : InternalEvent(Priority.RECOVER_IGNORE)
         data class StartStream(val clearStartupPolicyError: Boolean = false, val expectedErrorToken: Uuid? = null) : InternalEvent(Priority.RECOVER_IGNORE)
@@ -808,13 +815,13 @@ internal class RtspStreamingService(
     }
 
     init {
-        XLog.d(getLog("init"))
+        log.d("init")
     }
 
     @MainThread
     override fun start() {
         super.start()
-        XLog.d(getLog("start"))
+        log.d("start")
 
         mutableRtspStateFlow.value = buildViewState()
         sendEvent(InternalEvent.Heartbeat)
@@ -823,7 +830,8 @@ internal class RtspStreamingService(
             distinctUntilChanged().drop(drop).onEach { action(it) }.launchIn(scope)
 
         service.startListening(
-            supervisorJob,
+            log = log,
+            serviceJob = supervisorJob,
             onScreenOff = {
                 if (rtspSettings.data.value.stopOnSleep) captureAttempt?.let { sendEvent(RtspEvent.StopStream("ScreenOff", it.id)) }
             },
@@ -868,8 +876,8 @@ internal class RtspStreamingService(
                 serverPath = it.serverPath,
                 serverProtocol = it.serverProtocol
             )
-        }.listenForChange(coroutineScope, 1) { config ->
-            XLog.i(getLog("SettingsChanged", config.toString()))
+        }.listenForChange(coroutineScope, 1) {
+            log.i("SettingsChanged", "Server binding settings changed")
             sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "SettingsChanged"), timeout = 200)
         }
 
@@ -913,13 +921,13 @@ internal class RtspStreamingService(
                 is InternalEvent.StartStream,
                 is RtspEvent.StartProjection -> Unit
             }
-            XLog.w(getLog("sendEvent", "Pending destroy: Ignoring event => $event"))
+            log.w("sendEvent", "Pending destroy: Ignoring ${event.javaClass.simpleName}")
             return
         }
         if (event is InternalEvent.Destroy) destroyPending = true
 
-        if (timeout > 0) XLog.d(getLog("sendEvent", "New event [Timeout: $timeout] => $event"))
-        else XLog.v(getLog("sendEvent", "New event => $event"))
+        if (timeout > 0) log.d("sendEvent", "${event.javaClass.simpleName}, delayMs=$timeout")
+        else log.v("sendEvent", event.javaClass.simpleName)
 
         if (event is InternalEvent.RtspServer.DiscoverAddress) {
             handler.removeMessages(RtspEvent.Priority.RESTART_IGNORE)
@@ -932,13 +940,13 @@ internal class RtspStreamingService(
         }
         if (event is RtspEvent.StartProjection) {
             if (handler.hasMessages(RtspEvent.Priority.START_PROJECTION)) {
-                XLog.i(getLog("sendEvent", "Replacing pending StartProjection"))
+                log.i("sendEvent", "Replacing pending StartProjection")
             }
             handler.removeMessages(RtspEvent.Priority.START_PROJECTION)
         }
 
         val wasSent = handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
-        if (!wasSent) XLog.e(getLog("sendEvent", "Failed to send event: $event"))
+        if (!wasSent) log.e("sendEvent", "Failed to send ${event.javaClass.simpleName}")
     }
 
     private fun buildViewState(): RtspState {
@@ -988,7 +996,7 @@ internal class RtspStreamingService(
         try {
             processEvent(event)
         } catch (cause: Throwable) {
-            XLog.e(this@RtspStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
+            log.e("handleMessage", "${event.javaClass.simpleName} failed", cause)
             if (event is InternalEvent.Destroy) cleanupFailed = true
 
             invalidateConsentReuse()
@@ -1092,7 +1100,7 @@ internal class RtspStreamingService(
 
             is InternalEvent.ModeChanged -> {
                 if (event.mode == initializedMode) {
-                    XLog.d(getLog("ModeChanged", "Already initialized for mode=$initializedMode. Ignoring."))
+                    log.d("ModeChanged", "Already initialized for mode=$initializedMode. Ignoring.")
                     return
                 }
                 stopStream(stopServer = true, stopReason = "ModeChanged")
@@ -1123,7 +1131,7 @@ internal class RtspStreamingService(
                     RtspSettings.Values.Mode.CLIENT -> clientController != null
                 }
                 if (!ready) return
-                if (!service.isLocalNetworkPermissionGranted()) {
+                if (!RuntimePermission.LocalNetwork.isGranted(service)) {
                     currentError = RtspError.LocalNetworkPermissionRequired()
                     return
                 }
@@ -1211,11 +1219,11 @@ internal class RtspStreamingService(
 
             is InternalEvent.RetryBindings -> {
                 if (rtspSettings.data.value.mode != RtspSettings.Values.Mode.SERVER) {
-                    XLog.d(getLog("RetryBindings", "Not in server mode. Ignoring."))
+                    log.d("RetryBindings", "Not in server mode. Ignoring.")
                     return
                 }
                 if (projectionState.active != null) {
-                    XLog.d(getLog("RetryBindings", "Streaming active. Ignoring."))
+                    log.d("RetryBindings", "Streaming active. Ignoring.")
                     return
                 }
                 sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "RetryBindings"))
@@ -1299,6 +1307,7 @@ internal class RtspStreamingService(
                         )
 
                         val videoEncoder = VideoEncoder(
+                            log = log,
                             codecInfo = videoEncoderInfo,
                             onVideoInfo = { codec, sps, pps, vps ->
                                 val params = VideoParams(videoEncoderInfo.codec, sps, pps, vps)
@@ -1316,7 +1325,7 @@ internal class RtspStreamingService(
                             onVideoFrame = onFrame,
                             onFps = { sendEvent(InternalEvent.OnVideoFps(it, attempt.id)) },
                             onError = {
-                                XLog.w(getLog("VideoEncoder.onError", it.message), it)
+                                log.w("VideoEncoder.onError", cause = it)
                                 sendEvent(InternalEvent.Error(it.toVideoPipelineError(), attempt.id))
                             }
                         ).apply {
@@ -1329,7 +1338,7 @@ internal class RtspStreamingService(
                                 h264Profile = settings.videoH264Profile
                             )
                             if (!isStartupStillValid()) {
-                                XLog.i(getLog("StartProjection", "Startup invalidated before virtual display creation."))
+                                log.i("StartProjection", "Startup invalidated before virtual display creation.")
                                 stop()
                                 mediaProjection.unregisterCallback(projectionCallback)
                                 return@buildPipeline false
@@ -1351,7 +1360,7 @@ internal class RtspStreamingService(
 
                             if (virtualDisplay == null || !isStartupStillValid()) {
                                 val reason = if (virtualDisplay == null) "virtualDisplay is null" else "startup invalidated"
-                                XLog.i(getLog("startDisplayCapture", "$reason. Stopping projection."))
+                                log.i("startDisplayCapture", "$reason. Stopping projection.")
                                 stop()
                                 mediaProjection.unregisterCallback(projectionCallback)
                                 runCatching { captureSurface?.release() }
@@ -1368,6 +1377,7 @@ internal class RtspStreamingService(
                         if (audioEnabledForSession) {
                             val audioEncoderInfo = attempt.audioEncoder!!
                             audioEncoder = AudioEncoder(
+                                log = log,
                                 codecInfo = audioEncoderInfo,
                                 onAudioInfo = { params ->
                                     val audioParams = AudioParams(audioEncoderInfo.codec, params.sampleRate, params.isStereo)
@@ -1379,7 +1389,7 @@ internal class RtspStreamingService(
                                 onAudioFrame = onFrame,
                                 onAudioCaptureError = { sendEvent(InternalEvent.AudioCaptureError(it, attempt.id)) },
                                 onError = {
-                                    XLog.w(getLog("AudioEncoder.onError", it.message), it)
+                                    log.w("AudioEncoder.onError", cause = it)
                                     sendEvent(InternalEvent.Error(it.toAudioPipelineError(), attempt.id))
                                 }
                             ).apply {
@@ -1427,7 +1437,7 @@ internal class RtspStreamingService(
                         }
 
                         if (!isStartupStillValid()) {
-                            XLog.i(getLog("StartProjection", "Startup invalidated after encoder startup."))
+                            log.i("StartProjection", "Startup invalidated after encoder startup.")
                             videoEncoder.stop()
                             virtualDisplay?.surface = null
                             virtualDisplay?.release()
@@ -1442,7 +1452,7 @@ internal class RtspStreamingService(
                             virtualDisplay = virtualDisplay!!,
                             videoEncoder = videoEncoder,
                             captureSurface = captureSurface ?: run {
-                                XLog.i(getLog("StartProjection", "captureSurface is null. Stopping projection."))
+                                log.i("StartProjection", "captureSurface is null. Stopping projection.")
                                 videoEncoder.stop()
                                 mediaProjection.unregisterCallback(projectionCallback)
                                 return@buildPipeline false
@@ -1537,7 +1547,7 @@ internal class RtspStreamingService(
 
             is InternalEvent.ConfigurationChange -> {
                 val projection = projectionState.active ?: run {
-                    XLog.d(getLog("ConfigurationChange", "Not streaming. Ignoring."))
+                    log.d("ConfigurationChange", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1557,20 +1567,17 @@ internal class RtspStreamingService(
                     val bounds = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
                     resizeActor?.offer(sourceWidth = bounds.width(), sourceHeight = bounds.height())
                 } else {
-                    XLog.d(getLog("ConfigurationChange", "No change relevant for streaming. Ignoring."))
+                    log.d("ConfigurationChange", "No change relevant for streaming. Ignoring.")
                 }
             }
 
             is InternalEvent.CapturedContentResize -> {
                 if (projectionState.active == null) {
-                    XLog.d(getLog("CapturedContentResize", "Not streaming. Ignoring."))
+                    log.d("CapturedContentResize", "Not streaming. Ignoring.")
                     return
                 }
                 if (event.width <= 0 || event.height <= 0) {
-                    XLog.e(
-                        getLog("CapturedContentResize", "Invalid size: ${event.width} x ${event.height}. Ignoring."),
-                        IllegalArgumentException("Invalid capture size: ${event.width} x ${event.height}")
-                    )
+                    log.e("CapturedContentResize", "Invalid size: ${event.width} x ${event.height}; ignoring")
                     return
                 }
                 resizeActor?.offer(sourceWidth = event.width, sourceHeight = event.height)
@@ -1613,7 +1620,7 @@ internal class RtspStreamingService(
 
             is InternalEvent.RtspClient -> {
                 val clientController = clientController ?: run {
-                    XLog.d(getLog("RtspClient:${event::class.simpleName}", "Controller is null. Ignoring."))
+                    log.d("RtspClient:${event::class.simpleName}", "Controller is null. Ignoring.")
                     return
                 }
                 clientController.onEvent(event)
@@ -1621,7 +1628,7 @@ internal class RtspStreamingService(
 
             is InternalEvent.RtspServer -> {
                 val serverController = serverController ?: run {
-                    XLog.d(getLog("RtspServer:${event::class.simpleName}", "Controller is null. Ignoring."))
+                    log.d("RtspServer:${event::class.simpleName}", "Controller is null. Ignoring.")
                     return
                 }
                 serverController.onEvent(event)
@@ -1653,7 +1660,7 @@ internal class RtspStreamingService(
             runCatching(action).onFailure {
                 succeeded = false
                 attempt?.let { invalidateConsentReuse(it.id) }
-                XLog.w(getLog("stopStream", "Best-effort cleanup failed"), it)
+                log.w("stopStream", "Best-effort cleanup failed", it)
             }
         }
         bestEffort { clientController?.stop() }
@@ -1661,7 +1668,7 @@ internal class RtspStreamingService(
             .onFailure {
                 succeeded = false
                 attempt?.let { invalidateConsentReuse(it.id) }
-                XLog.w(getLog("stopStream", "Server cleanup failed"), it)
+                log.w("stopStream", "Server cleanup failed", it)
             }
         if (attempt != null) {
             attempt.projectionState.pendingStartAttemptId = null

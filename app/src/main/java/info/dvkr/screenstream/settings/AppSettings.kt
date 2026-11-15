@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.settings.JsonPreferencesStore
+import io.screenstream.foundation.logging.Logger
+import io.screenstream.foundation.settings.JsonPreferencesStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -22,6 +22,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -36,7 +39,8 @@ import kotlin.coroutines.cancellation.CancellationException
 public class AppSettings(
     context: Context,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
-) {
+) : KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
 
     /** Values used when the JSON settings payload is absent or unrecoverable. */
     public object Default {
@@ -58,6 +62,7 @@ public class AppSettings(
         serializer = Data.serializer(),
         defaultValue = Data(),
         produceFile = { context.preferencesDataStoreFile("app_settings") },
+        failureReporter = { stage, message, cause -> log.e(stage, message, cause) },
     )
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
     private val permissionRationaleMutex: Mutex = Mutex()
@@ -112,7 +117,7 @@ public class AppSettings(
                 } catch (failure: CancellationException) {
                     throw failure
                 } catch (failure: Exception) {
-                    XLog.e("Could not save permission rationale history for $permissionName", failure)
+                    log.e("setPermissionRationaleObserved", "Could not save permission rationale history for $permissionName", failure)
                 }
             }
         }

@@ -6,8 +6,11 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -15,29 +18,38 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
-import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.app.InlineAdaptiveBanner
-import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.ads.InlineAdaptiveBanner
 import info.dvkr.screenstream.settings.AppSettings
 import info.dvkr.screenstream.tile.TileActionService
 import info.dvkr.screenstream.ui.SettingsDestination
 import info.dvkr.screenstream.ui.theme.dynamicThemeAvailable
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 import java.io.IOException
 
 @Composable
@@ -49,6 +61,7 @@ internal fun SettingsRoute(
 ) {
     val settingsData = appSettings.data.collectAsStateWithLifecycle().value
     val context = LocalContext.current
+    val log: Logger = koinInject(parametersHolder = remember(context) { parametersOf(context) })
     val notificationSettingsIntent = context.appNotificationSettingsIntent()
     val openLanguageDetail = dropUnlessResumed { onOpenDetail(SettingsDestination.APP_LANGUAGE) }
 
@@ -74,7 +87,7 @@ internal fun SettingsRoute(
                     try {
                         appSettings.updateData { copy(dynamicTheme = dynamicTheme) }
                     } catch (error: IOException) {
-                        XLog.e(context.getLog("SettingsRoute", "Failed to save dynamic theme"), error)
+                        log.e("SettingsRoute", "Failed to save dynamic theme", error)
                     }
                 }
             }
@@ -84,15 +97,15 @@ internal fun SettingsRoute(
                 try {
                     context.startActivity(intent)
                 } catch (failure: ActivityNotFoundException) {
-                    XLog.w(context.getLog("NotificationSettings", "Settings Activity is unavailable"), failure)
+                    log.w("NotificationSettings", "Settings Activity is unavailable", failure)
                 } catch (failure: SecurityException) {
-                    XLog.w(context.getLog("NotificationSettings", "Settings Activity launch was denied"), failure)
+                    log.w("NotificationSettings", "Settings Activity launch was denied", failure)
                 }
             }
         },
         onAddTileClick = {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                TileActionService.showAddTileRequest(context)
+                TileActionService.showAddTileRequest(context, log)
             }
         },
         modifier = modifier,
@@ -222,5 +235,86 @@ private fun LazyItemScope.SettingsItem(
     ) {
         if (showDivider) HorizontalDivider()
         content()
+    }
+}
+
+@Composable
+private fun SettingActionRow(
+    @DrawableRes iconRes: Int,
+    title: String,
+    summary: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.padding(end = 16.dp)
+        )
+        SettingRowText(title = title, summary = summary, modifier = Modifier.weight(1F))
+    }
+}
+
+@Composable
+private fun SettingSwitchRow(
+    checked: Boolean,
+    @DrawableRes iconRes: Int,
+    title: String,
+    summary: String,
+    onValueChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Row(
+        modifier = modifier
+            .toggleable(
+                value = checked,
+                enabled = enabled,
+                role = Role.Switch,
+                onValueChange = onValueChange
+            )
+            .then(if (enabled) Modifier else Modifier.alpha(0.5F))
+            .padding(start = 16.dp, end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.padding(end = 16.dp)
+        )
+        SettingRowText(title = title, summary = summary, modifier = Modifier.weight(1F))
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            modifier = Modifier.scale(0.7F),
+            enabled = enabled
+        )
+    }
+}
+
+@Composable
+private fun SettingRowText(
+    title: String,
+    summary: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = title,
+            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+            fontSize = 18.sp,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            text = summary,
+            modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }

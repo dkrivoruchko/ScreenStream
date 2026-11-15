@@ -1,7 +1,10 @@
 package io.screenstream.mjpeg.http.media
 
+import io.ktor.http.content.OutgoingContent
+import io.ktor.server.response.ApplicationSendPipeline
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.ktor.utils.io.ByteWriteChannel
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.http.CioHttpListener
@@ -11,6 +14,7 @@ import io.screenstream.mjpeg.http.HttpResponseHeaders
 import io.screenstream.mjpeg.http.UnstartedHttpListenerFixture
 import io.screenstream.mjpeg.http.readHttpResponseHeaders
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -123,7 +127,12 @@ internal class JpegResponseCioTest {
         val writer = JpegResponse(checkNotNull(store.openReader()), MediaFormat.Jpeg)
         writer.close()
         try {
-            val response = receiveFromCio(writer, maximumBodyBytes = 0, closeConnection = false)
+            val response = receiveFromCio(
+                writer,
+                maximumBodyBytes = 0,
+                closeConnection = false,
+                holdWriterUntilHeadersReceived = true,
+            )
             assertEquals(200, response.status)
             assertEquals("4", response.headers["content-length"])
             assertContentEquals(byteArrayOf(), response.body)
@@ -176,10 +185,35 @@ internal class JpegResponseCioTest {
         }
     }
 
-    private suspend fun receiveFromCio(writer: JpegResponse, maximumBodyBytes: Int, closeConnection: Boolean = true): Response = withContext(Dispatchers.IO) {
+    private suspend fun receiveFromCio(
+        writer: JpegResponse,
+        maximumBodyBytes: Int,
+        closeConnection: Boolean = true,
+        holdWriterUntilHeadersReceived: Boolean = false,
+    ): Response = withContext(Dispatchers.IO) {
         val port = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { it.localPort }
         val parent = Job()
+        val headersReceived = if (holdWriterUntilHeadersReceived) CompletableDeferred<Unit>() else null
         val listener = CioHttpListener(parent, "127.0.0.1", port) {
+            if (headersReceived != null) {
+                sendPipeline.intercept(ApplicationSendPipeline.After) {
+                    val content = subject
+                    if (content is OutgoingContent.WriteChannelContent) {
+                        proceedWith(object : OutgoingContent.WriteChannelContent() {
+                            override val contentType = content.contentType
+                            override val contentLength = content.contentLength
+                            override val status = content.status
+                            override val headers = content.headers
+
+                            override suspend fun writeTo(channel: ByteWriteChannel) {
+                                // CIO's header flush is buffered; let the peer receive it before revocation fails the body.
+                                headersReceived.await()
+                                content.writeTo(channel)
+                            }
+                        })
+                    }
+                }
+            }
             routing { get("/jpeg") { writer.respond(call) } }
         }
         try {
@@ -193,7 +227,7 @@ internal class JpegResponseCioTest {
                     flush()
                 }
                 // Read actual bytes to EOF, including connection termination after a revoked response.
-                readResponse(socket, maximumBodyBytes)
+                readResponse(socket, maximumBodyBytes, onHeadersRead = { headersReceived?.complete(Unit) })
             }
         } finally {
             withContext(NonCancellable) {
@@ -208,7 +242,12 @@ internal class JpegResponseCioTest {
     }
 
     /** One host-time budget includes status, headers and the EOF needed by the cutoff history. */
-    private fun readResponse(socket: Socket, maximumBodyBytes: Int, timeout: Duration = 15.seconds): Response {
+    private fun readResponse(
+        socket: Socket,
+        maximumBodyBytes: Int,
+        timeout: Duration = 15.seconds,
+        onHeadersRead: () -> Unit = {},
+    ): Response {
         require(maximumBodyBytes in 0 until Int.MAX_VALUE)
         val deadline = TimeSource.Monotonic.markNow() + timeout
         val wireInput = socket.getInputStream().buffered()
@@ -239,6 +278,7 @@ internal class JpegResponseCioTest {
         }
         val status = readLine(input).split(' ')[1].toInt()
         val headers = readHttpResponseHeaders { readLine(input) }
+        onHeadersRead()
         val body = input.readNBytes(maximumBodyBytes + 1)
         check(body.size <= maximumBodyBytes) { "CIO response exceeded $maximumBodyBytes body bytes" }
         return Response(status, headers, body)

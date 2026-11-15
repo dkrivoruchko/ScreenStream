@@ -8,8 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -20,20 +19,28 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.io.IOException
 
 @Singleton(binds = [WebRtcSettings::class])
-internal class WebRtcSettingsImpl(context: Context) : WebRtcSettings {
+internal class WebRtcSettingsImpl(context: Context) : WebRtcSettings, KoinComponent {
+
+    private val log: Logger by inject { parametersOf(this) }
 
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
-        corruptionHandler = ReplaceFileCorruptionHandler { ex -> XLog.e(ex); emptyPreferences() },
+        corruptionHandler = ReplaceFileCorruptionHandler { cause ->
+            log.e("settingsCorruption", "Resetting corrupt settings", cause)
+            emptyPreferences()
+        },
         produceFile = { context.preferencesDataStoreFile("WebRTC_settings") } // Sync name with backup config
     )
 
     override val data: StateFlow<WebRtcSettings.Data> = dataStore.data
         .map { preferences -> preferences.toWebRtcSettings() }
         .catch { cause ->
-            XLog.e(this@WebRtcSettingsImpl.getLog("getCatching"), cause)
+            log.e("getCatching", "Failed to read settings", cause)
             if (cause is IOException) emit(WebRtcSettings.Data()) else throw cause
         }
         .stateIn(

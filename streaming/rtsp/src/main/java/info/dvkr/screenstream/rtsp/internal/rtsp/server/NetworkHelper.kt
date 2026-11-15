@@ -5,14 +5,16 @@ import android.content.Context
 import android.content.res.Resources
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspNetInterface
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.settings.RtspSettings.Values.AddressMask
 import info.dvkr.screenstream.rtsp.settings.RtspSettings.Values.InterfaceMask
+import io.screenstream.foundation.logging.Logger
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
@@ -20,7 +22,8 @@ import java.net.NetworkInterface
 import java.util.Collections
 
 @Singleton
-internal class NetworkHelper(private val context: Context) {
+internal class NetworkHelper(private val context: Context) : KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
 
     private companion object {
         private val INTERFACE_PATTERNS = mapOf(
@@ -55,11 +58,9 @@ internal class NetworkHelper(private val context: Context) {
         enableIpv4: Boolean,
         enableIpv6: Boolean,
     ): List<RtspNetInterface> {
-        XLog.d(
-            getLog(
-                "getNetInterfaces",
-                "interfaceFilter=$interfaceFilter, addressFilter=$addressFilter, ipv4=$enableIpv4, ipv6=$enableIpv6"
-            )
+        log.d(
+            "getNetInterfaces",
+            "interfaceFilter=$interfaceFilter, addressFilter=$addressFilter, ipv4=$enableIpv4, ipv6=$enableIpv6"
         )
 
         val netInterfaces = mutableListOf<RtspNetInterface>()
@@ -67,7 +68,7 @@ internal class NetworkHelper(private val context: Context) {
         if (addressFilter != RtspSettings.Values.ADDRESS_LOCALHOST) {
             connectivityManager?.runCatching {
                 discoverViaConnectivityManager(interfaceFilter, addressFilter, enableIpv4, enableIpv6, netInterfaces)
-            }?.onFailure { XLog.w(getLog("CM discovery failed", it.toString())) }
+            }?.onFailure { log.w("getNetInterfaces", "Connectivity discovery failed: ${it.javaClass.simpleName}") }
         }
 
         discoverViaNetworkInterface(
@@ -81,12 +82,12 @@ internal class NetworkHelper(private val context: Context) {
 
         val needsLocalhost = addressFilter == 0 || (addressFilter and RtspSettings.Values.ADDRESS_LOCALHOST) != 0
         if (needsLocalhost && netInterfaces.none { it.address.isLoopbackAddress }) {
-            XLog.d(getLog("getNetInterfaces", "No loopback found, attempting manual discovery"))
+            log.d("getNetInterfaces", "No loopback found, attempting manual discovery")
             discoverLoopbackManually(enableIpv4, enableIpv6, netInterfaces)
         }
 
         if (netInterfaces.isEmpty() && (enableIpv4 || enableIpv6) && addressFilter != RtspSettings.Values.ADDRESS_LOCALHOST) {
-            XLog.d(getLog("getNetInterfaces", "Attempting discovery with relaxed filters"))
+            log.d("getNetInterfaces", "Attempting discovery with relaxed filters")
 
             discoverViaNetworkInterface(
                 interfaceFilter = interfaceFilter,
@@ -209,7 +210,7 @@ internal class NetworkHelper(private val context: Context) {
                     }
                 }
             }.onFailure {
-                XLog.d(getLog("discoverLoopbackManually", "Failed to get interface $name: ${it.message}"))
+                log.d("discoverLoopbackManually", "Interface $name unavailable: ${it.javaClass.simpleName}")
             }
         }
 
@@ -218,7 +219,7 @@ internal class NetworkHelper(private val context: Context) {
                 runCatching {
                     InetAddress.getByName("127.0.0.1").let { addr -> if (addr.isLoopbackAddress) sink.add(toRtspNetInterface(addr, 0)) }
                 }.onFailure {
-                    XLog.d(getLog("discoverLoopbackManually", "Failed to add IPv4 loopback: ${it.message}"))
+                    log.d("discoverLoopbackManually", "IPv4 loopback unavailable: ${it.javaClass.simpleName}")
                 }
             }
 
@@ -226,7 +227,7 @@ internal class NetworkHelper(private val context: Context) {
                 runCatching {
                     InetAddress.getByName("::1").let { addr -> if (addr.isLoopbackAddress) sink.add(toRtspNetInterface(addr, 0)) }
                 }.onFailure {
-                    XLog.d(getLog("discoverLoopbackManually", "Failed to add IPv6 loopback: ${it.message}"))
+                    log.d("discoverLoopbackManually", "IPv6 loopback unavailable: ${it.javaClass.simpleName}")
                 }
             }
         }
@@ -237,7 +238,7 @@ internal class NetworkHelper(private val context: Context) {
         val id = Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android")
         return if (id != 0) {
             runCatching { context.resources.getStringArray(id).map { it.toRegex() } }.getOrElse {
-                XLog.w(getLog("getOemWifiPatterns", "Failed to load OEM patterns: $it"))
+                log.w("getOemWifiPatterns", "OEM Wi-Fi patterns unavailable: ${it.javaClass.simpleName}")
                 emptyList()
             }
         } else {

@@ -2,8 +2,7 @@ package info.dvkr.screenstream.rtsp.internal.onvif
 
 import android.content.Context
 import android.net.wifi.WifiManager
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +23,7 @@ import java.net.SocketTimeoutException
 import java.util.concurrent.atomic.AtomicLong
 
 internal class OnvifDiscoveryServer(
+    private val log: Logger,
     context: Context,
     private val deviceInfo: OnvifDeviceInfo,
 ) {
@@ -49,8 +49,8 @@ internal class OnvifDiscoveryServer(
         endpoints.forEach { endpoint ->
             val listener = createListener(endpoint) ?: return@forEach
             listeners += listener
-            XLog.d(getLog("OnvifDiscoveryServer", "Listening on ${endpoint.rtspEndpoint.bindHost}:$DISCOVERY_PORT"))
-            XLog.v(getLog("OnvifDiscoveryServer", "Sending Hello for ${endpoint.deviceServiceUrl}"))
+            log.d("OnvifDiscoveryServer", "Listening on ${endpoint.rtspEndpoint.bindHost}:$DISCOVERY_PORT")
+            log.v("OnvifDiscoveryServer", "Sending Hello")
             listener.send(OnvifMessages.hello(deviceInfo, endpoint, messageCounter.incrementAndGet()))
             listener.job = scope.launch { listener.receiveLoop() }
         }
@@ -58,7 +58,7 @@ internal class OnvifDiscoveryServer(
 
     suspend fun stop() {
         listeners.forEach { listener ->
-            XLog.v(getLog("OnvifDiscoveryServer", "Sending Bye"))
+            log.v("OnvifDiscoveryServer", "Sending Bye")
             runCatching { listener.send(OnvifMessages.bye(deviceInfo, messageCounter.incrementAndGet())) }
             runCatching { listener.socket.close() }
         }
@@ -93,7 +93,7 @@ internal class OnvifDiscoveryServer(
             }
             Listener(socket, multicastAddress, endpoint)
         }.onFailure { error ->
-            XLog.w(getLog("OnvifDiscoveryServer", "Failed to listen on ${endpoint.rtspEndpoint.bindHost}: ${error.message}"), error)
+            log.w("OnvifDiscoveryServer", "Listener bind failed", error)
         }.getOrNull()
     }
 
@@ -128,24 +128,20 @@ internal class OnvifDiscoveryServer(
                 val request = String(packet.data, packet.offset, packet.length, Charsets.UTF_8)
                 val messageId = MESSAGE_ID_REGEX.find(request)?.groupValues?.get(1)?.trim()
                 if (!PROBE_REGEX.containsMatchIn(request)) {
-                    XLog.v(getLog("OnvifDiscoveryServer", "Ignoring non-Probe datagram from ${packet.address.hostAddress}:${packet.port}"))
+                    log.v("OnvifDiscoveryServer", "Ignoring non-Probe datagram from ${packet.address.hostAddress}:${packet.port}")
                     continue
                 }
                 if (!acceptsProbe(request)) {
-                    XLog.d(
-                        getLog(
-                            "OnvifDiscoveryServer",
-                            "Ignoring Probe from ${packet.address.hostAddress}:${packet.port}, messageId=${messageId ?: "none"}"
-                        )
+                    log.d(
+                        "OnvifDiscoveryServer",
+                        "Ignoring Probe from ${packet.address.hostAddress}:${packet.port}"
                     )
                     continue
                 }
 
-                XLog.d(
-                    getLog(
-                        "OnvifDiscoveryServer",
-                        "Accepted Probe from ${packet.address.hostAddress}:${packet.port}, messageId=${messageId ?: "none"}"
-                    )
+                log.d(
+                    "OnvifDiscoveryServer",
+                    "Accepted Probe from ${packet.address.hostAddress}:${packet.port}"
                 )
                 val response = OnvifMessages.probeMatch(
                     deviceInfo = deviceInfo,
@@ -157,11 +153,9 @@ internal class OnvifDiscoveryServer(
                 withContext(Dispatchers.IO) {
                     socket.send(DatagramPacket(data, data.size, packet.address, packet.port))
                 }
-                XLog.v(
-                    getLog(
-                        "OnvifDiscoveryServer",
-                        "Sent ProbeMatches to ${packet.address.hostAddress}:${packet.port}, bytes=${data.size}"
-                    )
+                log.v(
+                    "OnvifDiscoveryServer",
+                    "Sent ProbeMatches to ${packet.address.hostAddress}:${packet.port}, bytes=${data.size}"
                 )
             }
         }

@@ -23,6 +23,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -305,7 +306,10 @@ private fun ImageSize(
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = stringResource(R.string.rtsp_video_resize_image_10), modifier = Modifier.align(Alignment.CenterVertically))
             Slider(
-                value = sliderPosition,
+                state = rememberSliderState(
+                    value = sliderPosition,
+                    trackRange = 10F..100F
+                ),
                 onValueChange = {
                     sliderPosition = it
                     currentResultSize = IntSize((screenSize.width * it / 100F).roundToInt(), (screenSize.height * it / 100F).roundToInt())
@@ -315,8 +319,7 @@ private fun ImageSize(
                     .weight(1f)
                     .align(Alignment.CenterVertically),
                 enabled = enabled,
-                valueRange = 10F..100F,
-                onValueChangeFinished = { onValueChange.invoke(sliderPosition); scope.launch { delay(250.milliseconds); counter = counter + 1 } }
+                onValueChangeFinished = { onValueChange.invoke(sliderPosition); scope.launch { delay(250.milliseconds); counter = counter + 1 } },
             )
             Text(text = stringResource(R.string.rtsp_video_resize_image_100), modifier = Modifier.align(Alignment.CenterVertically))
         }
@@ -362,15 +365,17 @@ private fun Fps(
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = fpsRange.start.toString(), modifier = Modifier.align(Alignment.CenterVertically))
             Slider(
-                value = sliderPosition,
+                state = rememberSliderState(
+                    value = sliderPosition,
+                    trackRange = fpsRange.start.toFloat()..fpsRange.endInclusive.toFloat()
+                ),
                 onValueChange = { sliderPosition = it },
                 modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .weight(1f)
-                    .align(Alignment.CenterVertically),
+                                .padding(horizontal = 8.dp)
+                                .weight(1f)
+                                .align(Alignment.CenterVertically),
                 enabled = enabled,
-                valueRange = fpsRange.start.toFloat()..fpsRange.endInclusive.toFloat(),
-                onValueChangeFinished = { onValueChange.invoke(sliderPosition.roundToInt()) }
+                onValueChangeFinished = { onValueChange.invoke(sliderPosition.roundToInt()) },
             )
             Text(text = fpsRange.endInclusive.toString(), modifier = Modifier.align(Alignment.CenterVertically))
         }
@@ -406,8 +411,10 @@ private fun Bitrate(
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
             Slider(
-                value = sliderPosition,
-                onValueChange = {
+                state = rememberSliderState(
+                    value = sliderPosition,
+                    trackRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat()
+                ), onValueChange = {
                     isDragging = true
                     sliderPosition = it
                 },
@@ -416,11 +423,10 @@ private fun Bitrate(
                     .weight(1f)
                     .align(Alignment.CenterVertically),
                 enabled = enabled,
-                valueRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat(),
                 onValueChangeFinished = {
                     isDragging = false
                     onValueChange.invoke((sliderPosition * 1000).roundToInt())
-                }
+                },
             )
             Text(
                 text = bitrateRangeKbits.endInclusive.toKOrMBitString(),

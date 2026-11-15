@@ -8,8 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -21,25 +20,32 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.io.IOException
 import kotlin.uuid.Uuid
 
 @Singleton(binds = [RtspSettings::class])
 internal class RtspSettingsImpl(
     context: Context
-) : RtspSettings {
+) : RtspSettings, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
 
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
-        corruptionHandler = ReplaceFileCorruptionHandler { ex -> XLog.e(ex); emptyPreferences() },
+        corruptionHandler = ReplaceFileCorruptionHandler { cause ->
+            log.e("read", "Corrupt settings; restoring defaults", cause)
+            emptyPreferences()
+        },
         produceFile = { context.preferencesDataStoreFile("RTSP_settings") } // Sync name with backup config
     )
 
     override val data: StateFlow<RtspSettings.Data> = dataStore.data
         .map { preferences -> preferences.toRtspSettings() }
         .catch { cause ->
-            XLog.e(this@RtspSettingsImpl.getLog("getCatching"), cause)
+            log.e("read", "Settings read failed", cause)
             if (cause is IOException) emit(RtspSettings.Data()) else throw cause
         }
         .stateIn(

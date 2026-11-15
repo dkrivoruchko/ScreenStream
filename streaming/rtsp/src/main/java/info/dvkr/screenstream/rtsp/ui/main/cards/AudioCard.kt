@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -182,12 +183,14 @@ private fun AudioSource(
             var sliderPosition by remember(volume, muted) { mutableFloatStateOf(if (muted) 0F else volume.coerceIn(0f, 2f) * 100) }
 
             Slider(
-                value = sliderPosition,
+                state = rememberSliderState(
+                    value = sliderPosition,
+                    trackRange = 0f..200f
+                ),
                 onValueChange = { sliderPosition = it },
                 modifier = Modifier.weight(1f),
                 enabled = active,
-                valueRange = 0f..200f,
-                onValueChangeFinished = { onVolumeChange((sliderPosition / 100).coerceIn(0f, 2f)) }
+                onValueChangeFinished = { onVolumeChange((sliderPosition / 100).coerceIn(0f, 2f)) },
             )
 
             Text(text = "${sliderPosition.roundToInt()}%", modifier = Modifier.padding(start = 16.dp, end = 8.dp))
@@ -329,8 +332,10 @@ private fun Bitrate(
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
             Slider(
-                value = sliderPosition,
-                onValueChange = {
+                state = rememberSliderState(
+                    value = sliderPosition,
+                    trackRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat()
+                ), onValueChange = {
                     isDragging = true
                     sliderPosition = it
                 },
@@ -339,11 +344,10 @@ private fun Bitrate(
                     .weight(1f)
                     .align(Alignment.CenterVertically),
                 enabled = enabled,
-                valueRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat(),
                 onValueChangeFinished = {
                     isDragging = false
                     onValueChange.invoke((sliderPosition * 1000).roundToInt())
-                }
+                },
             )
             Text(
                 text = bitrateRangeKbits.endInclusive.toKOrMBitString(),

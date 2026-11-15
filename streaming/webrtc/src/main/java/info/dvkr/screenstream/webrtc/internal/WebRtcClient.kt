@@ -1,8 +1,7 @@
 package info.dvkr.screenstream.webrtc.internal
 
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
+import io.screenstream.foundation.logging.Logger
 import org.webrtc.CandidatePairChangeEvent
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
@@ -35,7 +34,8 @@ internal class WebRtcClient(
     private val factory: PeerConnectionFactory,
     private val videoCodecs: List<RtpCapabilities.CodecCapability>,
     private val audioCodecs: List<RtpCapabilities.CodecCapability>,
-    private val eventListener: EventListener
+    private val eventListener: EventListener,
+    private val log: Logger
 ) {
 
     internal interface EventListener {
@@ -51,7 +51,6 @@ internal class WebRtcClient(
 
     private enum class State { CREATED, PENDING_OFFER, LOCAL_OFFER_SET }
 
-    private val id: String = "${clientId.value}#$publicId"
     private val rtcConfig = RTCConfiguration(iceServers.ifEmpty { defaultIceServers }).apply {
         tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
     }
@@ -92,7 +91,7 @@ internal class WebRtcClient(
     private var peerConnectionStateEpoch: Long = 0
 
     init {
-        XLog.d(getLog("init", "Client: $id"))
+        log.d("WebRtcClient.init", "Client: $publicId")
     }
 
     private fun isCurrentPeerAttempt(peerConnection: PeerConnection, attemptId: AttemptId): Boolean =
@@ -104,11 +103,11 @@ internal class WebRtcClient(
 
     // WebRTC-HT thread
     internal fun start(mediaStream: LocalMediaSteam) {
-        XLog.d(getLog("start", "Client: $id, mediaStream: ${mediaStream.id}"))
+        log.d("WebRtcClient.start", "Client: $publicId")
 
         if (state.get() != State.CREATED) {
-            val msg = "Wrong client $id state: $state, expecting: ${State.CREATED}"
-            XLog.w(getLog("start", msg), IllegalStateException("start: $msg"))
+            val msg = "Wrong client $publicId state: $state, expecting: ${State.CREATED}"
+            log.w("WebRtcClient.start", msg, IllegalStateException("start: $msg"))
             stop()
         }
         negotiationAttemptId = AttemptId.random()
@@ -116,7 +115,8 @@ internal class WebRtcClient(
 
         var observerPeerConnection: PeerConnection? = null
         val observer = WebRTCPeerConnectionObserver(
-            clientId = clientId,
+            log = log,
+            attemptId = startNegotiationAttemptId,
             onHostCandidate = { candidate ->
                 observerPeerConnection?.let { onHostCandidate(candidate, startNegotiationAttemptId, it) }
             },
@@ -157,12 +157,12 @@ internal class WebRtcClient(
         }
         state.set(State.PENDING_OFFER)
 
-        XLog.d(getLog("start", "createOffer: Client: $id, mediaStream: ${mediaStream.id}"))
+        log.d("WebRtcClient.start", "createOffer: Client: $publicId")
         currentPeerConnection.createOffer(
             object : SdpObserver {
                 // Signaling thread
                 override fun onCreateSuccess(sessionDescription: SessionDescription) {
-                    XLog.d(this@WebRtcClient.getLog("start", "createOffer.onSuccess: Client: $id"))
+                    log.d("WebRtcClient.start", "createOffer.onSuccess: Client: $publicId")
                     setHostOffer(
                         mediaStream.id,
                         SessionDescription(SessionDescription.Type.OFFER, sessionDescription.description),
@@ -174,10 +174,10 @@ internal class WebRtcClient(
                 // Signaling thread
                 override fun onCreateFailure(s: String?) {
                     if (state.get() == State.CREATED || !isCurrentPeerAttempt(currentPeerConnection, startNegotiationAttemptId)) {
-                        XLog.i(this@WebRtcClient.getLog("start", "createOffer.onFailure for stale client. Ignoring: $id"))
+                        log.i("WebRtcClient.start", "createOffer.onFailure for stale client. Ignoring: $publicId")
                         return
                     }
-                    eventListener.onError(negotiationKey(startNegotiationAttemptId), IllegalStateException("Client: $id. createHostOffer.onFailure"))
+                    eventListener.onError(negotiationKey(startNegotiationAttemptId), IllegalStateException("Client: $publicId. createHostOffer.onFailure"))
                 }
 
                 override fun onSetSuccess() = Unit
@@ -192,7 +192,7 @@ internal class WebRtcClient(
 
     // WebRTC-HT thread
     internal fun stop() {
-        XLog.d(getLog("stop", "Client: $clientId"))
+        log.d("WebRtcClient.stop", "Client: $publicId")
 
         peerConnection?.dispose()
         peerConnection = null
@@ -234,41 +234,41 @@ internal class WebRtcClient(
         offerAttemptId: AttemptId
     ) {
         if (offerAttemptId != negotiationAttemptId) {
-            XLog.i(getLog("setHostOffer", "Ignoring stale offer attemptId=$offerAttemptId, active=$negotiationAttemptId"))
+            log.i("WebRtcClient.setHostOffer", "Ignoring stale offer attemptId=$offerAttemptId, active=$negotiationAttemptId")
             return
         }
 
         if (state.get() != State.PENDING_OFFER) {
-            val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER}"
-            XLog.i(getLog("setHostOffer", "$msg. Ignoring stale callback."))
+            val msg = "Wrong client $publicId state: $state, expecting: ${State.PENDING_OFFER}"
+            log.i("WebRtcClient.setHostOffer", "$msg. Ignoring stale callback.")
             return
         }
 
-        XLog.d(getLog("setHostOffer", "Client: $id, mediaStreamId: $mediaStreamId"))
+        log.d("WebRtcClient.setHostOffer", "Client: $publicId")
 
         val currentPeerConnection = peerConnection
         if (currentPeerConnection == null) {
-            XLog.i(getLog("setHostOffer", "peerConnection is null. Ignoring stale callback."))
+            log.i("WebRtcClient.setHostOffer", "peerConnection is null. Ignoring stale callback.")
             return
         }
         if (currentPeerConnection !== offerPeerConnection) {
-            XLog.i(getLog("setHostOffer", "Stale peerConnection. Ignoring. Client: $id"))
+            log.i("WebRtcClient.setHostOffer", "Stale peerConnection. Ignoring. Client: $publicId")
             return
         }
 
         currentPeerConnection.setLocalDescription(getSdpObserver {
             // Signaling thread
             onSuccess {
-                XLog.d(this@WebRtcClient.getLog("setHostOffer", "onSuccess. Client: $id"))
+                log.d("WebRtcClient.setHostOffer", "onSuccess. Client: $publicId")
 
                 val hostCandidates = synchronized(pendingCandidatesLock) {
                     if (!isCurrentPeerAttempt(currentPeerConnection, offerAttemptId)) {
-                        XLog.i(this@WebRtcClient.getLog("setHostOffer.onSuccess", "Ignoring stale callback after lock. Client: $id"))
+                        log.i("WebRtcClient.setHostOffer.onSuccess", "Ignoring stale callback after lock. Client: $publicId")
                         return@synchronized null
                     }
                     if (state.get() != State.PENDING_OFFER) {
-                        val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER}"
-                        XLog.i(this@WebRtcClient.getLog("setHostOffer.onSuccess", "$msg. Ignoring stale callback."))
+                        val msg = "Wrong client $publicId state: $state, expecting: ${State.PENDING_OFFER}"
+                        log.i("WebRtcClient.setHostOffer.onSuccess", "$msg. Ignoring stale callback.")
                         return@synchronized null
                     }
 
@@ -284,9 +284,9 @@ internal class WebRtcClient(
             }
             onFailure {
                 if (!isCurrentPeerAttempt(currentPeerConnection, offerAttemptId) || state.get() == State.CREATED || isBenignSdpStateError(it.message)) {
-                    XLog.i(this@WebRtcClient.getLog("setHostOffer.onFailure", "Ignoring stale/benign failure for client $id"))
+                    log.i("WebRtcClient.setHostOffer.onFailure", "Ignoring stale/benign failure for client $publicId")
                 } else {
-                    eventListener.onError(negotiationKey(offerAttemptId), IllegalStateException("Client: $id. setHostOffer.onFailure"))
+                    eventListener.onError(negotiationKey(offerAttemptId), IllegalStateException("Client: $publicId. setHostOffer.onFailure"))
                 }
             }
         }, sessionDescription)
@@ -295,34 +295,34 @@ internal class WebRtcClient(
     // Signaling thread
     private fun onHostCandidate(candidate: IceCandidate, callbackAttemptId: AttemptId, callbackPeerConnection: PeerConnection) {
         if (callbackAttemptId != negotiationAttemptId) {
-            XLog.i(getLog("onHostCandidate", "Ignoring stale callback attemptId=$callbackAttemptId, active=$negotiationAttemptId"))
+            log.i("WebRtcClient.onHostCandidate", "Ignoring stale callback attemptId=$callbackAttemptId, active=$negotiationAttemptId")
             return
         }
         if (peerConnection !== callbackPeerConnection) {
-            XLog.i(getLog("onHostCandidate", "Ignoring stale peerConnection callback. Client: $id"))
+            log.i("WebRtcClient.onHostCandidate", "Ignoring stale peerConnection callback. Client: $publicId")
             return
         }
 
-        val msg = "Client: $id, MediaStream: $mediaStreamId, State: $state"
+        val msg = "Client: $publicId, State: $state"
         val hostCandidates = synchronized(pendingCandidatesLock) {
             if (callbackAttemptId != negotiationAttemptId || peerConnection !== callbackPeerConnection) {
-                XLog.i(this@WebRtcClient.getLog("onHostCandidate", "$msg. Ignoring stale callback after lock"))
+                log.i("WebRtcClient.onHostCandidate", "$msg. Ignoring stale callback after lock")
                 return@synchronized null
             }
             when (state.get()) {
                 State.CREATED -> {
-                    XLog.i(this@WebRtcClient.getLog("onHostCandidate", "$msg. Ignoring stale candidate"))
+                    log.i("WebRtcClient.onHostCandidate", "$msg. Ignoring stale candidate")
                     null
                 }
 
                 State.PENDING_OFFER -> {
-                    XLog.d(this@WebRtcClient.getLog("onHostCandidate", "$msg. Accumulating"))
+                    log.d("WebRtcClient.onHostCandidate", "$msg. Accumulating")
                     pendingHostCandidates.add(candidate)
                     null
                 }
 
                 State.LOCAL_OFFER_SET -> {
-                    XLog.d(this@WebRtcClient.getLog("onHostCandidate", msg))
+                    log.d("WebRtcClient.onHostCandidate", msg)
                     pendingHostCandidates.apply { add(candidate) }.toList().also { pendingHostCandidates.clear() }
                 }
 
@@ -335,28 +335,25 @@ internal class WebRtcClient(
     // WebRTC-HT thread
     internal fun setClientAnswer(mediaStreamId: MediaStreamId, attemptId: AttemptId, answer: Answer) {
         if (state.get() != State.LOCAL_OFFER_SET) {
-            XLog.i(getLog("setClientAnswer", "Client $id in ${state.get()} state. Ignoring stale answer."))
+            log.i("WebRtcClient.setClientAnswer", "Client $publicId in ${state.get()} state. Ignoring stale answer.")
             return
         }
         if (attemptId != negotiationAttemptId) {
-            XLog.i(getLog("setClientAnswer", "Ignoring stale answer attemptId=$attemptId, active=$negotiationAttemptId"))
+            log.i("WebRtcClient.setClientAnswer", "Ignoring stale answer attemptId=$attemptId, active=$negotiationAttemptId")
             return
         }
 
-        XLog.d(getLog("setClientAnswer", "Client: $id, mediaStreamId: $mediaStreamId"))
+        log.d("WebRtcClient.setClientAnswer", "Client: $publicId")
 
         if (this.mediaStreamId != mediaStreamId) {
-            val msg = "Requesting '$mediaStreamId' but current is '${this.mediaStreamId}'."
-            XLog.w(
-                getLog("setClientAnswer", "$msg Ignoring stale answer."),
-                IllegalStateException("WebRtcClient.setClientAnswer.staleMediaStreamId")
-            )
+            val msg = "Media stream does not match the active negotiation."
+            log.w("WebRtcClient.setClientAnswer", "$msg Ignoring stale answer.", IllegalStateException("WebRtcClient.setClientAnswer.staleMediaStreamId"))
             return
         }
 
         val currentPeerConnection = peerConnection
         if (currentPeerConnection == null) {
-            XLog.i(getLog("setClientAnswer", "peerConnection is null. Ignoring stale answer."))
+            log.i("WebRtcClient.setClientAnswer", "peerConnection is null. Ignoring stale answer.")
             return
         }
 
@@ -368,19 +365,19 @@ internal class WebRtcClient(
             // Signaling thread
             onSuccess {
                 if (!isCurrentPeerAttempt(currentPeerConnection, attemptId)) {
-                    XLog.i(this@WebRtcClient.getLog("setClientAnswer.onSuccess", "Ignoring stale callback. Client: $id"))
+                    log.i("WebRtcClient.setClientAnswer.onSuccess", "Ignoring stale callback. Client: $publicId")
                     return@onSuccess
                 }
 
-                XLog.d(this@WebRtcClient.getLog("setClientAnswer.onSuccess", "Client: $id"))
+                log.d("WebRtcClient.setClientAnswer.onSuccess", "Client: $publicId")
                 eventListener.onClientAnswerApplied(negotiationKey(attemptId))
             }
             onFailure {
                 synchronized(queuedClientDataLock) { remoteAnswerReceived = false }
                 if (peerConnection !== currentPeerConnection || state.get() == State.CREATED || isBenignSdpStateError(it.message)) {
-                    XLog.i(this@WebRtcClient.getLog("setClientAnswer.onFailure", "Ignoring stale/benign failure for client $id"))
+                    log.i("WebRtcClient.setClientAnswer.onFailure", "Ignoring stale/benign failure for client $publicId")
                 } else {
-                    eventListener.onError(negotiationKey(attemptId), IllegalStateException("Client: $id. setClientAnswer.onFailure"))
+                    eventListener.onError(negotiationKey(attemptId), IllegalStateException("Client: $publicId. setClientAnswer.onFailure"))
                 }
             }
         }, answer.asSessionDescription())
@@ -389,15 +386,15 @@ internal class WebRtcClient(
     // WebRTC-HT thread
     internal fun onClientAnswerApplied(mediaStreamId: MediaStreamId, attemptId: AttemptId) {
         if (state.get() != State.LOCAL_OFFER_SET) {
-            XLog.i(getLog("onClientAnswerApplied", "Client $id in ${state.get()} state. Ignoring stale callback."))
+            log.i("WebRtcClient.onClientAnswerApplied", "Client $publicId in ${state.get()} state. Ignoring stale callback.")
             return
         }
         if (attemptId != negotiationAttemptId) {
-            XLog.i(getLog("onClientAnswerApplied", "Ignoring stale answer attemptId=$attemptId, active=$negotiationAttemptId"))
+            log.i("WebRtcClient.onClientAnswerApplied", "Ignoring stale answer attemptId=$attemptId, active=$negotiationAttemptId")
             return
         }
         if (this.mediaStreamId != mediaStreamId) {
-            XLog.i(getLog("onClientAnswerApplied", "Ignoring stale mediaStreamId=$mediaStreamId, active=${this.mediaStreamId}"))
+            log.i("WebRtcClient.onClientAnswerApplied", "Ignoring stale media stream: attemptId=$attemptId")
             return
         }
 
@@ -416,31 +413,32 @@ internal class WebRtcClient(
         keyFrameRequestedOnConnected = true
         val sender = videoSender
         if (sender == null) {
-            XLog.i(getLog("requestKeyFrame", "Video sender is null. Client: $id, attemptId=$attemptId"))
+            log.i("WebRtcClient.requestKeyFrame", "Video sender is null. Client: $publicId, attemptId=$attemptId")
             return
         }
 
         val generated = runCatching { sender.generateKeyFrame() }.onFailure {
-            XLog.w(getLog("requestKeyFrame", "Failed. Client: $id, attemptId=$attemptId"), it)
+            log.w("WebRtcClient.requestKeyFrame", "Failed. Client: $publicId, attemptId=$attemptId", it)
         }.getOrDefault(false)
 
-        if (generated) XLog.d(getLog("requestKeyFrame", "Requested. Client: $id, attemptId=$attemptId"))
-        else XLog.w(getLog("requestKeyFrame", "Rejected. Client: $id, attemptId=$attemptId"))
+        if (generated) log.d("WebRtcClient.requestKeyFrame", "Requested. Client: $publicId, attemptId=$attemptId")
+        else log.w("WebRtcClient.requestKeyFrame", "Rejected. Client: $publicId, attemptId=$attemptId")
     }
 
     // WebRTC-HT thread
     internal fun setClientCandidate(mediaStreamId: MediaStreamId, candidate: IceCandidate) {
         if (state.get() != State.LOCAL_OFFER_SET) {
-            XLog.i(getLog("setClientCandidate", "Client $id in ${state.get()} state. Ignoring stale candidate."))
+            log.i("WebRtcClient.setClientCandidate", "Client $publicId in ${state.get()} state. Ignoring stale candidate.")
             return
         }
 
-        XLog.d(getLog("setClientCandidate", "Client: $id, mediaStreamId: $mediaStreamId"))
+        log.d("WebRtcClient.setClientCandidate", "Client: $publicId")
 
         if (this.mediaStreamId != mediaStreamId) {
-            val msg = "Requesting '$mediaStreamId' but current is '${this.mediaStreamId}'."
-            XLog.w(
-                getLog("setClientCandidate", "$msg Ignoring stale candidate."),
+            val msg = "Media stream does not match the active negotiation."
+            log.w(
+                "WebRtcClient.setClientCandidate",
+                "$msg Ignoring stale candidate.",
                 IllegalStateException("WebRtcClient.setClientCandidate.staleMediaStreamId")
             )
             return
@@ -448,13 +446,13 @@ internal class WebRtcClient(
 
         val currentPeerConnection = peerConnection
         if (currentPeerConnection == null) {
-            XLog.i(getLog("setClientCandidate", "peerConnection is null. Ignoring stale candidate."))
+            log.i("WebRtcClient.setClientCandidate", "peerConnection is null. Ignoring stale candidate.")
             return
         }
 
         val queued = synchronized(queuedClientDataLock) {
             if (!remoteAnswerApplied) {
-                XLog.i(getLog("setClientCandidate", "Client $id remote answer not applied. Queueing candidate."))
+                log.i("WebRtcClient.setClientCandidate", "Client $publicId remote answer not applied. Queueing candidate.")
                 if (queuedCandidates.size >= MAX_QUEUED_CANDIDATES) queuedCandidates.removeAt(0)
                 queuedCandidates.add(candidate)
                 true
@@ -470,14 +468,14 @@ internal class WebRtcClient(
     // Signaling thread
     private fun onCandidatePairChanged(callbackAttemptId: AttemptId, callbackPeerConnection: PeerConnection) {
         if (!isCurrentPeerAttempt(callbackPeerConnection, callbackAttemptId)) {
-            XLog.i(getLog("onCandidatePairChanged", "Ignoring stale callback attemptId=$callbackAttemptId, active=$negotiationAttemptId"))
+            log.i("WebRtcClient.onCandidatePairChanged", "Ignoring stale callback attemptId=$callbackAttemptId, active=$negotiationAttemptId")
             return
         }
-        XLog.d(this@WebRtcClient.getLog("onCandidatePairChanged", "Client: $id, MediaStream: $mediaStreamId, State: $state"))
+        log.d("WebRtcClient.onCandidatePairChanged", "Client: $publicId, State: $state")
 
         callbackPeerConnection.getStats { report ->
             if (!isCurrentPeerAttempt(callbackPeerConnection, callbackAttemptId)) {
-                XLog.i(getLog("onCandidatePairChanged", "Ignoring stale stats callback attemptId=$callbackAttemptId, active=$negotiationAttemptId"))
+                log.i("WebRtcClient.onCandidatePairChanged", "Ignoring stale stats callback attemptId=$callbackAttemptId, active=$negotiationAttemptId")
                 return@getStats
             }
             val transport = report.statsMap.filter { it.value.type == "transport" }.values.firstOrNull() ?: return@getStats
@@ -509,7 +507,7 @@ internal class WebRtcClient(
     // Signaling thread
     private fun onPeerConnectionStateChanged(callbackAttemptId: AttemptId, peerConnectionState: PeerConnectionState) {
         if (callbackAttemptId != negotiationAttemptId) {
-            XLog.i(getLog("onPeerConnectionStateChanged", "Ignoring stale callback attemptId=$callbackAttemptId, active=$negotiationAttemptId"))
+            log.i("WebRtcClient.onPeerConnectionStateChanged", "Ignoring stale callback attemptId=$callbackAttemptId, active=$negotiationAttemptId")
             return
         }
 
@@ -521,20 +519,20 @@ internal class WebRtcClient(
             }
 
             PeerConnectionState.FAILED -> {
-                val msg = "Client: $id, MediaStream: '$mediaStreamId', State: $state"
-                XLog.d(this@WebRtcClient.getLog("onPeerFailed", msg))
+                val msg = "Client: $publicId, State: $state"
+                log.d("WebRtcClient.onPeerFailed", msg)
                 if (state.get() != State.LOCAL_OFFER_SET) {
-                    XLog.i(this@WebRtcClient.getLog("onPeerFailed", "Client not active anymore. Ignoring. $msg"))
+                    log.i("WebRtcClient.onPeerFailed", "Client not active anymore. Ignoring. $msg")
                     return
                 }
                 eventListener.onError(negotiationKey(callbackAttemptId), IllegalStateException("onPeerFailed: $msg"))
             }
 
             PeerConnectionState.DISCONNECTED -> {
-                val msg = "Client: $id, MediaStream: '$mediaStreamId', State: $state"
-                XLog.d(this@WebRtcClient.getLog("onPeerDisconnected", msg))
+                val msg = "Client: $publicId, State: $state"
+                log.d("WebRtcClient.onPeerDisconnected", msg)
                 if (state.get() != State.LOCAL_OFFER_SET || !remoteAnswerApplied) {
-                    XLog.i(this@WebRtcClient.getLog("onPeerDisconnected", "Client not answered/active anymore. Ignoring. $msg"))
+                    log.i("WebRtcClient.onPeerDisconnected", "Client not answered/active anymore. Ignoring. $msg")
                     return
                 }
                 eventListener.onPeerDisconnected(negotiationKey(callbackAttemptId), connectionStateEpoch)
@@ -557,83 +555,83 @@ internal class WebRtcClient(
     }
 
     private class WebRTCPeerConnectionObserver(
-        private val clientId: ClientId,
+        private val log: Logger,
+        private val attemptId: AttemptId,
         private val onHostCandidate: (IceCandidate) -> Unit,
         private val onCandidatePairChanged: () -> Unit,
         private val onPeerConnectionStateChanged: (PeerConnectionState) -> Unit
     ) : PeerConnection.Observer {
 
         override fun onSignalingChange(signalingState: SignalingState?) {
-            XLog.v(getLog("onSignalingChange", "Client: $clientId => $signalingState"))
+            log.v("WebRtcClient.PeerConnection.onSignalingChange", "attemptId=$attemptId, $signalingState")
         }
 
         override fun onIceConnectionChange(iceConnectionState: IceConnectionState?) {
-            XLog.v(getLog("onIceConnectionChange", "Client: $clientId => $iceConnectionState"))
+            log.v("WebRtcClient.PeerConnection.onIceConnectionChange", "attemptId=$attemptId, $iceConnectionState")
             //stats
         }
 
         override fun onStandardizedIceConnectionChange(newState: IceConnectionState?) {
-            XLog.v(getLog("onStandardizedIceConnectionChange", "Client: $clientId => $newState"))
+            log.v("WebRtcClient.PeerConnection.onStandardizedIceConnectionChange", "attemptId=$attemptId, $newState")
         }
 
         override fun onConnectionChange(newState: PeerConnectionState) {
-            XLog.v(getLog("onConnectionChange", "Client: $clientId => $newState"))
+            log.v("WebRtcClient.PeerConnection.onConnectionChange", "attemptId=$attemptId, $newState")
             onPeerConnectionStateChanged(newState)
         }
 
         override fun onIceConnectionReceivingChange(b: Boolean) {
-            XLog.v(getLog("onIceConnectionReceivingChange", "Client: $clientId => $b"))
+            log.v("WebRtcClient.PeerConnection.onIceConnectionReceivingChange", "attemptId=$attemptId, Receiving: $b")
         }
 
         override fun onIceGatheringChange(iceGatheringState: IceGatheringState?) {
-            XLog.v(getLog("onIceGatheringChange", "Client: $clientId => $iceGatheringState"))
+            log.v("WebRtcClient.PeerConnection.onIceGatheringChange", "attemptId=$attemptId, $iceGatheringState")
         }
 
         override fun onIceCandidate(iceCandidate: IceCandidate) {
-            XLog.v(getLog("onIceCandidate", "Client: $clientId"))
+            log.v("WebRtcClient.PeerConnection.onIceCandidate", "attemptId=$attemptId")
             onHostCandidate(iceCandidate)
         }
 
         override fun onIceCandidateError(event: IceCandidateErrorEvent?) {
-            val details = event?.let { "url=${it.url}, code=${it.errorCode}, text=${it.errorText}" } ?: "-"
-            XLog.w(getLog("onIceCandidateError", "Client: $clientId, $details"))
+            log.w("WebRtcClient.PeerConnection.onIceCandidateError", "attemptId=$attemptId, code=${event?.errorCode}")
         }
 
         override fun onIceCandidatesRemoved(iceCandidates: Array<out IceCandidate>?) {
-            XLog.v(getLog("onIceCandidatesRemoved", "Client: $clientId, ${iceCandidates?.size}"))
+            log.v("WebRtcClient.PeerConnection.onIceCandidatesRemoved", "attemptId=$attemptId, Removed candidates: ${iceCandidates?.size}")
         }
 
         override fun onSelectedCandidatePairChanged(event: CandidatePairChangeEvent) {
-            XLog.v(getLog("onSelectedCandidatePairChanged", "Client: $clientId"))
+            log.v("WebRtcClient.PeerConnection.onSelectedCandidatePairChanged", "attemptId=$attemptId")
             onCandidatePairChanged()
         }
 
         override fun onAddStream(mediaStream: MediaStream?) {
-            XLog.v(getLog("onAddStream", "Client: $clientId => $mediaStream"))
+            log.v("WebRtcClient.PeerConnection.onAddStream", "attemptId=$attemptId")
         }
 
         override fun onRemoveStream(mediaStream: MediaStream?) {
-            XLog.v(getLog("onRemoveStream", "Client: $clientId => $mediaStream"))
+            log.v("WebRtcClient.PeerConnection.onRemoveStream", "attemptId=$attemptId")
         }
 
         override fun onDataChannel(dataChannel: DataChannel?) {
-            XLog.v(getLog("onDataChannel", "Client: $clientId => $dataChannel"))
+            log.v("WebRtcClient.PeerConnection.onDataChannel", "attemptId=$attemptId")
         }
 
         override fun onRenegotiationNeeded() {
-            XLog.v(getLog("onRenegotiationNeeded", "Client: $clientId"))
+            log.v("WebRtcClient.PeerConnection.onRenegotiationNeeded", "attemptId=$attemptId")
         }
 
         override fun onAddTrack(rtpReceiver: RtpReceiver?, mediaStreams: Array<out MediaStream>?) {
-            XLog.v(getLog("onAddTrack", "Client: $clientId => $rtpReceiver \n $mediaStreams"))
+            log.v("WebRtcClient.PeerConnection.onAddTrack", "attemptId=$attemptId, Streams: ${mediaStreams?.size}")
         }
 
         override fun onTrack(transceiver: RtpTransceiver?) {
-            XLog.v(getLog("onTrack", "Client: $clientId => $transceiver"))
+            log.v("WebRtcClient.PeerConnection.onTrack", "attemptId=$attemptId")
         }
 
         override fun onRemoveTrack(receiver: RtpReceiver?) {
-            XLog.v(getLog("onRemoveTrack", "Client: $clientId => $receiver"))
+            log.v("WebRtcClient.PeerConnection.onRemoveTrack", "attemptId=$attemptId")
         }
     }
 

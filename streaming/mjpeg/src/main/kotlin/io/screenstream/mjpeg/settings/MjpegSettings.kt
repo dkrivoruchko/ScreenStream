@@ -3,8 +3,8 @@ package io.screenstream.mjpeg.settings
 import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
-import info.dvkr.screenstream.common.settings.JsonPreferencesStore
 import io.screenstream.foundation.logging.Logger
+import io.screenstream.foundation.settings.JsonPreferencesStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable

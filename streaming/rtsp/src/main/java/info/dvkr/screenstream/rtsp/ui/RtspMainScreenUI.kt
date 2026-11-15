@@ -37,8 +37,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
 import androidx.window.core.layout.WindowSizeClass
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.rtsp.R
@@ -57,11 +55,13 @@ import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
 import info.dvkr.screenstream.common.R as CommonR
 
@@ -80,6 +80,7 @@ internal fun RtspMainScreenUI(
     val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val log: Logger = koinInject(parametersHolder = remember(instanceId) { parametersOf(instanceId) })
     val state = rtspState.value
     val settings = rtspSettingsState.value
     val selectedMode = settings.mode
@@ -293,9 +294,9 @@ internal fun RtspMainScreenUI(
                                     try {
                                         context.startActivity(settingsIntent)
                                     } catch (failure: ActivityNotFoundException) {
-                                        XLog.w(context.getLog("NotificationSettings", "Settings Activity is unavailable"), failure)
+                                        log.w("NotificationSettings", "Settings Activity is unavailable", failure)
                                     } catch (failure: SecurityException) {
-                                        XLog.w(context.getLog("NotificationSettings", "Settings Activity launch was denied"), failure)
+                                        log.w("NotificationSettings", "Settings Activity launch was denied", failure)
                                     }
                                 }
                             } else {

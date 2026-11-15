@@ -7,14 +7,18 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -22,9 +26,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -32,25 +38,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import info.dvkr.screenstream.common.generateQRBitmap
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.ui.RtspBindError
 import info.dvkr.screenstream.rtsp.ui.RtspBinding
 import info.dvkr.screenstream.rtsp.ui.RtspError
+import io.screenstream.foundation.qr.generateQRBitmap
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 internal fun ServerMode(
@@ -213,7 +224,6 @@ private fun ShareAddressButton(
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 private fun ShowQRCodeButton(
     fullAddress: String
 ) {
@@ -227,24 +237,54 @@ private fun ShowQRCodeButton(
     }
 
     if (showQRDialog) {
+        var qrCodeSizePx by remember { mutableIntStateOf(0) }
         BasicAlertDialog(
             onDismissRequest = { showQRDialog = false },
             modifier = Modifier
+                .sizeIn(maxWidth = 208.dp, maxHeight = 208.dp)
+                .aspectRatio(1f)
                 .clip(MaterialTheme.shapes.large)
                 .background(Color.White)
-                .padding(16.dp)
-                .size(192.dp + 32.dp)
         ) {
-            val qrCodeSizePx = with(LocalDensity.current) { 192.dp.roundToPx() }
-            var qrImageBitmap by remember(fullAddress) { mutableStateOf<ImageBitmap?>(null) }
-            LaunchedEffect(fullAddress) {
-                qrImageBitmap = fullAddress.generateQRBitmap(qrCodeSizePx).asImageBitmap()
-            }
-            if (qrImageBitmap != null) {
-                Image(
-                    bitmap = qrImageBitmap!!,
-                    contentDescription = stringResource(id = R.string.rtsp_interfaces_qr_content_description)
-                )
+            Box(
+                modifier = Modifier
+                    .onSizeChanged { qrCodeSizePx = it.width },
+                contentAlignment = Alignment.Center,
+            ) {
+                val imageSizePx = qrCodeSizePx
+                key(fullAddress, imageSizePx) {
+                    var loadFailed by remember { mutableStateOf(false) }
+                    val bitmap by produceState<ImageBitmap?>(initialValue = null) {
+                        if (imageSizePx > 0) {
+                            try {
+                                value = withContext(Dispatchers.Default) {
+                                    fullAddress.generateQRBitmap(imageSizePx).asImageBitmap()
+                                }
+                            } catch (failure: CancellationException) {
+                                throw failure
+                            } catch (_: Exception) {
+                                loadFailed = true
+                            }
+                        }
+                    }
+                    val image = bitmap
+                    when {
+                        loadFailed -> Text(
+                            text = stringResource(R.string.rtsp_error_unspecified),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+
+                        image == null -> CircularProgressIndicator(modifier = Modifier.size(32.dp))
+
+                        else -> Image(
+                            bitmap = image,
+                            contentDescription = stringResource(R.string.rtsp_interfaces_qr_content_description),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.None,
+                            filterQuality = FilterQuality.None,
+                        )
+                    }
+                }
             }
         }
     }

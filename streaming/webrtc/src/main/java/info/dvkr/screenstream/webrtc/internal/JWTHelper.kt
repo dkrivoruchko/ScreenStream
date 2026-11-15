@@ -3,9 +3,11 @@ package info.dvkr.screenstream.webrtc.internal
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
+import io.screenstream.foundation.logging.Logger
 import org.json.JSONObject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -17,7 +19,9 @@ import java.security.Signature
 import java.security.spec.ECGenParameterSpec
 import javax.security.auth.x500.X500Principal
 
-internal object JWTHelper {
+internal object JWTHelper : KoinComponent {
+
+    private val log: Logger by inject { parametersOf(this) }
 
     private const val KEY_ALIAS = "ScreenStreamWebRTC"
     private const val ANDROID_KEY_STORE = "AndroidKeyStore"
@@ -30,9 +34,9 @@ internal object JWTHelper {
     private var softwareKeyPair: KeyPair? = null
 
     init {
-        XLog.d(getLog("init", "Key alias: $KEY_ALIAS"))
+        log.d("init", "Key alias: $KEY_ALIAS")
         runCatching { if (keyStore.containsAlias(KEY_ALIAS).not()) createKey() }
-            .onFailure { XLog.e(getLog("init", "Filed to create key: $it"), it) }
+            .onFailure { log.e("init", "Failed to create signing key", it) }
     }
 
     @Throws
@@ -48,7 +52,7 @@ internal object JWTHelper {
         val firstCause = firstAttempt.exceptionOrNull()!!
         if (firstCause.isAndroidKeystoreFailure().not()) throw firstCause
 
-        XLog.w(getLog("createJWT", "AndroidKeyStore failed. Retrying with key reset."), firstCause)
+        log.w("createJWT", "AndroidKeyStore failed. Retrying with key reset.", firstCause)
 
         val secondAttempt = runCatching {
             if (keyStore.containsAlias(KEY_ALIAS)) removeKey()
@@ -65,7 +69,7 @@ internal object JWTHelper {
             initialize(ECGenParameterSpec("secp256r1"))
             generateKeyPair()
         }.also { softwareKeyPair = it }
-        XLog.w(getLog("createJWT", "Switching to temporary in-memory software key after repeated AndroidKeyStore failures."), secondCause)
+        log.w("createJWT", "Using temporary software signing key after repeated AndroidKeyStore failures.", secondCause)
         return createJWT(environment, streamId, keyPair.public, keyPair.private)
     }
 
@@ -99,7 +103,7 @@ internal object JWTHelper {
     @Throws
     internal fun createKey() {
         runCatching {
-            XLog.d(getLog("createKey", "Key alias: $KEY_ALIAS"))
+            log.d("createKey", "Key alias: $KEY_ALIAS")
 
             val parameterSpec = KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_SIGN)
                 .setCertificateSubject(X500Principal("CN=$KEY_ALIAS"))
@@ -113,14 +117,14 @@ internal object JWTHelper {
             }
         }
             .onFailure {
-                XLog.e(getLog("createKey", "Key alias: $KEY_ALIAS"), it)
+                log.e("createKey", "Failed to create signing key", it)
             }
             .getOrThrow()
     }
 
     @Throws
     internal fun removeKey() {
-        XLog.d(getLog("remove", "Key alias: $KEY_ALIAS"))
+        log.d("remove", "Key alias: $KEY_ALIAS")
         keyStore.deleteEntry(KEY_ALIAS)
     }
 
@@ -167,13 +171,13 @@ internal object JWTHelper {
     }
 
     private fun getPublicKeyAsString(publicKey: PublicKey = getPublicKey()): String {
-        XLog.d(getLog("getPublicKeyAsString", "Alias: $KEY_ALIAS"))
+        log.d("getPublicKeyAsString", "Alias: $KEY_ALIAS")
 
         return BEGIN_PUBLIC_KEY + "\n" + Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP) + "\n" + END_PUBLIC_KEY
     }
 
     private fun getPrivateKey(): PrivateKey {
-        XLog.d(getLog("getPrivateKey", KEY_ALIAS))
+        log.d("getPrivateKey", KEY_ALIAS)
 
         keyStore.containsAlias(KEY_ALIAS) || throw IllegalStateException("Key not found, alias: $KEY_ALIAS")
         val key = keyStore.getKey(KEY_ALIAS, null)!!

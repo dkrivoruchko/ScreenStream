@@ -17,6 +17,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,13 +27,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.settings.AppSettings
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 import java.io.IOException
 
 @ArrayRes
@@ -67,6 +68,7 @@ internal fun NightModeSettings(
     scope: CoroutineScope = rememberCoroutineScope(),
 ) {
     val context = LocalContext.current
+    val log: Logger = koinInject(parametersHolder = remember(context) { parametersOf(context) })
     val settingsData = appSettings.data.collectAsStateWithLifecycle().value
     SettingsDetailLayout(
         title = stringResource(R.string.app_pref_night_mode),
@@ -81,7 +83,7 @@ internal fun NightModeSettings(
                         try {
                             appSettings.updateData { copy(nightMode = nightMode) }
                         } catch (error: IOException) {
-                            XLog.e(context.getLog("NightModeSettings", "Failed to save night mode"), error)
+                            log.e("NightModeSettings", "Failed to save night mode", error)
                         }
                     }
                 }

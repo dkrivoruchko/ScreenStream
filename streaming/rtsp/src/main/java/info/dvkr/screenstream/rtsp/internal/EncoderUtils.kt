@@ -73,7 +73,7 @@ internal object EncoderUtils {
     private fun findVideoEncoders(codec: Video): List<VideoCodecInfo> = getEncodersForMime(codec.mimeType, true)
         .filter {
             runCatching {
-                it.getCapabilitiesForType(codec.mimeType).colorFormats.contains(MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+                it.getCapabilitiesForType(codec.mimeType).colorFormats.contains(CodecCapabilities.COLOR_FormatSurface)
             }.getOrDefault(false)
         }
         .map { encoder ->

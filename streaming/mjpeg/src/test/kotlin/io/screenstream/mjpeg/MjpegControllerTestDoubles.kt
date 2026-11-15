@@ -5,15 +5,15 @@ import android.content.Intent
 import android.media.projection.MediaProjection
 import android.os.Looper
 import androidx.core.app.NotificationCompat
-import info.dvkr.screenstream.common.analytics.EntryPoint
-import info.dvkr.screenstream.common.analytics.SessionKey
-import info.dvkr.screenstream.common.analytics.StartFailGroup
-import info.dvkr.screenstream.common.analytics.StreamMode
-import info.dvkr.screenstream.common.analytics.StreamingAnalytics
-import info.dvkr.screenstream.common.analytics.StreamingAnalyticsEvent
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalytics
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
+import io.screenstream.analytics.EntryPoint
+import io.screenstream.analytics.SessionKey
+import io.screenstream.analytics.StartFailGroup
+import io.screenstream.analytics.StreamMode
+import io.screenstream.analytics.StreamingAnalytics
+import io.screenstream.analytics.StreamingAnalyticsEvent
+import io.screenstream.analytics.StreamingSessionAnalytics
+import io.screenstream.analytics.StreamingSessionAnalyticsFactory
+import io.screenstream.analytics.StreamingSessionAnalyticsTracker
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
@@ -240,7 +240,7 @@ internal object DiscardingSessionAnalyticsFactory : StreamingSessionAnalyticsFac
     }
 
     override fun beginConsent(key: SessionKey, streamMode: StreamMode, entryPoint: EntryPoint): StreamingSessionAnalytics =
-        StreamingSessionAnalyticsTracker(sink, streamMode, entryPoint)
+        StreamingSessionAnalyticsTracker(sink, streamMode, entryPoint) {}
 
     override fun preflightFailed(streamMode: StreamMode, entryPoint: EntryPoint, startFailGroup: StartFailGroup) = Unit
 }

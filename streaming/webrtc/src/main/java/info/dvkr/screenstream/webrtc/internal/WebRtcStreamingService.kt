@@ -32,15 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.layout.WindowMetricsCalculator
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.analytics.EntryPoint
-import info.dvkr.screenstream.common.analytics.SessionKey
-import info.dvkr.screenstream.common.analytics.StartFailGroup
-import info.dvkr.screenstream.common.analytics.StreamMode
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalytics
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
-import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
@@ -49,11 +40,18 @@ import info.dvkr.screenstream.webrtc.ui.WebRtcMainScreenUI
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
 import info.dvkr.screenstream.webrtc.ui.isExpectedEnvironmentIssue
 import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
+import io.screenstream.analytics.EntryPoint
+import io.screenstream.analytics.SessionKey
+import io.screenstream.analytics.StartFailGroup
+import io.screenstream.analytics.StreamMode
+import io.screenstream.analytics.StreamingSessionAnalytics
+import io.screenstream.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ConsentLaunchException
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.manager.StreamingModuleActionReceiver
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CompletableJob
@@ -80,6 +78,9 @@ import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.InjectedParam
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import org.webrtc.IceCandidate
 import org.webrtc.PeerConnection.IceServer
 import java.net.ConnectException
@@ -100,14 +101,18 @@ internal class WebRtcStreamingService(
     private val notifications: StreamingModuleNotifications,
     private val webRtcSettings: WebRtcSettings,
     private val analyticsFactory: StreamingSessionAnalyticsFactory
-) : HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback, StreamingModule.Controller {
+) : HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback, StreamingModule.Controller, KoinComponent {
+
+    private val log: Logger by inject { parametersOf(this) }
 
     private data class ClientSession(val key: ClientSessionKey, val client: WebRtcClient)
 
     override val instanceId: StreamingModule.InstanceId = managerHandle.instanceId
     private val mutableWebRtcStateFlow = MutableStateFlow(WebRtcState())
     private val environment: WebRtcEnvironment get() = environmentProvider.value
-    private val versionName by lazy { service.getVersionName("com.google.android.gms", "-") }
+    private val versionName by lazy {
+        runCatching { service.packageManager.getPackageInfo("com.google.android.gms", 0).versionName }.getOrNull() ?: "-"
+    }
     private val powerManager: PowerManager by lazy { service.application.getSystemService(PowerManager::class.java) }
     private val connectivityManager: ConnectivityManager by lazy { service.application.getSystemService(ConnectivityManager::class.java) }
     private val mainHandler: Handler by lazy { Handler(Looper.getMainLooper()) }
@@ -121,7 +126,7 @@ internal class WebRtcStreamingService(
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
     }
-    private val playIntegrity by lazy { PlayIntegrity(service, environment, okHttpClient) }
+    private val playIntegrity by lazy { PlayIntegrity(service, environment, okHttpClient, log = log) }
     private val currentError: AtomicReference<WebRtcError?> = AtomicReference(null)
     private val ownerGate = Any()
     private val errorGate = Any()
@@ -156,7 +161,7 @@ internal class WebRtcStreamingService(
         if (started) {
             succeeded = runCatching {
                 withContext(Dispatchers.Main.immediate) { !workerStarted || stopWorker() }
-            }.onFailure { XLog.w(getLog("cleanup", "Best-effort worker shutdown failed"), it) }.getOrDefault(false)
+            }.onFailure { log.w("cleanup", "Best-effort worker shutdown failed", it) }.getOrDefault(false)
         }
         val serviceStopped = runCatching { service.stopAndAwaitDestruction() }.getOrDefault(false)
         succeeded && serviceStopped
@@ -380,14 +385,14 @@ internal class WebRtcStreamingService(
     }
 
     private val passwordVerifier = SocketSignaling.PasswordVerifier { clientId, passwordHash ->
-        XLog.d(this@WebRtcStreamingService.getLog("SocketSignaling.PasswordVerifier.isValid"))
+        log.d("SocketSignaling.PasswordVerifier.isValid")
         currentStreamPassword.isValid(clientId, currentStreamId, passwordHash)
     }
 
     private fun requireClientSessionKey(clientId: ClientId, source: String): ClientSessionKey? {
         val clientKey = clients[clientId]?.key
         if (clientKey == null) {
-            XLog.i(getLog(source, "Client $clientId has no active session. Ignoring stale event."))
+            log.i(source, "Client has no active session. Ignoring stale event.")
             return null
         }
         return clientKey
@@ -396,17 +401,12 @@ internal class WebRtcStreamingService(
     private fun withActiveClient(source: String, key: ClientSessionKey, block: (ClientSession) -> Unit) {
         val currentClient = clients[key.clientId]
         if (currentClient == null) {
-            XLog.i(getLog(source, "Client ${key.clientId} not found"))
+            log.i(source, "Client not found")
             return
         }
 
         if (currentClient.key != key) {
-            XLog.i(
-                getLog(
-                    source,
-                    "Stale client event for ${key.clientId}. Event(join=${key.joinAttemptId}), current(join=${currentClient.key.joinAttemptId})"
-                )
-            )
+            log.i(source, "Stale client event. Event(join=${key.joinAttemptId}), current(join=${currentClient.key.joinAttemptId})")
             return
         }
 
@@ -416,7 +416,7 @@ internal class WebRtcStreamingService(
     private fun withActiveNegotiation(source: String, key: NegotiationKey, block: (ClientSession) -> Unit) {
         withActiveClient(source, key.session) { currentClient ->
             if (key.attemptId != currentClient.client.negotiationAttemptId) {
-                XLog.i(getLog(source, "Stale negotiationAttemptId=${key.attemptId}, active=${currentClient.client.negotiationAttemptId}. Ignoring."))
+                log.i(source, "Stale negotiationAttemptId=${key.attemptId}, active=${currentClient.client.negotiationAttemptId}. Ignoring.")
                 return@withActiveClient
             }
 
@@ -438,105 +438,99 @@ internal class WebRtcStreamingService(
         }
 
         override fun onSocketConnected() {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onSocketConnected"))
+            log.v("SocketSignaling.onSocketConnected")
             sendSocketEvent(InternalEvent.StreamCreate)
         }
 
         override fun onTokenExpired() {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onTokenExpired"))
+            log.v("SocketSignaling.onTokenExpired")
             sendSocketEvent(InternalEvent.RecoverSignaling(forceTokenUpdate = true, reason = "TokenExpired"))
         }
 
         override fun onSocketDisconnected(reason: String) {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onSocketDisconnected", reason))
+            log.v("SocketSignaling.onSocketDisconnected", reason)
             sendSocketEvent(InternalEvent.RecoverSignaling(forceTokenUpdate = false, reason = reason))
         }
 
         override fun onStreamCreated(streamId: StreamId) {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onStreamCreated", "$streamId"))
+            log.v("SocketSignaling.onStreamCreated", "Stream created")
             sendSocketEvent(InternalEvent.StreamCreated(streamId))
         }
 
         override fun onStreamRemoved() {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onStreamRemoved"))
+            log.v("SocketSignaling.onStreamRemoved")
             sendSocketEvent(InternalEvent.StreamRemoved)
         }
 
         override fun onClientJoin(clientId: ClientId, joinAttemptId: AttemptId, iceServers: List<IceServer>) {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onClientJoin", "$clientId joinAttemptId=$joinAttemptId IceServers: ${iceServers.size}"))
+            log.v("SocketSignaling.onClientJoin", "joinAttemptId=$joinAttemptId IceServers: ${iceServers.size}")
             sendSocketEvent(InternalEvent.ClientJoin(clientId, joinAttemptId, iceServers))
         }
 
         override fun onClientLeave(clientId: ClientId, joinAttemptId: AttemptId) {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onClientLeave", "$clientId joinAttemptId=$joinAttemptId"))
+            log.v("SocketSignaling.onClientLeave", "joinAttemptId=$joinAttemptId")
             sendSocketEvent(InternalEvent.ClientLeave(clientId, joinAttemptId))
         }
 
         override fun onClientNotFound(key: NegotiationKey, reason: String) {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onClientNotFound", "${key.clientId} negotiationAttemptId=${key.attemptId}"))
+            log.v("SocketSignaling.onClientNotFound", "negotiationAttemptId=${key.attemptId}")
             sendSocketEvent(InternalEvent.ClientNotFound(key, reason))
         }
 
         override fun onClientStartNotFound(key: ClientSessionKey, reason: String) {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onClientStartNotFound", "${key.clientId} joinAttemptId=${key.joinAttemptId}"))
+            log.v("SocketSignaling.onClientStartNotFound", "joinAttemptId=${key.joinAttemptId}")
             sendSocketEvent(InternalEvent.ClientStartNotFound(key, reason))
         }
 
         override fun onClientAnswer(clientId: ClientId, negotiationAttemptId: AttemptId, answer: Answer) {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onClientAnswer", "$clientId negotiationAttemptId=$negotiationAttemptId"))
+            log.v("SocketSignaling.onClientAnswer", "negotiationAttemptId=$negotiationAttemptId")
             sendSocketEvent(InternalEvent.SocketClientAnswer(clientId, negotiationAttemptId, answer))
         }
 
         override fun onClientCandidate(clientId: ClientId, negotiationAttemptId: AttemptId, candidate: IceCandidate) {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onClientCandidate", "$clientId negotiationAttemptId=$negotiationAttemptId"))
+            log.v("SocketSignaling.onClientCandidate", "negotiationAttemptId=$negotiationAttemptId")
             sendSocketEvent(InternalEvent.SocketClientCandidate(clientId, negotiationAttemptId, candidate))
         }
 
         override fun onError(cause: SocketSignaling.Error) {
-            if (cause.log) XLog.e(this@WebRtcStreamingService.getLog("SocketSignaling.onError", cause.message), cause)
-            else XLog.e(this@WebRtcStreamingService.getLog("SocketSignaling.onError", cause.message))
+            log.e("SocketSignaling.onError", "Signaling failed: type=${cause.javaClass.simpleName}, retry=${cause.retry}")
             sendSocketEvent(InternalEvent.SocketSignalingError(cause))
         }
     }
 
     private fun clientListener(epoch: Long) = object : WebRtcClient.EventListener {
         override fun onHostOffer(key: NegotiationKey, offer: Offer) {
-            XLog.v(this@WebRtcStreamingService.getLog("WebRTCClient.onHostOffer", "Client: ${key.clientId} negotiationAttemptId=${key.attemptId}"))
+            log.v("WebRTCClient.onHostOffer", "negotiationAttemptId=${key.attemptId}")
             sendEvent(InternalEvent.SendHostOffer(key, offer), expectedSignalingEpoch = epoch)
         }
 
         override fun onHostCandidates(key: NegotiationKey, candidates: List<IceCandidate>) {
-            XLog.v(this@WebRtcStreamingService.getLog("WebRTCClient.onHostCandidates", "Client: ${key.clientId} negotiationAttemptId=${key.attemptId}"))
+            log.v("WebRTCClient.onHostCandidates", "negotiationAttemptId=${key.attemptId}")
             sendEvent(InternalEvent.SendHostCandidates(key, candidates), expectedSignalingEpoch = epoch)
         }
 
         override fun onClientAddress(key: ClientSessionKey) {
-            XLog.v(this@WebRtcStreamingService.getLog("WebRTCClient.onClientAddress", "Client: ${key.clientId}"))
+            log.v("WebRTCClient.onClientAddress", "joinAttemptId=${key.joinAttemptId}")
             sendEvent(InternalEvent.ClientAddress(key), expectedSignalingEpoch = epoch)
         }
 
         override fun onClientAnswerApplied(key: NegotiationKey) {
-            XLog.v(this@WebRtcStreamingService.getLog("WebRTCClient.onClientAnswerApplied", "Client: ${key.clientId} negotiationAttemptId=${key.attemptId}"))
+            log.v("WebRTCClient.onClientAnswerApplied", "negotiationAttemptId=${key.attemptId}")
             sendEvent(InternalEvent.ClientAnswerApplied(key), expectedSignalingEpoch = epoch)
         }
 
         override fun onPeerDisconnected(key: NegotiationKey, connectionStateEpoch: Long) {
-            XLog.w(
-                this@WebRtcStreamingService.getLog(
-                    "WebRTCClient.onPeerDisconnected",
-                    "Client: ${key.clientId} disconnected. Scheduling grace removal, negotiationAttemptId=${key.attemptId}"
-                )
-            )
+            log.w("WebRTCClient.onPeerDisconnected", "Client disconnected. Scheduling grace removal, negotiationAttemptId=${key.attemptId}")
             sendEvent(InternalEvent.PeerDisconnected(key, connectionStateEpoch), peerDisconnectedGraceMs, expectedSignalingEpoch = epoch)
         }
 
         override fun onError(key: NegotiationKey, cause: Throwable) {
             val isPeerFailed = cause.message?.startsWith("onPeerFailed") == true
             if (isPeerFailed) {
-                XLog.w(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: ${key.clientId}: ${cause.message}"))
+                log.w("WebRTCClient.onError", "Peer failed: negotiationAttemptId=${key.attemptId}")
                 sendEvent(InternalEvent.ClientError(key, false, "onError:${cause.message}"), expectedSignalingEpoch = epoch)
             } else {
-                XLog.e(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: ${key.clientId}"), cause)
+                log.e("WebRTCClient.onError", "Client failed: negotiationAttemptId=${key.attemptId}, type=${cause.javaClass.simpleName}")
                 sendEvent(InternalEvent.ClientError(key, true, "onError:${cause.message}"), expectedSignalingEpoch = epoch)
             }
         }
@@ -544,7 +538,7 @@ internal class WebRtcStreamingService(
 
     private val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            XLog.d(this@WebRtcStreamingService.getLog("onReceive", "Action: ${intent?.action}"))
+            log.d("onReceive", "Action: ${intent?.action}")
             if (intent?.action == Intent.ACTION_SCREEN_OFF) {
                 captureAttempt?.let { sendEvent(InternalEvent.ScreenOff(it.generation)) }
             }
@@ -564,7 +558,7 @@ internal class WebRtcStreamingService(
                 validatedNetworks.size
             }
             val available = size > 0
-            XLog.d(this@WebRtcStreamingService.getLog("onAvailable", "validatedNetworks=$size"))
+            log.d("onAvailable", "validatedNetworks=$size")
             networkAvailable.value = available
         }
 
@@ -575,7 +569,7 @@ internal class WebRtcStreamingService(
                 validatedNetworks.size
             }
             val available = size > 0
-            XLog.d(this@WebRtcStreamingService.getLog("onLost", "validatedNetworks=$size"))
+            log.d("onLost", "validatedNetworks=$size")
             networkAvailable.value = available
         }
     }
@@ -587,14 +581,14 @@ internal class WebRtcStreamingService(
     }
 
     init {
-        XLog.d(getLog("init"))
+        log.d("init")
     }
 
     @MainThread
     override fun start() {
         super.start()
         workerStarted = true
-        XLog.d(getLog("start"))
+        log.d("start")
 
         mutableWebRtcStateFlow.value = WebRtcState()
         sendEvent(InternalEvent.InitState)
@@ -617,20 +611,20 @@ internal class WebRtcStreamingService(
         networkRegistered = true
 
         networkAvailable.onEach { available ->
-            XLog.d(getLog("start", "networkAvailable: $available"))
+            log.d("start", "networkAvailable: $available")
             if (available) sendEvent(InternalEvent.GetNonce(0, false))
         }.launchIn(coroutineScope)
 
         webRtcSettings.data.map { it.enableMic }.distinctUntilChanged()
             .onEach { enableMic ->
-                XLog.d(this@WebRtcStreamingService.getLog("enableMicFlow", "$enableMic"))
+                log.d("enableMicFlow", "$enableMic")
                 sendEvent(InternalEvent.EnableMic(enableMic))
             }.launchIn(coroutineScope)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             webRtcSettings.data.map { it.enableDeviceAudio }.distinctUntilChanged()
                 .onEach { enableDeviceAudio ->
-                    XLog.d(this@WebRtcStreamingService.getLog("enableDeviceAudioFlow", "$enableDeviceAudio"))
+                    log.d("enableDeviceAudioFlow", "$enableDeviceAudio")
                     sendEvent(InternalEvent.EnableDeviceAudio(enableDeviceAudio))
                 }.launchIn(coroutineScope)
         }
@@ -644,7 +638,7 @@ internal class WebRtcStreamingService(
         fun attempt(action: () -> Unit) {
             runCatching(action).onFailure { cause ->
                 succeeded = false
-                XLog.w(getLog("stopWorker", "Best-effort shutdown failed"), cause)
+                log.w("stopWorker", "Best-effort shutdown failed", cause)
             }
         }
         attempt { wakeLock?.let { if (it.isHeld) it.release() } }
@@ -656,7 +650,7 @@ internal class WebRtcStreamingService(
         if (withTimeoutOrNull(3000.milliseconds) { destroyJob.join(); true } != true) {
             succeeded = false
             captureAttempt?.failed = true
-            XLog.w(getLog("stopWorker", "Best-effort worker shutdown timed out"))
+            log.w("stopWorker", "Best-effort worker shutdown timed out")
         }
         handler.removeCallbacksAndMessages(null)
         quit()
@@ -699,11 +693,12 @@ internal class WebRtcStreamingService(
             return@runBlocking true
         }
         try {
-            XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Event [${event.javaClass.simpleName}] Current state: [${getStateString()}]"))
+            log.d("handleMessage", "Event [${event.javaClass.simpleName}] Current state: [${getStateString()}]")
             processEvent(event)
         } catch (cause: Throwable) {
             if (event is InternalEvent.Destroy) shutdownSucceeded = false
-            XLog.e(this@WebRtcStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
+            // Signaling/native exception text can contain ICE credentials or remote payloads.
+            log.e("handleMessage.catch", "Event ${event.javaClass.simpleName} failed: type=${cause.javaClass.simpleName}")
 
             captureAnalytics?.unhandledFailure()
             clearPendingStart()
@@ -711,7 +706,7 @@ internal class WebRtcStreamingService(
 
             if (cause is WebRtcError) currentError.set(cause) else currentError.set(WebRtcError.UnknownError(cause))
         } finally {
-            XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Done [${event.javaClass.simpleName}] New state: [${getStateString()}]"))
+            log.d("handleMessage", "Done [${event.javaClass.simpleName}] New state: [${getStateString()}]")
             if (event is InternalEvent.Destroy) event.destroyJob.complete()
             captureAnalytics?.consumersChanged(currentActiveConsumersCount(), SystemClock.elapsedRealtime())
             publishState()
@@ -729,7 +724,7 @@ internal class WebRtcStreamingService(
         when (event) {
             is InternalEvent.InitState -> {
                 if (destroyPending) {
-                    XLog.i(getLog("InitState", "DestroyPending. Ignoring"), IllegalStateException("InitState: DestroyPending"))
+                    log.i("InitState", "DestroyPending. Ignoring", IllegalStateException("InitState: DestroyPending"))
                     return
                 }
 
@@ -755,15 +750,15 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.GetNonce -> {
                 if (destroyPending) {
-                    XLog.i(getLog("GetNonce", "DestroyPending. Ignoring"))
+                    log.i("GetNonce", "DestroyPending. Ignoring")
                     return
                 }
 
                 currentError.get()?.let { error ->
                     if (error !is WebRtcError.NetworkError) {
-                        XLog.w(getLog("GetNonce", "Error present. Ignoring. [$error]"))
+                        log.w("GetNonce", "Error present. Ignoring. type=${error.javaClass.simpleName}")
                         if (error is WebRtcError.PlayIntegrityError && error.isExpectedEnvironmentIssue()) {
-                            XLog.i(getLog("GetNonce", "Expected Play Integrity environment issue. code=${error.code}."))
+                            log.i("GetNonce", "Expected Play Integrity environment issue. code=${error.code}.")
                         }
                         return
                     }
@@ -775,10 +770,10 @@ internal class WebRtcStreamingService(
                     val cause = precheckResult.exceptionOrNull()!!
                     networkRecovery.value = false
                     if (cause is WebRtcError.PlayIntegrityError) {
-                        XLog.i(getLog("GetNonce", "Play Integrity precheck failed. code=${cause.code}, msg=${cause.message}"))
+                        log.i("GetNonce", "Play Integrity precheck failed. code=${cause.code}")
                         currentError.set(cause)
                     } else {
-                        XLog.w(getLog("GetNonce", "Play Integrity precheck failed: ${cause.message}"), cause)
+                        log.w("GetNonce", "Play Integrity precheck failed", cause)
                         currentError.set(WebRtcError.UnknownError(cause))
                     }
                     sendEvent(WebRtcEvent.UpdateState)
@@ -820,13 +815,13 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.GetToken -> {
                 if (destroyPending) {
-                    XLog.i(getLog("GetToken", "DestroyPending. Ignoring"))
+                    log.i("GetToken", "DestroyPending. Ignoring")
                     return
                 }
 
                 currentError.get()?.let { error ->
                     if (error !is WebRtcError.PlayIntegrityError || error.isAutoRetryable.not()) {
-                        XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]"))
+                        log.w("GetToken", "Error present. Ignoring. type=${error.javaClass.simpleName}")
                         return
                     }
                 }
@@ -844,21 +839,21 @@ internal class WebRtcStreamingService(
                     onFailure { cause ->
                         when {
                             cause !is WebRtcError.PlayIntegrityError -> {
-                                XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Stopping: ${cause.message}"))
+                                log.i("getToken", "Got error. Stopping: ${cause.javaClass.simpleName}")
                                 currentError.set(WebRtcError.UnknownError(cause))
                                 networkRecovery.value = false
                                 sendEvent(WebRtcEvent.UpdateState)
                             }
 
                             cause.isAutoRetryable.not() -> {
-                                XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Stopping: ${cause.message}"))
+                                log.i("getToken", "Got error. Stopping: ${cause.javaClass.simpleName}")
                                 currentError.set(cause)
                                 networkRecovery.value = false
                                 sendEvent(WebRtcEvent.UpdateState)
                             }
 
                             event.attempt >= 3 -> {
-                                XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Max attempts. Stopping: ${cause.message}"))
+                                log.i("getToken", "Got error. Max attempts. Stopping: ${cause.javaClass.simpleName}")
                                 networkAvailable.value = false
                                 networkRecovery.value = false
                                 if (isStreaming()) signalingTerminalError = true
@@ -870,7 +865,7 @@ internal class WebRtcStreamingService(
                             }
 
                             else -> {
-                                XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Retrying: ${cause.message}"))
+                                log.i("getToken", "Got error. Retrying: ${cause.javaClass.simpleName}")
                                 val attempt = event.attempt + 1
                                 val delay = (5000L * (2.00).pow(attempt - 1)).toLong()
                                 sendEvent(InternalEvent.GetToken(event.nonce, attempt, event.forceUpdate), delay)
@@ -882,12 +877,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.OpenSocket -> {
                 if (destroyPending) {
-                    XLog.i(getLog("OpenSocket", "DestroyPending. Ignoring"))
+                    log.i("OpenSocket", "DestroyPending. Ignoring")
                     return
                 }
 
                 if (signalingTerminalError) {
-                    XLog.i(getLog("OpenSocket", "Terminal signaling error is active. Ignoring stale open socket."))
+                    log.i("OpenSocket", "Terminal signaling error is active. Ignoring stale open socket.")
                     return
                 }
 
@@ -895,18 +890,20 @@ internal class WebRtcStreamingService(
                 signaling?.destroy()
                 val socket = Any()
                 signalingSocket = socket
-                signaling = SocketSignaling(environment, okHttpClient, signalingListener(signalingEpoch, socket), passwordVerifier)
+                signaling = SocketSignaling(
+                    environment, okHttpClient, signalingListener(signalingEpoch, socket), passwordVerifier, log = log
+                )
                     .apply { openSocket(event.token, versionName) }
             }
 
             is InternalEvent.RecoverSignaling -> {
                 if (destroyPending) {
-                    XLog.i(getLog("RecoverSignaling", "DestroyPending. Ignoring"))
+                    log.i("RecoverSignaling", "DestroyPending. Ignoring")
                     return
                 }
 
                 if (signalingTerminalError) {
-                    XLog.i(getLog("RecoverSignaling", "Terminal signaling error is active. Ignoring recovery. reason=${event.reason}"))
+                    log.i("RecoverSignaling", "Terminal signaling error is active. Ignoring recovery.")
                     networkRecovery.value = false
                     sendEvent(WebRtcEvent.UpdateState)
                     return
@@ -914,7 +911,7 @@ internal class WebRtcStreamingService(
 
                 val attempt = ++signalingRecoveryAttempts
                 if (attempt > signalingRecoveryMaxAttempts) {
-                    XLog.w(getLog("RecoverSignaling", "Max attempts. reason=${event.reason}"))
+                    log.w("RecoverSignaling", "Max attempts.")
                     networkRecovery.value = false
                     signalingTerminalError = true
                     currentError.set(WebRtcError.SignalingServerUnavailable(event.reason, null))
@@ -925,13 +922,13 @@ internal class WebRtcStreamingService(
                 networkRecovery.value = isStreaming()
                 currentError.set(null)
                 val delay = if (attempt == 1) 0L else min((2000L * (1.1).pow(attempt - 2)).toLong(), 15_000L)
-                XLog.i(getLog("RecoverSignaling", "Scheduling signaling recovery. attempt=$attempt delay_ms=$delay reason=${event.reason}"))
+                log.i("RecoverSignaling", "Scheduling signaling recovery. attempt=$attempt delay_ms=$delay")
                 sendEvent(InternalEvent.GetNonce(0, event.forceTokenUpdate), delay)
             }
 
             is InternalEvent.StreamCreate -> {
                 if (destroyPending) {
-                    XLog.i(getLog("StreamCreate", "DestroyPending. Ignoring"))
+                    log.i("StreamCreate", "DestroyPending. Ignoring")
                     return
                 }
 
@@ -941,7 +938,7 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.StreamCreated -> {
                 if (destroyPending) {
-                    XLog.i(getLog("StreamCreated", "DestroyPending. Ignoring"))
+                    log.i("StreamCreated", "DestroyPending. Ignoring")
                     return
                 }
 
@@ -958,7 +955,7 @@ internal class WebRtcStreamingService(
                         currentStreamPassword = StreamPassword.EMPTY
                     }
 
-                    XLog.i(getLog("StreamCreated", "New host session accepted. Clearing stale clients."))
+                    log.i("StreamCreated", "New host session accepted. Clearing stale clients.")
                     clients.values.forEach { it.client.stop() }
                     clients = HashMap()
                 }
@@ -971,14 +968,13 @@ internal class WebRtcStreamingService(
                 if (projection == null) {
                     if (synchronized(ownerGate) { destroyPending || !managerHandle.isCurrent() }) return
                     val created = try {
-                        WebRtcProjection(service, handler)
+                        WebRtcProjection(service, handler, log = log)
                     } catch (cause: UnsatisfiedLinkError) {
                         if (cause.message?.contains("libjingle_peerconnection_so.so") != true) throw cause
-                        XLog.w(
-                            getLog(
-                                "StreamCreated",
-                                "Missing WebRTC native library. abi=${Build.SUPPORTED_ABIS.joinToString()} nativeLibraryDir=${service.applicationInfo.nativeLibraryDir}"
-                            ), cause
+                        log.w(
+                            "StreamCreated",
+                            "Missing WebRTC native library. abi=${Build.SUPPORTED_ABIS.joinToString()} nativeLibraryDir=${service.applicationInfo.nativeLibraryDir}",
+                            cause,
                         )
                         throw WebRtcError.IncompleteInstallation(cause)
                     }
@@ -991,7 +987,7 @@ internal class WebRtcStreamingService(
                     if (!installed) {
                         runCatching { created.destroy() }.onFailure { cause ->
                             shutdownSucceeded = false
-                            XLog.w(getLog("StreamCreated", "Unadmitted media cleanup failed"), cause)
+                            log.w("StreamCreated", "Unadmitted media cleanup failed", cause)
                         }
                         return
                     }
@@ -1004,12 +1000,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.StreamRemoved -> {
                 if (destroyPending) {
-                    XLog.i(getLog("StreamRemoved", "DestroyPending. Ignoring"))
+                    log.i("StreamRemoved", "DestroyPending. Ignoring")
                     return
                 }
 
                 if (streamRecreateInFlight.not()) {
-                    XLog.i(getLog("StreamRemoved", "No recreate in flight. Ignoring stale callback."))
+                    log.i("StreamRemoved", "No recreate in flight. Ignoring stale callback.")
                     return
                 }
 
@@ -1019,19 +1015,19 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.ClientJoin -> {
                 if (destroyPending) {
-                    XLog.i(getLog("ClientJoin", "DestroyPending. Ignoring"), IllegalStateException("ClientJoin: DestroyPending. Ignoring"))
+                    log.i("ClientJoin", "DestroyPending. Ignoring", IllegalStateException("ClientJoin: DestroyPending. Ignoring"))
                     return
                 }
 
                 if (projection == null) {
-                    XLog.i(getLog("ClientJoin", "projection == null. Ignoring"))
+                    log.i("ClientJoin", "projection == null. Ignoring")
                     return
                 }
 
                 val prj = projection!!
                 val existingClient = clients[event.clientId]
                 if (existingClient?.key?.joinAttemptId == event.joinAttemptId) {
-                    XLog.i(getLog("ClientJoin", "Duplicate join for ${event.clientId}, joinAttemptId=${event.joinAttemptId}. Ignoring."))
+                    log.i("ClientJoin", "Duplicate join: joinAttemptId=${event.joinAttemptId}. Ignoring.")
                     return
                 }
 
@@ -1044,7 +1040,8 @@ internal class WebRtcStreamingService(
                         event.joinAttemptId,
                         event.iceServers,
                         prj.peerConnectionFactory, prj.videoCodecs, prj.audioCodecs,
-                        clientListener(signalingEpoch)
+                        clientListener(signalingEpoch),
+                        log = log
                     )
                 )
 
@@ -1058,7 +1055,7 @@ internal class WebRtcStreamingService(
 
             is WebRtcEvent.RemoveClient -> {
                 if (destroyPending) {
-                    XLog.i(getLog("RemoveClient", "DestroyPending. Ignoring"), IllegalStateException("RemoveClient: DestroyPending"))
+                    log.i("RemoveClient", "DestroyPending. Ignoring", IllegalStateException("RemoveClient: DestroyPending"))
                     return
                 }
 
@@ -1067,7 +1064,7 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.ClientLeave -> {
                 if (destroyPending) {
-                    XLog.i(getLog("ClientLeave", "DestroyPending. Ignoring"), IllegalStateException("ClientLeave: DestroyPending"))
+                    log.i("ClientLeave", "DestroyPending. Ignoring", IllegalStateException("ClientLeave: DestroyPending"))
                     return
                 }
 
@@ -1076,18 +1073,13 @@ internal class WebRtcStreamingService(
                 if (currentClient?.key == key) {
                     removeClientNow(event.clientId, false, "onClientLeave")
                 } else {
-                    XLog.i(
-                        getLog(
-                            "ClientLeave",
-                            "Stale joinAttemptId=${event.joinAttemptId} for ${event.clientId}. Current=${currentClient?.key?.joinAttemptId ?: "-"}. Ignoring."
-                        )
-                    )
+                    log.i("ClientLeave", "Stale joinAttemptId=${event.joinAttemptId}. Current=${currentClient?.key?.joinAttemptId ?: "-"}. Ignoring.")
                 }
             }
 
             is InternalEvent.SocketSignalingError -> {
                 if (destroyPending) {
-                    XLog.i(getLog("SocketSignalingError", "DestroyPending. Ignoring"))
+                    log.i("SocketSignalingError", "DestroyPending. Ignoring")
                     return
                 }
 
@@ -1218,13 +1210,13 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.CaptureFatal -> {
                 if (destroyPending) {
-                    XLog.i(getLog("CaptureFatal", "DestroyPending. Ignoring"), event.cause)
+                    log.i("CaptureFatal", "DestroyPending. Ignoring", event.cause)
                     return
                 }
                 if (captureAttempt?.generation != event.generation) return
                 captureAttempt?.failed = true
                 projection?.markCaptureFailed()
-                XLog.e(getLog("CaptureFatal", "Stopping stream"), event.cause)
+                log.e("CaptureFatal", "Stopping stream", event.cause)
                 sendEvent(WebRtcEvent.StopStream("CaptureFatal:${event.cause.javaClass.simpleName}:${event.cause.message}", event.generation))
             }
 
@@ -1238,7 +1230,7 @@ internal class WebRtcStreamingService(
                 if (event.errorToken != currentErrorToken) return
                 signalingEpoch++
                 if (destroyPending) {
-                    XLog.i(getLog("RecoverError", "DestroyPending. Ignoring"))
+                    log.i("RecoverError", "DestroyPending. Ignoring")
                     return
                 }
 
@@ -1270,7 +1262,7 @@ internal class WebRtcStreamingService(
                 val settings = webRtcSettings.data.value
                 if ((settings.enableMic || settings.enableDeviceAudio) && !hasAudioPermission()) {
                     // No consent has been admitted or consumed and no education has been shown.
-                    WebRtcSessionAnalytics.audioPreflightFailed(analyticsFactory)
+                    WebRtcSessionAnalytics.audioPreflightFailed(analyticsFactory, log)
                     currentError.set(WebRtcError.AudioPermissionRequired())
                     return
                 }
@@ -1281,7 +1273,7 @@ internal class WebRtcStreamingService(
                     if (destroyPending || !managerHandle.isCurrent()) return
                     val accepted =
                         CaptureAttempt(StreamingModule.CaptureAttemptId(instanceId), ++captureGeneration, settings.enableMic, settings.enableDeviceAudio)
-                    captureAnalytics = WebRtcSessionAnalytics(analyticsFactory, accepted.id)
+                    captureAnalytics = WebRtcSessionAnalytics(analyticsFactory, accepted.id, log)
                     captureAttempt = accepted
                     accepted
                 }
@@ -1331,12 +1323,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.SendHostOffer -> {
                 if (destroyPending) {
-                    XLog.i(getLog("SendHostOffer", "DestroyPending. Ignoring"), IllegalStateException("SendHostOffer: DestroyPending"))
+                    log.i("SendHostOffer", "DestroyPending. Ignoring", IllegalStateException("SendHostOffer: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.i(getLog("SendHostOffer", "Not streaming. Ignoring."))
+                    log.i("SendHostOffer", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1350,12 +1342,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.NegotiationTimeout -> {
                 if (destroyPending) {
-                    XLog.i(getLog("NegotiationTimeout", "DestroyPending. Ignoring"), IllegalStateException("NegotiationTimeout: DestroyPending"))
+                    log.i("NegotiationTimeout", "DestroyPending. Ignoring", IllegalStateException("NegotiationTimeout: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("NegotiationTimeout", "Not streaming. Ignoring."))
+                    log.d("NegotiationTimeout", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1364,7 +1356,7 @@ internal class WebRtcStreamingService(
                     key = event.key.session
                 ) { currentClient ->
                     if (currentClient.client.isNegotiationUnanswered(event.key.attemptId)) {
-                        XLog.w(getLog("NegotiationTimeout", "Removing unanswered client ${event.key.clientId}, negotiationAttemptId=${event.key.attemptId}"))
+                        log.w("NegotiationTimeout", "Removing unanswered client: negotiationAttemptId=${event.key.attemptId}")
                         removeClientNow(event.key.clientId, true, "NegotiationTimeout")
                     }
                 }
@@ -1372,7 +1364,7 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.ClientNotFound -> {
                 if (destroyPending) {
-                    XLog.i(getLog("ClientNotFound", "DestroyPending. Ignoring"), IllegalStateException("ClientNotFound: DestroyPending"))
+                    log.i("ClientNotFound", "DestroyPending. Ignoring", IllegalStateException("ClientNotFound: DestroyPending"))
                     return
                 }
 
@@ -1386,7 +1378,7 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.ClientStartNotFound -> {
                 if (destroyPending) {
-                    XLog.i(getLog("ClientStartNotFound", "DestroyPending. Ignoring"), IllegalStateException("ClientStartNotFound: DestroyPending"))
+                    log.i("ClientStartNotFound", "DestroyPending. Ignoring", IllegalStateException("ClientStartNotFound: DestroyPending"))
                     return
                 }
 
@@ -1394,18 +1386,16 @@ internal class WebRtcStreamingService(
                 if (currentClient?.key == event.key) {
                     removeClientNow(event.key.clientId, false, event.reason)
                 } else {
-                    XLog.i(
-                        getLog(
-                            "ClientStartNotFound",
-                            "Stale joinAttemptId=${event.key.joinAttemptId} for ${event.key.clientId}. Current=${currentClient?.key?.joinAttemptId ?: "-"}, reason=${event.reason}. Ignoring."
-                        )
+                    log.i(
+                        "ClientStartNotFound",
+                        "Stale joinAttemptId=${event.key.joinAttemptId}. Current=${currentClient?.key?.joinAttemptId ?: "-"}. Ignoring.",
                     )
                 }
             }
 
             is InternalEvent.ClientAddress -> {
                 if (destroyPending) {
-                    XLog.i(getLog("ClientAddress", "DestroyPending. Ignoring"), IllegalStateException("ClientAddress: DestroyPending"))
+                    log.i("ClientAddress", "DestroyPending. Ignoring", IllegalStateException("ClientAddress: DestroyPending"))
                     return
                 }
 
@@ -1416,12 +1406,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.SocketClientAnswer -> {
                 if (destroyPending) {
-                    XLog.i(getLog("SocketClientAnswer", "DestroyPending. Ignoring"), IllegalStateException("SocketClientAnswer: DestroyPending"))
+                    log.i("SocketClientAnswer", "DestroyPending. Ignoring", IllegalStateException("SocketClientAnswer: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("SocketClientAnswer", "Not streaming. Ignoring."))
+                    log.d("SocketClientAnswer", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1436,12 +1426,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.SetClientAnswer -> {
                 if (destroyPending) {
-                    XLog.i(getLog("SetClientAnswer", "DestroyPending. Ignoring"), IllegalStateException("SetClientAnswer: DestroyPending"))
+                    log.i("SetClientAnswer", "DestroyPending. Ignoring", IllegalStateException("SetClientAnswer: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("SetClientAnswer", "Not streaming. Ignoring."))
+                    log.d("SetClientAnswer", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1455,12 +1445,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.ClientAnswerApplied -> {
                 if (destroyPending) {
-                    XLog.i(getLog("ClientAnswerApplied", "DestroyPending. Ignoring"), IllegalStateException("ClientAnswerApplied: DestroyPending"))
+                    log.i("ClientAnswerApplied", "DestroyPending. Ignoring", IllegalStateException("ClientAnswerApplied: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("ClientAnswerApplied", "Not streaming. Ignoring."))
+                    log.d("ClientAnswerApplied", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1474,15 +1464,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.SendHostCandidates -> {
                 if (destroyPending) {
-                    XLog.i(
-                        getLog("SendHostCandidates", "DestroyPending. Ignoring"),
-                        IllegalStateException("SendHostCandidates: DestroyPending")
-                    )
+                    log.i("SendHostCandidates", "DestroyPending. Ignoring", IllegalStateException("SendHostCandidates: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("SendHostCandidates", "Not streaming. Ignoring."))
+                    log.d("SendHostCandidates", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1493,38 +1480,28 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.PeerDisconnected -> {
                 if (destroyPending) {
-                    XLog.i(getLog("PeerDisconnected", "DestroyPending. Ignoring"), IllegalStateException("PeerDisconnected: DestroyPending"))
+                    log.i("PeerDisconnected", "DestroyPending. Ignoring", IllegalStateException("PeerDisconnected: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("PeerDisconnected", "Not streaming. Ignoring."))
+                    log.d("PeerDisconnected", "Not streaming. Ignoring.")
                     return
                 }
 
                 withActiveClient("PeerDisconnected", event.key.session) { currentClient ->
                     if (currentClient.client.isProlongedDisconnected(event.key.attemptId, event.connectionStateEpoch)) {
-                        XLog.w(
-                            getLog(
-                                "PeerDisconnected",
-                                "Removing prolonged disconnected client ${event.key.clientId}, negotiationAttemptId=${event.key.attemptId}"
-                            )
-                        )
+                        log.w("PeerDisconnected", "Removing prolonged disconnected client: negotiationAttemptId=${event.key.attemptId}")
                         removeClientNow(event.key.clientId, false, "PeerDisconnected")
                     } else {
-                        XLog.i(
-                            getLog(
-                                "PeerDisconnected",
-                                "Client ${event.key.clientId} recovered or changed. Ignoring, negotiationAttemptId=${event.key.attemptId}"
-                            )
-                        )
+                        log.i("PeerDisconnected", "Client recovered or changed. Ignoring, negotiationAttemptId=${event.key.attemptId}")
                     }
                 }
             }
 
             is InternalEvent.ClientError -> {
                 if (destroyPending) {
-                    XLog.i(getLog("ClientError", "DestroyPending. Ignoring"), IllegalStateException("ClientError: DestroyPending"))
+                    log.i("ClientError", "DestroyPending. Ignoring", IllegalStateException("ClientError: DestroyPending"))
                     return
                 }
 
@@ -1535,15 +1512,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.SocketClientCandidate -> {
                 if (destroyPending) {
-                    XLog.i(
-                        getLog("SocketClientCandidate", "DestroyPending. Ignoring"),
-                        IllegalStateException("SocketClientCandidate: DestroyPending")
-                    )
+                    log.i("SocketClientCandidate", "DestroyPending. Ignoring", IllegalStateException("SocketClientCandidate: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("SocketClientCandidate", "Not streaming. Ignoring."))
+                    log.d("SocketClientCandidate", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1558,15 +1532,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.SetClientCandidate -> {
                 if (destroyPending) {
-                    XLog.i(
-                        getLog("SetClientCandidate", "DestroyPending. Ignoring"),
-                        IllegalStateException("SetClientCandidate: DestroyPending")
-                    )
+                    log.i("SetClientCandidate", "DestroyPending. Ignoring", IllegalStateException("SetClientCandidate: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("SetClientCandidate", "Not streaming. Ignoring."))
+                    log.d("SetClientCandidate", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1581,12 +1552,12 @@ internal class WebRtcStreamingService(
             is InternalEvent.ScreenOff -> {
                 if (captureAttempt?.generation != event.generation) return
                 if (destroyPending) {
-                    XLog.i(getLog("ScreenOff", "DestroyPending. Ignoring"), IllegalStateException("ScreenOff: DestroyPending"))
+                    log.i("ScreenOff", "DestroyPending. Ignoring", IllegalStateException("ScreenOff: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("ScreenOff", "Not streaming. Ignoring."))
+                    log.d("ScreenOff", "Not streaming. Ignoring.")
                     return
                 }
 
@@ -1595,12 +1566,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.EnableMic -> {
                 if (destroyPending) {
-                    XLog.i(getLog("EnableMic", "DestroyPending. Ignoring"))
+                    log.i("EnableMic", "DestroyPending. Ignoring")
                     return
                 }
 
                 if (isStreaming()) {
-                    XLog.i(getLog("EnableMic", "Streaming. Ignoring source change until next start."))
+                    log.i("EnableMic", "Streaming. Ignoring source change until next start.")
                     return
                 }
 
@@ -1609,13 +1580,13 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.EnableDeviceAudio -> {
                 if (destroyPending) {
-                    XLog.i(getLog("EnableDeviceAudio", "DestroyPending. Ignoring"))
+                    log.i("EnableDeviceAudio", "DestroyPending. Ignoring")
                     return
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     if (isStreaming()) {
-                        XLog.i(getLog("EnableDeviceAudio", "Streaming. Ignoring source change until next start."))
+                        log.i("EnableDeviceAudio", "Streaming. Ignoring source change until next start.")
                         return
                     }
 
@@ -1625,15 +1596,12 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.ConfigurationChange -> {
                 if (destroyPending) {
-                    XLog.i(
-                        getLog("ConfigurationChange", "DestroyPending. Ignoring"),
-                        IllegalStateException("ConfigurationChange: DestroyPending")
-                    )
+                    log.i("ConfigurationChange", "DestroyPending. Ignoring", IllegalStateException("ConfigurationChange: DestroyPending"))
                     return
                 }
 
                 if (isStreaming().not()) {
-                    XLog.d(getLog("ConfigurationChange", "Not streaming. Ignoring."))
+                    log.d("ConfigurationChange", "Not streaming. Ignoring.")
                     deviceConfiguration = Configuration(event.newConfig)
                     return
                 }
@@ -1646,7 +1614,7 @@ internal class WebRtcStreamingService(
                     val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
                     projection!!.changeCaptureFormat(screeSize.width(), screeSize.height())
                 } else {
-                    XLog.d(getLog("ConfigurationChange", "No change relevant for streaming. Ignoring."))
+                    log.d("ConfigurationChange", "No change relevant for streaming. Ignoring.")
                 }
 
                 deviceConfiguration = Configuration(event.newConfig)
@@ -1666,22 +1634,22 @@ internal class WebRtcStreamingService(
 
             is WebRtcEvent.GetNewStreamId -> {
                 if (destroyPending) {
-                    XLog.i(getLog("GetNewStreamId", "DestroyPending. Ignoring"), IllegalStateException("GetNewStreamId: DestroyPending"))
+                    log.i("GetNewStreamId", "DestroyPending. Ignoring", IllegalStateException("GetNewStreamId: DestroyPending"))
                     return
                 }
 
                 if (isStreaming()) {
-                    XLog.i(getLog("GetNewStreamId", "Streaming. Ignoring."), IllegalStateException("GetNewStreamId: Streaming."))
+                    log.i("GetNewStreamId", "Streaming. Ignoring.", IllegalStateException("GetNewStreamId: Streaming."))
                     return
                 }
 
                 if (streamRecreateInFlight) {
-                    XLog.i(getLog("GetNewStreamId", "Recreate already in progress. Ignoring."))
+                    log.i("GetNewStreamId", "Recreate already in progress. Ignoring.")
                     return
                 }
 
                 streamRecreateInFlight = true
-                requireNotNull(signaling).sendStreamRemove(currentStreamId)
+                requireNotNull(signaling).sendStreamRemove()
                 clients = HashMap()
                 currentStreamId = StreamId.EMPTY
                 currentStreamPassword = StreamPassword.EMPTY
@@ -1690,20 +1658,17 @@ internal class WebRtcStreamingService(
 
             is WebRtcEvent.CreateNewPassword -> {
                 if (destroyPending) {
-                    XLog.i(
-                        getLog("CreateNewPassword", "DestroyPending. Ignoring"),
-                        IllegalStateException("CreateNewPassword: DestroyPending")
-                    )
+                    log.i("CreateNewPassword", "DestroyPending. Ignoring", IllegalStateException("CreateNewPassword: DestroyPending"))
                     return
                 }
 
                 if (isStreaming()) {
-                    XLog.i(getLog("CreateNewPassword", "Streaming. Ignoring."))
+                    log.i("CreateNewPassword", "Streaming. Ignoring.")
                     return
                 }
 
                 if (streamRecreateInFlight) {
-                    XLog.i(getLog("CreateNewPassword", "Stream recreate in progress. Ignoring."))
+                    log.i("CreateNewPassword", "Stream recreate in progress. Ignoring.")
                     return
                 }
 
@@ -1744,7 +1709,7 @@ internal class WebRtcStreamingService(
                 succeeded = false
                 attempt?.failed = true
                 if (destroyPending) shutdownSucceeded = false
-                XLog.w(getLog("stopStream", "Best-effort media shutdown failed"), cause)
+                log.w("stopStream", "Best-effort media shutdown failed", cause)
             }
         }
         if (attempt != null) {
@@ -1801,7 +1766,7 @@ internal class WebRtcStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun getStateString() =
-        "d=$destroyPending sock=${signaling?.socketId()} stream=$currentStreamId str=${isStreaming()} start=${pendingStartAttemptId ?: "-"} rec=$streamRecreateInFlight netRec=${networkRecovery.value} clients=${clients.size}"
+        "destroyPending=$destroyPending socketPresent=${signaling?.socketId() != null} streamPresent=${!currentStreamId.isEmpty()} streaming=${isStreaming()} start=${pendingStartAttemptId ?: "-"} recreating=$streamRecreateInFlight networkRecovery=${networkRecovery.value} clients=${clients.size}"
 
     private fun publishState() {
         val error = currentError.get()
@@ -1838,8 +1803,15 @@ internal class WebRtcStreamingService(
             if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException) ||
                 error is WebRtcError.PlayIntegrityError && error.isExpectedEnvironmentIssue() || error.isStartupPolicyError()
             ) {
-                XLog.i(getLog("publishError", error.message ?: error.javaClass.simpleName))
-            } else XLog.e(getLog("publishError"), error)
+                log.i("publishError", "type=${error.javaClass.simpleName}")
+            } else when (error) {
+                is WebRtcError.NetworkError -> log.e("publishError", "Network request failed: code=${error.code}")
+                is WebRtcError.PlayIntegrityError -> log.e("publishError", "Play Integrity failed: code=${error.code}")
+                is WebRtcError.SocketError, is WebRtcError.SignalingServerUnavailable, is WebRtcError.UnknownError ->
+                    log.e("publishError", "type=${error.javaClass.simpleName}, causeType=${error.cause?.javaClass?.simpleName}")
+
+                else -> log.e("publishError", "type=${error.javaClass.simpleName}", error)
+            }
             val recover = !(isStreaming() && error is WebRtcError.SignalingServerUnavailable) && !error.isStartupPolicyError()
             val action = if (recover) currentErrorToken?.let { StreamingModuleActionReceiver.recoveryAction(service, instanceId, it) } else null
             notifications.updateError(210, StreamingModuleNotifications.ErrorContent.Text(error.toString(ContextCompat.getContextForLanguage(service)), action))
@@ -1851,6 +1823,7 @@ internal class WebRtcStreamingService(
 private class WebRtcSessionAnalytics(
     private val factory: StreamingSessionAnalyticsFactory,
     attempt: StreamingModule.CaptureAttemptId,
+    private val log: Logger,
 ) {
     private val key = SessionKey(attempt.instanceId.moduleId.value, attempt.instanceId.uuid, attempt.uuid)
     private val gate = Any()
@@ -1987,17 +1960,19 @@ private class WebRtcSessionAnalytics(
         }
     }
 
+    private inline fun observe(action: () -> Unit) = observe(log, action)
+
     companion object {
-        fun audioPreflightFailed(factory: StreamingSessionAnalyticsFactory) {
-            observe { factory.preflightFailed(StreamMode.WEBRTC, EntryPoint.BUTTON, StartFailGroup.BLOCKED) }
+        fun audioPreflightFailed(factory: StreamingSessionAnalyticsFactory, log: Logger) {
+            observe(log) { factory.preflightFailed(StreamMode.WEBRTC, EntryPoint.BUTTON, StartFailGroup.BLOCKED) }
         }
 
         /** Observation failures, including their own cancellation, cannot change native media work. */
-        private inline fun observe(action: () -> Unit) {
+        private inline fun observe(log: Logger, action: () -> Unit) {
             try {
                 action()
             } catch (cause: Throwable) {
-                runCatching { android.util.Log.w("WebRtcSessionAnalytics", "Reporting failed", cause) }
+                runCatching { log.w("WebRtcSessionAnalytics", "Reporting failed", cause) }
             }
         }
     }

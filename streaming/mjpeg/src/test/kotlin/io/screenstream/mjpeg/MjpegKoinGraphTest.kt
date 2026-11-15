@@ -3,7 +3,7 @@ package io.screenstream.mjpeg
 import android.app.Application
 import android.content.Context
 import android.content.Intent
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
+import io.screenstream.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.http.HttpDelivery

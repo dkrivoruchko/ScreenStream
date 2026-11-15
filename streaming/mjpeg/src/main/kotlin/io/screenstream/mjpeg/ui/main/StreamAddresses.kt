@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -49,8 +50,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -64,11 +68,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import info.dvkr.screenstream.common.generateQRBitmap
 import info.dvkr.screenstream.common.ui.ExpandableCard
 import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
+import io.screenstream.foundation.qr.generateQRBitmap
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
@@ -493,19 +497,7 @@ private fun QrCodeDialog(
     url: String,
     onDismiss: () -> Unit,
 ) {
-    var loadFailed by remember(url) { mutableStateOf(false) }
-    val bitmap by produceState<ImageBitmap?>(initialValue = null, key1 = url) {
-        try {
-            value = withContext(Dispatchers.Default) {
-                url.generateQRBitmap(768).asImageBitmap()
-            }
-        } catch (failure: CancellationException) {
-            throw failure
-        } catch (_: Exception) {
-            loadFailed = true
-        }
-    }
-    val image = bitmap
+    var qrCodeSizePx by remember { mutableIntStateOf(0) }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier.semantics(mergeDescendants = true) {
@@ -515,28 +507,48 @@ private fun QrCodeDialog(
                 }
             },
             shape = MaterialTheme.shapes.large,
-            color = if (image != null && !loadFailed) Color.White else MaterialTheme.colorScheme.surface,
+            color = Color.White,
         ) {
             Box(
                 modifier = Modifier
-                    .sizeIn(maxWidth = 224.dp, maxHeight = 224.dp)
+                    .sizeIn(maxWidth = 208.dp, maxHeight = 208.dp)
                     .aspectRatio(1f)
-                    .padding(32.dp),
+                    .onSizeChanged { qrCodeSizePx = it.width },
                 contentAlignment = Alignment.Center,
             ) {
-                when {
-                    loadFailed -> Text(
-                        text = stringResource(R.string.mjpeg_address_error_qr_generation),
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                val imageSizePx = qrCodeSizePx
+                key(url, imageSizePx) {
+                    var loadFailed by remember { mutableStateOf(false) }
+                    val bitmap by produceState<ImageBitmap?>(initialValue = null) {
+                        if (imageSizePx > 0) {
+                            try {
+                                value = withContext(Dispatchers.Default) {
+                                    url.generateQRBitmap(imageSizePx).asImageBitmap()
+                                }
+                            } catch (failure: CancellationException) {
+                                throw failure
+                            } catch (_: Exception) {
+                                loadFailed = true
+                            }
+                        }
+                    }
+                    val image = bitmap
+                    when {
+                        loadFailed -> Text(
+                            text = stringResource(R.string.mjpeg_address_error_qr_generation),
+                            color = MaterialTheme.colorScheme.error,
+                        )
 
-                    image == null -> CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                        image == null -> CircularProgressIndicator(modifier = Modifier.size(32.dp))
 
-                    else -> Image(
-                        bitmap = image,
-                        contentDescription = stringResource(R.string.mjpeg_address_qr_image_description),
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                        else -> Image(
+                            bitmap = image,
+                            contentDescription = stringResource(R.string.mjpeg_address_qr_image_description),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.None,
+                            filterQuality = FilterQuality.None,
+                        )
+                    }
                 }
             }
         }

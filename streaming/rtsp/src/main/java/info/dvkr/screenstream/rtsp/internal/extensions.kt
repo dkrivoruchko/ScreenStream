@@ -7,8 +7,7 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.Network
 import android.os.Build
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -24,19 +23,19 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
 @Suppress("DEPRECATION")
-internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, onConnectionChanged: () -> Unit) {
-    XLog.d(this@startListening.getLog("startListening"))
+internal fun Context.startListening(log: Logger, serviceJob: Job, onScreenOff: () -> Unit, onConnectionChanged: () -> Unit) {
+    log.d("startListening")
 
     val connectionChangeMutableStateFlow = MutableStateFlow(0L)
 
     connectionChangeMutableStateFlow
-        .onStart { XLog.v(this@startListening.getLog("startListening", "onStart")) }
+        .onStart { log.v("startListening", "onStart") }
         .debounce(500.milliseconds)
         .onEach {
-            XLog.d(this@startListening.getLog("startListening", "onEach: $it"))
+            log.d("startListening", "onEach: $it")
             onConnectionChanged.invoke()
         }
-        .onCompletion { XLog.v(this@startListening.getLog("startListening", "onCompletion")) }
+        .onCompletion { log.v("startListening", "onCompletion") }
         .launchIn(CoroutineScope(serviceJob + Dispatchers.Default))
 
     val intentFilter = IntentFilter().apply {
@@ -46,7 +45,7 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
 
     val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            XLog.v(this@startListening.getLog("BroadcastReceiver.onReceive", "Action: ${intent?.action}"))
+            log.v("BroadcastReceiver.onReceive", "Action: ${intent?.action}")
 
             when (intent?.action) {
                 Intent.ACTION_SCREEN_OFF -> onScreenOff.invoke()
@@ -62,18 +61,18 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
         registerReceiver(broadcastReceiver, intentFilter)
 
     serviceJob.invokeOnCompletion {
-        XLog.d(getLog("invokeOnCompletion", "unregisterBroadcastReceiver"))
+        log.d("invokeOnCompletion", "unregisterBroadcastReceiver")
         runCatching { unregisterReceiver(broadcastReceiver) }
     }
 
     val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
-            XLog.v(this@startListening.getLog("onAvailable", "Network: $network"))
+            log.v("onAvailable", "Network: $network")
             connectionChangeMutableStateFlow.value = System.currentTimeMillis()
         }
 
         override fun onLost(network: Network) {
-            XLog.v(this@startListening.getLog("onLost", "Network: $network"))
+            log.v("onLost", "Network: $network")
             connectionChangeMutableStateFlow.value = System.currentTimeMillis()
         }
     }
@@ -83,7 +82,7 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
     connectivityManager.registerDefaultNetworkCallback(networkCallback)
 
     serviceJob.invokeOnCompletion {
-        XLog.d(getLog("invokeOnCompletion", "unregisterNetworkCallback"))
+        log.d("invokeOnCompletion", "unregisterNetworkCallback")
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 }

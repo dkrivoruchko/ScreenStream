@@ -21,6 +21,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.packets.OpusPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +42,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class RtspServerConnection(
+    private val log: Logger,
     parentJob: Job,
     private val tcpStreamSocket: TcpStreamSocket,
     private val serverMessageHandler: RtspServerMessageHandler,
@@ -723,7 +725,7 @@ internal class RtspServerConnection(
         videoPacketizer = when (videoParams.codec) {
             Codec.Video.H264 -> H264Packet().apply { setVideoInfo(videoParams.sps, videoParams.pps!!) }
             Codec.Video.H265 -> H265Packet().apply { setVideoInfo(videoParams.sps, videoParams.pps!!, videoParams.vps!!) }
-            Codec.Video.AV1 -> Av1Packet().apply { setSequenceHeader(videoParams.sps) }
+            Codec.Video.AV1 -> Av1Packet(log).apply { setSequenceHeader(videoParams.sps) }
         }.apply {
             videoSsrc = secureRandom.nextLong()
             setSSRC(videoSsrc)

@@ -6,7 +6,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
+import io.screenstream.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.permission.RuntimePermission
