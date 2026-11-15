@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">Восстановить</string>
+    <string name="rtmp_error_open_settings">Открыть настройки</string>
+    <string name="rtmp_error_start_screen_sharing">Начать демонстрацию экрана</string>
+    <string name="rtmp_error_start_with_audio">Запустить со звуком</string>
+    <string name="rtmp_error_allow_microphone">Разрешить микрофон</string>
+    <string name="rtmp_error_local_network_permission_required">Требуется доступ к локальной сети, чтобы устройства могли подключаться к трансляции.</string>
+
+    <string name="rtmp_method_title">RTMP: плееры и медиасерверы</string>
+    <string name="rtmp_method_summary">Смотрите в видеоплеере или отправляйте трансляцию на медиасервер.</string>
+    <string name="rtmp_method_conditions">Совместимое ПО с поддержкой RTMP · Звук по желанию</string>
+    <string name="rtmp_method_intro">RTMP является распространённым стандартом трансляции, который используют видеоплееры и медиасерверы. По умолчанию сервером трансляции выступает это устройство. Её также можно отправлять на медиасервер.</string>
+    <string-array name="rtmp_method_benefits">
+        <item>Смотрите в плеерах, например VLC, открыв RTMP-адрес, показанный в приложении.</item>
+        <item>Отправляйте трансляцию на медиасервер, в том числе на серверы, требующие имя пользователя и пароль.</item>
+        <item>Добавляйте звук микрофона, звук устройства или оба.</item>
+        <item>Выбирайте форматы видео и звука, размер и качество под ваш плеер или сервер.</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>Плееры должны иметь возможность подключиться к этому устройству, например в той же сети Wi-Fi. Когда устройство само выступает сервером, интернет не нужен.</item>
+        <item>При отправке на сервер это устройство должно иметь к нему доступ. Для зашифрованного соединения используйте адрес rtmps://. Формат: rtmp://host/app/streamKey.</item>
+        <item>Ваш плеер или сервер должен поддерживать выбранные форматы. H.264 с AAC работает везде; для H.265 нужна поддержка Enhanced RTMP.</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">Выберите режим RTMP:</string>
+    <string name="rtmp_mode_server">Сервер</string>
+    <string name="rtmp_mode_server_hint">Сделать устройство RTMP-сервером</string>
+    <string name="rtmp_mode_client">Клиент</string>
+    <string name="rtmp_mode_client_hint">Подключиться к удалённому RTMP-серверу</string>
+
+    <string name="rtmp_interfaces_title">Адрес RTMP-сервера</string>
+    <string name="rtmp_interfaces_no_address">Адрес не найден.\nПроверьте соединение или измените настройки сервера (Фильтр интерфейсов, Фильтр адресов).</string>
+    <string name="rtmp_interfaces_discovering">Поиск адресов…</string>
+    <string name="rtmp_interfaces_interface_label">Интерфейс:\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">Копировать адрес</string>
+    <string name="rtmp_interfaces_description_share">Поделиться адресом</string>
+    <string name="rtmp_interfaces_description_qr">Показать адрес как QR-код</string>
+    <string name="rtmp_interfaces_qr_content_description">QR-код</string>
+    <string name="rtmp_interfaces_copied">Адрес скопирован</string>
+    <string name="rtmp_interfaces_share_title">Поделиться RTMP-адресом</string>
+    <string name="rtmp_bindings_retry">Повторить</string>
+    <string name="rtmp_bind_error_port_in_use">Ошибка: Порт занят</string>
+    <string name="rtmp_bind_error_address_not_available">Ошибка: Адрес недоступен</string>
+    <string name="rtmp_bind_error_permission_denied">Ошибка: Доступ запрещен</string>
+    <string name="rtmp_bind_error_unknown">Ошибка: Сбой слушателя</string>
+
+    <string name="rtmp_server_parameters">Настройки сервера</string>
+    <string name="rtmp_client_parameters">Настройки клиента</string>
+
+    <string name="rtmp_stream_start">Запустить трансляцию</string>
+    <string name="rtmp_stream_stop">Остановить трансляцию</string>
+
+    <string name="rtmp_error_notification_permission_required">Этому приложению нужны включенные уведомления, чтобы запустить службу трансляции.\nВключите уведомления в настройках приложения.</string>
+    <string name="rtmp_error_screen_capture_start_blocked">Android заблокировал запуск демонстрации экрана. Оставьте ScreenStream открытым и запустите снова.</string>
+    <string name="rtmp_error_projection_acquire_rejected">Разрешение на захват экрана больше недействительно. Начните демонстрацию экрана снова.</string>
+    <string name="rtmp_error_audio_permission_required">Для запуска трансляции со звуком требуется разрешение на микрофон.</string>
+    <string name="rtmp_error_audio_start_blocked">Android заблокировал запуск передачи звука. Оставьте ScreenStream открытым и запустите снова со звуком.</string>
+    <string name="rtmp_error_ip_address_not_found">Адрес не найден. Проверьте соединение или измените настройки сервера (Фильтр интерфейсов, Фильтр адресов).</string>
+    <string name="rtmp_error_unspecified">Что-то пошло не так.</string>
+
+    <string name="rtmp_media_server">Медиасервер</string>
+    <string name="rtmp_server_address">Адрес RTMP-сервера</string>
+
+    <string name="rtmp_connection_connected">Сервер подключен</string>
+    <string name="rtmp_connection_connecting">Подключение к серверу…</string>
+    <string name="rtmp_connection_disconnected">Сервер отключен</string>
+    <string name="rtmp_connection_error">Ошибка подключения</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">Публичный IPv4</string>
+    <string name="rtmp_label_public_ipv6">Публичный IPv6</string>
+    <string name="rtmp_label_loopback">Loopback</string>
+
+    <string name="rtmp_video_parameters">Настройки видео</string>
+    <string name="rtmp_video_encoder">Видеокодек:</string>
+    <string name="rtmp_video_encoder_auto">Авто</string>
+    <string name="rtmp_video_h264_profile">Профиль H.264:</string>
+    <string name="rtmp_video_h264_profile_auto">Авто</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">Активный профиль: %1$s</string>
+    <string name="rtmp_video_resize_image">Размер изображения: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">Размер экрана: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">Размер видео: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">Частота кадров: %1$d кадров/сек</string>
+    <string name="rtmp_video_bitrate">Битрейт видео: %1$s/сек</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f Мбит</string>
+    <string name="rtmp_video_bitrate_kbit">%d Кбит</string>
+
+    <string name="rtmp_audio_parameters">Настройки аудио</string>
+    <string name="rtmp_audio_mic">Микрофон</string>
+    <string name="rtmp_audio_mic_mute">Отключить микрофон</string>
+    <string name="rtmp_audio_device">Внутренний звук</string>
+    <string name="rtmp_audio_device_mute">Отключить внутренний звук</string>
+    <string name="rtmp_audio_encoder">Аудиокодек:</string>
+    <string name="rtmp_audio_encoder_auto">Авто</string>
+    <string name="rtmp_audio_bitrate">Битрейт аудио: %1$s/сек</string>
+    <string name="rtmp_audio_capture_issue_detected">Обнаружена проблема с захватом звука</string>
+
+    <string name="rtmp_connection_access_denied">Доступ запрещен</string>
+    <string name="rtmp_connection_no_credentials">Укажите логин и пароль</string>
+    <string name="rtmp_connection_invalid_credentials">Неверный логин или пароль</string>
+
+    <string name="rtmp_close">Закрыть</string>
+    <string name="rtmp_pref_interface_filter">Фильтр интерфейсов</string>
+    <string name="rtmp_pref_interface_filter_summary">Выберите сетевые интерфейсы для сервера</string>
+    <string name="rtmp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtmp_pref_interface_filter_mobile">Мобильный</string>
+    <string name="rtmp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtmp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtmp_pref_interface_filter_unknown">неизвестный</string>
+    <string name="rtmp_pref_filter_no_restriction">Без ограничений</string>
+    <string name="rtmp_pref_address_filter">Фильтр адресов</string>
+    <string name="rtmp_pref_address_filter_summary">Выберите типы IP-адресов для сервера</string>
+    <string name="rtmp_pref_address_filter_private">Частный</string>
+    <string name="rtmp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtmp_pref_address_filter_public">Публичный</string>
+    <string name="rtmp_pref_enable_ipv4">Включить IPv4</string>
+    <string name="rtmp_pref_enable_ipv4_summary">Запустить сервер на IPv4-адресах</string>
+    <string name="rtmp_pref_enable_ipv6">Включить IPv6</string>
+    <string name="rtmp_pref_enable_ipv6_summary">Запустить сервер на IPv6-адресах</string>
+    <string name="rtmp_pref_server_port">Порт сервера</string>
+    <string name="rtmp_pref_server_port_summary">Установить порт для входящих подключений</string>
+    <string name="rtmp_pref_server_port_text">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\nПо умолчанию: 8554</string>
+</resources>

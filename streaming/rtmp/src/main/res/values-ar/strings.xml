@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">استعادة</string>
+    <string name="rtmp_error_open_settings">فتح الإعدادات</string>
+    <string name="rtmp_error_start_screen_sharing">ابدأ مشاركة الشاشة</string>
+    <string name="rtmp_error_start_with_audio">ابدأ مع الصوت</string>
+    <string name="rtmp_error_allow_microphone">السماح بالميكروفون</string>
+    <string name="rtmp_error_local_network_permission_required">مطلوب الوصول إلى الشبكة المحلية حتى تتمكن الأجهزة من الاتصال بالبث.</string>
+
+    <string name="rtmp_method_title">RTMP: المشغّلات وخوادم الوسائط</string>
+    <string name="rtmp_method_summary">شاهد في مشغّل فيديو، أو أرسل البث إلى خادم وسائط.</string>
+    <string name="rtmp_method_conditions">برامج متوافقة مع RTMP · صوت اختياري</string>
+    <string name="rtmp_method_intro">RTMP معيار بث شائع تستخدمه مشغّلات الفيديو وخوادم الوسائط. افتراضيًا، يستضيف هذا الجهاز البث. يمكنك أيضًا إرساله إلى خادم وسائط.</string>
+    <string-array name="rtmp_method_benefits">
+        <item>شاهد في مشغّلات مثل VLC بفتح عنوان RTMP المعروض في التطبيق.</item>
+        <item>أرسل البث إلى خادم وسائط، بما في ذلك الخوادم التي تطلب اسم مستخدم وكلمة مرور.</item>
+        <item>أضف صوت الميكروفون أو صوت الجهاز أو كليهما.</item>
+        <item>اختر صيغ الفيديو والصوت والحجم والجودة بما يناسب المشغّل أو الخادم.</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>يجب أن تتمكن المشغّلات من الاتصال بهذا الجهاز، مثلاً على شبكة Wi-Fi نفسها. تعمل الاستضافة دون إنترنت.</item>
+        <item>عند الإرسال إلى خادم، يجب أن يتمكن هذا الجهاز من الوصول إليه. للحصول على اتصال مشفّر، استخدم عنوان rtmps://. الصيغة هي rtmp://host/app/streamKey.</item>
+        <item>يجب أن يدعم المشغّل أو الخادم الصيغ التي تختارها. يعمل H.264 مع AAC في كل مكان، بينما يتطلب H.265 دعم Enhanced RTMP.</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">اختر وضع RTMP:</string>
+    <string name="rtmp_mode_server">خادم</string>
+    <string name="rtmp_mode_server_hint">استضف هذا الجهاز كخادم RTMP</string>
+    <string name="rtmp_mode_client">عميل</string>
+    <string name="rtmp_mode_client_hint">اتصل بخادم RTMP بعيد</string>
+
+    <string name="rtmp_interfaces_title">عنوان خادم RTMP</string>
+    <string name="rtmp_interfaces_no_address">لم يتم العثور على عنوان.\nتحقق من الاتصال أو اضبط إعدادات الخادم (تصفية الواجهة، تصفية العناوين).</string>
+    <string name="rtmp_interfaces_discovering">جارٍ البحث عن العناوين…</string>
+    <string name="rtmp_interfaces_interface_label">الواجهة:\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">نسخ العنوان</string>
+    <string name="rtmp_interfaces_description_share">مشاركة العنوان</string>
+    <string name="rtmp_interfaces_description_qr">عرض العنوان كرمز QR</string>
+    <string name="rtmp_interfaces_qr_content_description">رمز QR</string>
+    <string name="rtmp_interfaces_copied">تم نسخ العنوان</string>
+    <string name="rtmp_interfaces_share_title">مشاركة عنوان RTMP</string>
+    <string name="rtmp_bindings_retry">إعادة المحاولة</string>
+    <string name="rtmp_bind_error_port_in_use">خطأ: المنفذ مستخدم</string>
+    <string name="rtmp_bind_error_address_not_available">خطأ: العنوان غير متاح</string>
+    <string name="rtmp_bind_error_permission_denied">خطأ: الإذن مرفوض</string>
+    <string name="rtmp_bind_error_unknown">خطأ: فشل المستمع الشبكي</string>
+
+    <string name="rtmp_server_parameters">إعدادات الخادم</string>
+    <string name="rtmp_client_parameters">إعدادات العميل</string>
+
+    <string name="rtmp_stream_start">بدء البث</string>
+    <string name="rtmp_stream_stop">إيقاف البث</string>
+
+    <string name="rtmp_error_notification_permission_required">يحتاج هذا التطبيق إلى تفعيل الإشعارات لبدء خدمة البث.\nفعّل الإشعارات من إعدادات التطبيق.</string>
+    <string name="rtmp_error_screen_capture_start_blocked">منع Android بدء مشاركة الشاشة. أبقِ ScreenStream مفتوحًا وحاول مرة أخرى.</string>
+    <string name="rtmp_error_projection_acquire_rejected">لم يعد إذن التقاط الشاشة صالحًا. ابدأ مشاركة الشاشة مرة أخرى.</string>
+    <string name="rtmp_error_audio_permission_required">إذن الميكروفون مطلوب لبدء البث مع الصوت.</string>
+    <string name="rtmp_error_audio_start_blocked">منع Android بدء مشاركة الصوت. أبقِ ScreenStream مفتوحًا وحاول البدء بالصوت مرة أخرى.</string>
+    <string name="rtmp_error_ip_address_not_found">لم يتم العثور على عنوان. تحقق من الاتصال أو اضبط إعدادات الخادم (تصفية الواجهة، تصفية العناوين).</string>
+    <string name="rtmp_error_unspecified">حدث خطأ ما.</string>
+
+    <string name="rtmp_media_server">خادم الوسائط</string>
+    <string name="rtmp_server_address">عنوان خادم RTMP</string>
+
+    <string name="rtmp_connection_connected">تم الاتصال بالخادم</string>
+    <string name="rtmp_connection_connecting">جاري الاتصال بالخادم…</string>
+    <string name="rtmp_connection_disconnected">انقطع الاتصال بالخادم</string>
+    <string name="rtmp_connection_error">خطأ في الاتصال</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">IPv4 عام</string>
+    <string name="rtmp_label_public_ipv6">IPv6 عام</string>
+    <string name="rtmp_label_loopback">حلقة محلية</string>
+
+    <string name="rtmp_video_parameters">إعدادات الفيديو</string>
+    <string name="rtmp_video_encoder">ترميز الفيديو:</string>
+    <string name="rtmp_video_encoder_auto">تلقائي</string>
+    <string name="rtmp_video_h264_profile">ملف تعريف H.264:</string>
+    <string name="rtmp_video_h264_profile_auto">تلقائي</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">ملف التعريف النشط: %1$s</string>
+    <string name="rtmp_video_resize_image">تغيير حجم الصورة: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">حجم الشاشة: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">حجم الفيديو: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">معدل الإطارات: %1$d إطار/ثانية</string>
+    <string name="rtmp_video_bitrate">معدل بت الفيديو: %1$s/ثانية</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f ميجابت</string>
+    <string name="rtmp_video_bitrate_kbit">%d كيلوبت</string>
+
+    <string name="rtmp_audio_parameters">إعدادات الصوت</string>
+    <string name="rtmp_audio_mic">الميكروفون</string>
+    <string name="rtmp_audio_mic_mute">كتم صوت الميكروفون</string>
+    <string name="rtmp_audio_device">الصوت الداخلي</string>
+    <string name="rtmp_audio_device_mute">كتم الصوت الداخلي</string>
+    <string name="rtmp_audio_encoder">ترميز الصوت:</string>
+    <string name="rtmp_audio_encoder_auto">تلقائي</string>
+    <string name="rtmp_audio_bitrate">معدل بت الصوت: %1$s/ثانية</string>
+    <string name="rtmp_audio_capture_issue_detected">تم رصد مشكلة في التقاط الصوت</string>
+
+    <string name="rtmp_connection_access_denied">تم رفض الوصول</string>
+    <string name="rtmp_connection_no_credentials">حدد اسم المستخدم وكلمة المرور</string>
+    <string name="rtmp_connection_invalid_credentials">اسم المستخدم أو كلمة المرور غير صالحة</string>
+
+    <string name="rtmp_close">إغلاق</string>
+    <string name="rtmp_pref_interface_filter">تصفية الواجهة</string>
+    <string name="rtmp_pref_interface_filter_summary">اختر واجهات الشبكة للخادم</string>
+    <string name="rtmp_pref_interface_filter_wifi">واي فاي</string>
+    <string name="rtmp_pref_interface_filter_mobile">شبكة الجوال</string>
+    <string name="rtmp_pref_interface_filter_ethernet">إيثرنت</string>
+    <string name="rtmp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtmp_pref_interface_filter_unknown">غير معروف</string>
+    <string name="rtmp_pref_filter_no_restriction">بدون قيود</string>
+    <string name="rtmp_pref_address_filter">تصفية العناوين</string>
+    <string name="rtmp_pref_address_filter_summary">اختر أنواع عناوين IP للخادم</string>
+    <string name="rtmp_pref_address_filter_private">خاص</string>
+    <string name="rtmp_pref_address_filter_localhost">المضيف المحلي</string>
+    <string name="rtmp_pref_address_filter_public">عام</string>
+    <string name="rtmp_pref_enable_ipv4">تفعيل IPv4</string>
+    <string name="rtmp_pref_enable_ipv4_summary">تشغيل الخادم على عناوين IPv4</string>
+    <string name="rtmp_pref_enable_ipv6">تفعيل IPv6</string>
+    <string name="rtmp_pref_enable_ipv6_summary">تشغيل الخادم على عناوين IPv6</string>
+    <string name="rtmp_pref_server_port">منفذ الخادم</string>
+    <string name="rtmp_pref_server_port_summary">تعيين منفذ للاتصالات الواردة</string>
+    <string name="rtmp_pref_server_port_text">تعيين منفذ خادم للاتصالات الواردة.\nالقيم: 1025–65535\nالافتراضي: 8554</string>
+</resources>

@@ -137,6 +137,7 @@ dependencies {
 
     implementation(projects.streaming.mjpeg)
     implementation(projects.streaming.rtsp)
+    implementation(projects.streaming.rtmp)
 
     "PlayStoreImplementation"(projects.streaming.webrtc)
     "PlayStoreImplementation"(libs.play.app.update)

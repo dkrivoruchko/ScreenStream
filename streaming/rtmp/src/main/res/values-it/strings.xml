@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">Ripristina</string>
+    <string name="rtmp_error_open_settings">Apri impostazioni</string>
+    <string name="rtmp_error_start_screen_sharing">Avvia condivisione schermo</string>
+    <string name="rtmp_error_start_with_audio">Avvia con audio</string>
+    <string name="rtmp_error_allow_microphone">Consenti microfono</string>
+    <string name="rtmp_error_local_network_permission_required">L\'accesso alla rete locale è necessario affinché i dispositivi possano connettersi allo streaming.</string>
+
+    <string name="rtmp_method_title">RTMP: lettori e server multimediali</string>
+    <string name="rtmp_method_summary">Guarda in un lettore video o invia lo streaming a un server multimediale.</string>
+    <string name="rtmp_method_conditions">Software RTMP compatibile · Audio facoltativo</string>
+    <string name="rtmp_method_intro">RTMP è uno standard di streaming comune usato da lettori video e server multimediali. Per impostazione predefinita, questo dispositivo ospita lo streaming. Puoi anche inviarlo a un server multimediale.</string>
+    <string-array name="rtmp_method_benefits">
+        <item>Guarda in lettori come VLC aprendo l’indirizzo RTMP mostrato nell’app.</item>
+        <item>Invia lo streaming a un server multimediale, anche a server che richiedono nome utente e password.</item>
+        <item>Aggiungi l’audio del microfono, l’audio del dispositivo o entrambi.</item>
+        <item>Scegli formati video e audio, dimensioni e qualità adatti al tuo lettore o server.</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>I lettori devono potersi connettere a questo dispositivo, ad esempio sulla stessa rete Wi-Fi. L’hosting funziona senza Internet.</item>
+        <item>Per l’invio a un server, questo dispositivo deve poterlo raggiungere. Per una connessione cifrata, usa un indirizzo rtmps://. Il formato è rtmp://host/app/streamKey.</item>
+        <item>Il lettore o il server deve supportare i formati scelti. H.264 con AAC funziona ovunque; H.265 richiede il supporto di Enhanced RTMP.</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">Seleziona modalità RTMP:</string>
+    <string name="rtmp_mode_server">Server</string>
+    <string name="rtmp_mode_server_hint">Ospita questo dispositivo come server RTMP</string>
+    <string name="rtmp_mode_client">Client</string>
+    <string name="rtmp_mode_client_hint">Connetti a un server RTMP remoto</string>
+
+    <string name="rtmp_interfaces_title">Indirizzo server RTMP</string>
+    <string name="rtmp_interfaces_no_address">Nessun indirizzo trovato.\nControlla la connessione o modifica le impostazioni server (Filtro interfaccia, Filtro indirizzi).</string>
+    <string name="rtmp_interfaces_discovering">Ricerca degli indirizzi…</string>
+    <string name="rtmp_interfaces_interface_label">Interfaccia:\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">Copia indirizzo</string>
+    <string name="rtmp_interfaces_description_share">Condividi indirizzo</string>
+    <string name="rtmp_interfaces_description_qr">Mostra indirizzo come codice QR</string>
+    <string name="rtmp_interfaces_qr_content_description">Codice QR</string>
+    <string name="rtmp_interfaces_copied">Indirizzo copiato</string>
+    <string name="rtmp_interfaces_share_title">Condividi indirizzo RTMP</string>
+    <string name="rtmp_bindings_retry">Riprova</string>
+    <string name="rtmp_bind_error_port_in_use">Errore: Porta in uso</string>
+    <string name="rtmp_bind_error_address_not_available">Errore: Indirizzo non disponibile</string>
+    <string name="rtmp_bind_error_permission_denied">Errore: Autorizzazione negata</string>
+    <string name="rtmp_bind_error_unknown">Errore: Listener non riuscito</string>
+
+    <string name="rtmp_server_parameters">Impostazioni server</string>
+    <string name="rtmp_client_parameters">Impostazioni client</string>
+
+    <string name="rtmp_stream_start">Avvia streaming</string>
+    <string name="rtmp_stream_stop">Ferma streaming</string>
+
+    <string name="rtmp_error_notification_permission_required">Questa app richiede le notifiche attive per avviare il servizio di streaming.\nAttiva le notifiche nelle impostazioni dell\'app.</string>
+    <string name="rtmp_error_screen_capture_start_blocked">Android ha bloccato l’avvio della condivisione schermo. Tieni ScreenStream aperto e riprova.</string>
+    <string name="rtmp_error_projection_acquire_rejected">L’autorizzazione alla cattura dello schermo non è più valida. Avvia di nuovo la condivisione schermo.</string>
+    <string name="rtmp_error_audio_permission_required">L’autorizzazione del microfono è necessaria per avviare lo streaming con audio.</string>
+    <string name="rtmp_error_audio_start_blocked">Android ha bloccato l’avvio della condivisione audio. Tieni ScreenStream aperto e avvia di nuovo con audio.</string>
+    <string name="rtmp_error_ip_address_not_found">Nessun indirizzo trovato. Controlla la connessione o modifica le impostazioni server (Filtro interfaccia, Filtro indirizzi).</string>
+    <string name="rtmp_error_unspecified">Qualcosa è andato storto.</string>
+
+    <string name="rtmp_media_server">Server media</string>
+    <string name="rtmp_server_address">Indirizzo server RTMP</string>
+
+    <string name="rtmp_connection_connected">Server connesso</string>
+    <string name="rtmp_connection_connecting">Connessione al server…</string>
+    <string name="rtmp_connection_disconnected">Server disconnesso</string>
+    <string name="rtmp_connection_error">Errore di connessione</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">IPv4 pubblico</string>
+    <string name="rtmp_label_public_ipv6">IPv6 pubblico</string>
+    <string name="rtmp_label_loopback">Loopback</string>
+
+    <string name="rtmp_video_parameters">Impostazioni video</string>
+    <string name="rtmp_video_encoder">Encoder video:</string>
+    <string name="rtmp_video_encoder_auto">Auto</string>
+    <string name="rtmp_video_h264_profile">Profilo H.264:</string>
+    <string name="rtmp_video_h264_profile_auto">Auto</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">Profilo attivo: %1$s</string>
+    <string name="rtmp_video_resize_image">Ridimensiona immagine: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">Dimensione schermo: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">Dimensione video: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">Framerate: %1$d frame/sec</string>
+    <string name="rtmp_video_bitrate">Bitrate video: %1$s/sec</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtmp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtmp_audio_parameters">Impostazioni audio</string>
+    <string name="rtmp_audio_mic">Microfono</string>
+    <string name="rtmp_audio_mic_mute">Disattiva microfono</string>
+    <string name="rtmp_audio_device">Audio interno</string>
+    <string name="rtmp_audio_device_mute">Disattiva audio interno</string>
+    <string name="rtmp_audio_encoder">Encoder audio:</string>
+    <string name="rtmp_audio_encoder_auto">Auto</string>
+    <string name="rtmp_audio_bitrate">Bitrate audio: %1$s/sec</string>
+    <string name="rtmp_audio_capture_issue_detected">Rilevato problema di acquisizione audio</string>
+
+    <string name="rtmp_connection_access_denied">Accesso negato</string>
+    <string name="rtmp_connection_no_credentials">Specifica nome utente e password</string>
+    <string name="rtmp_connection_invalid_credentials">Nome utente o password non validi</string>
+
+    <string name="rtmp_close">Chiudi</string>
+    <string name="rtmp_pref_interface_filter">Filtro interfaccia</string>
+    <string name="rtmp_pref_interface_filter_summary">Seleziona interfacce di rete per il server</string>
+    <string name="rtmp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtmp_pref_interface_filter_mobile">Mobile</string>
+    <string name="rtmp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtmp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtmp_pref_interface_filter_unknown">sconosciuto</string>
+    <string name="rtmp_pref_filter_no_restriction">Nessuna restrizione</string>
+    <string name="rtmp_pref_address_filter">Filtro indirizzi</string>
+    <string name="rtmp_pref_address_filter_summary">Seleziona tipi di indirizzo IP per il server</string>
+    <string name="rtmp_pref_address_filter_private">Privato</string>
+    <string name="rtmp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtmp_pref_address_filter_public">Pubblico</string>
+    <string name="rtmp_pref_enable_ipv4">Abilita IPv4</string>
+    <string name="rtmp_pref_enable_ipv4_summary">Esegui il server su indirizzi IPv4</string>
+    <string name="rtmp_pref_enable_ipv6">Abilita IPv6</string>
+    <string name="rtmp_pref_enable_ipv6_summary">Esegui il server su indirizzi IPv6</string>
+    <string name="rtmp_pref_server_port">Porta server</string>
+    <string name="rtmp_pref_server_port_summary">Imposta la porta per le connessioni in ingresso</string>
+    <string name="rtmp_pref_server_port_text">Imposta la porta per le connessioni in ingresso.\nValori: 1025–65535\nPredefinita: 8554</string>
+</resources>

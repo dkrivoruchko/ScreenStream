@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">Pulihkan</string>
+    <string name="rtmp_error_open_settings">Buka pengaturan</string>
+    <string name="rtmp_error_start_screen_sharing">Mulai berbagi layar</string>
+    <string name="rtmp_error_start_with_audio">Mulai dengan audio</string>
+    <string name="rtmp_error_allow_microphone">Izinkan mikrofon</string>
+    <string name="rtmp_error_local_network_permission_required">Akses jaringan lokal diperlukan agar perangkat dapat terhubung ke streaming Anda.</string>
+
+    <string name="rtmp_method_title">RTMP: Pemutar dan server media</string>
+    <string name="rtmp_method_summary">Tonton di pemutar video, atau kirim streaming ke server media.</string>
+    <string name="rtmp_method_conditions">Software RTMP yang kompatibel · Audio opsional</string>
+    <string name="rtmp_method_intro">RTMP adalah standar streaming umum yang digunakan oleh pemutar video dan server media. Secara default, perangkat ini menjadi host streaming. Anda juga dapat mengirimnya ke server media.</string>
+    <string-array name="rtmp_method_benefits">
+        <item>Tonton di pemutar seperti VLC dengan membuka alamat RTMP yang ditampilkan di aplikasi.</item>
+        <item>Kirim streaming ke server media, termasuk server yang meminta nama pengguna dan sandi.</item>
+        <item>Tambahkan audio mikrofon, audio perangkat, atau keduanya.</item>
+        <item>Pilih format video dan audio, ukuran, serta kualitas yang sesuai dengan pemutar atau server Anda.</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>Pemutar harus dapat terhubung ke perangkat ini, misalnya di Wi-Fi yang sama. Hosting berfungsi tanpa internet.</item>
+        <item>Saat mengirim ke server, perangkat ini harus dapat menjangkaunya. Untuk koneksi terenkripsi, gunakan alamat rtmps://. Formatnya adalah rtmp://host/app/streamKey.</item>
+        <item>Pemutar atau server Anda harus mendukung format yang Anda pilih. H.264 dengan AAC berfungsi di mana saja; H.265 memerlukan dukungan Enhanced RTMP.</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">Pilih mode RTMP:</string>
+    <string name="rtmp_mode_server">Server</string>
+    <string name="rtmp_mode_server_hint">Jadikan perangkat ini sebagai server RTMP</string>
+    <string name="rtmp_mode_client">Klien</string>
+    <string name="rtmp_mode_client_hint">Hubungkan ke server RTMP jarak jauh</string>
+
+    <string name="rtmp_interfaces_title">Alamat server RTMP</string>
+    <string name="rtmp_interfaces_no_address">Alamat tidak ditemukan.\nPeriksa koneksi atau sesuaikan setelan server (Filter antarmuka, Filter alamat).</string>
+    <string name="rtmp_interfaces_discovering">Mencari alamat…</string>
+    <string name="rtmp_interfaces_interface_label">Antarmuka:\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">Salin alamat</string>
+    <string name="rtmp_interfaces_description_share">Bagikan alamat</string>
+    <string name="rtmp_interfaces_description_qr">Tampilkan alamat sebagai kode QR</string>
+    <string name="rtmp_interfaces_qr_content_description">Kode QR</string>
+    <string name="rtmp_interfaces_copied">Alamat disalin</string>
+    <string name="rtmp_interfaces_share_title">Bagikan alamat RTMP</string>
+    <string name="rtmp_bindings_retry">Coba lagi</string>
+    <string name="rtmp_bind_error_port_in_use">Kesalahan: Port sedang dipakai</string>
+    <string name="rtmp_bind_error_address_not_available">Kesalahan: Alamat tidak tersedia</string>
+    <string name="rtmp_bind_error_permission_denied">Kesalahan: Izin ditolak</string>
+    <string name="rtmp_bind_error_unknown">Kesalahan: Listener gagal</string>
+
+    <string name="rtmp_server_parameters">Setelan server</string>
+    <string name="rtmp_client_parameters">Setelan klien</string>
+
+    <string name="rtmp_stream_start">Mulai siaran</string>
+    <string name="rtmp_stream_stop">Hentikan siaran</string>
+
+    <string name="rtmp_error_notification_permission_required">Aplikasi ini memerlukan notifikasi aktif untuk memulai layanan streaming.\nAktifkan notifikasi di setelan aplikasi.</string>
+    <string name="rtmp_error_screen_capture_start_blocked">Android memblokir mulai berbagi layar. Biarkan ScreenStream tetap terbuka dan mulai lagi.</string>
+    <string name="rtmp_error_projection_acquire_rejected">Izin tangkapan layar tidak berlaku lagi. Mulai berbagi layar lagi.</string>
+    <string name="rtmp_error_audio_permission_required">Izin mikrofon diperlukan untuk mulai streaming dengan audio.</string>
+    <string name="rtmp_error_audio_start_blocked">Android memblokir mulai berbagi audio. Biarkan ScreenStream tetap terbuka dan mulai lagi dengan audio.</string>
+    <string name="rtmp_error_ip_address_not_found">Alamat tidak ditemukan. Periksa koneksi atau sesuaikan setelan server (Filter antarmuka, Filter alamat).</string>
+    <string name="rtmp_error_unspecified">Terjadi kesalahan.</string>
+
+    <string name="rtmp_media_server">Server media</string>
+    <string name="rtmp_server_address">Alamat server RTMP</string>
+
+    <string name="rtmp_connection_connected">Server terhubung</string>
+    <string name="rtmp_connection_connecting">Menghubungkan ke server…</string>
+    <string name="rtmp_connection_disconnected">Server terputus</string>
+    <string name="rtmp_connection_error">Kesalahan koneksi</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">IPv4 publik</string>
+    <string name="rtmp_label_public_ipv6">IPv6 publik</string>
+    <string name="rtmp_label_loopback">Loopback</string>
+
+    <string name="rtmp_video_parameters">Setelan video</string>
+    <string name="rtmp_video_encoder">Encoder video:</string>
+    <string name="rtmp_video_encoder_auto">Otomatis</string>
+    <string name="rtmp_video_h264_profile">Profil H.264:</string>
+    <string name="rtmp_video_h264_profile_auto">Otomatis</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">Profil aktif: %1$s</string>
+    <string name="rtmp_video_resize_image">Ubah ukuran gambar: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">Ukuran layar: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">Ukuran video: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">Kecepatan frame: %1$d frame/detik</string>
+    <string name="rtmp_video_bitrate">Bitrate video: %1$s/detik</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtmp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtmp_audio_parameters">Setelan audio</string>
+    <string name="rtmp_audio_mic">Mikrofon</string>
+    <string name="rtmp_audio_mic_mute">Bisukan mikrofon</string>
+    <string name="rtmp_audio_device">Audio internal</string>
+    <string name="rtmp_audio_device_mute">Bisukan audio internal</string>
+    <string name="rtmp_audio_encoder">Encoder audio:</string>
+    <string name="rtmp_audio_encoder_auto">Otomatis</string>
+    <string name="rtmp_audio_bitrate">Bitrate audio: %1$s/detik</string>
+    <string name="rtmp_audio_capture_issue_detected">Masalah penangkapan audio terdeteksi</string>
+
+    <string name="rtmp_connection_access_denied">Akses ditolak</string>
+    <string name="rtmp_connection_no_credentials">Tentukan nama pengguna dan kata sandi</string>
+    <string name="rtmp_connection_invalid_credentials">Nama pengguna atau kata sandi tidak valid</string>
+
+    <string name="rtmp_close">Tutup</string>
+    <string name="rtmp_pref_interface_filter">Filter antarmuka</string>
+    <string name="rtmp_pref_interface_filter_summary">Pilih antarmuka jaringan untuk server</string>
+    <string name="rtmp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtmp_pref_interface_filter_mobile">Seluler</string>
+    <string name="rtmp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtmp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtmp_pref_interface_filter_unknown">tidak dikenal</string>
+    <string name="rtmp_pref_filter_no_restriction">Tanpa batasan</string>
+    <string name="rtmp_pref_address_filter">Filter alamat</string>
+    <string name="rtmp_pref_address_filter_summary">Pilih jenis alamat IP untuk server</string>
+    <string name="rtmp_pref_address_filter_private">Pribadi</string>
+    <string name="rtmp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtmp_pref_address_filter_public">Publik</string>
+    <string name="rtmp_pref_enable_ipv4">Aktifkan IPv4</string>
+    <string name="rtmp_pref_enable_ipv4_summary">Jalankan server pada alamat IPv4</string>
+    <string name="rtmp_pref_enable_ipv6">Aktifkan IPv6</string>
+    <string name="rtmp_pref_enable_ipv6_summary">Jalankan server pada alamat IPv6</string>
+    <string name="rtmp_pref_server_port">Port server</string>
+    <string name="rtmp_pref_server_port_summary">Atur port untuk koneksi masuk</string>
+    <string name="rtmp_pref_server_port_text">Atur port server untuk koneksi masuk.\nNilai: 1025–65535\nBawaan: 8554</string>
+</resources>

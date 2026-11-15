@@ -29,6 +29,8 @@ public enum class StreamMode(public val analyticsValue: String) {
     MJPEG("mjpeg"),
     RTSP_SERVER("rtsp_server"),
     RTSP_CLIENT("rtsp_client"),
+    RTMP_SERVER("rtmp_server"),
+    RTMP_CLIENT("rtmp_client"),
     WEBRTC("webrtc")
 }
 

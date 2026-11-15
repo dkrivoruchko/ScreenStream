@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">بحال کریں</string>
+    <string name="rtmp_error_open_settings">ترتیبات کھولیں</string>
+    <string name="rtmp_error_start_screen_sharing">اسکرین شیئرنگ شروع کریں</string>
+    <string name="rtmp_error_start_with_audio">آڈیو کے ساتھ شروع کریں</string>
+    <string name="rtmp_error_allow_microphone">مائیکروفون کی اجازت دیں</string>
+    <string name="rtmp_error_local_network_permission_required">مقامی نیٹ ورک تک رسائی درکار ہے تاکہ آلات آپ کی اسٹریم سے منسلک ہو سکیں۔</string>
+
+    <string name="rtmp_method_title">RTMP: پلیئرز اور میڈیا سرورز</string>
+    <string name="rtmp_method_summary">ویڈیو پلیئر میں دیکھیں، یا اسٹریم میڈیا سرور کو بھیجیں۔</string>
+    <string name="rtmp_method_conditions">مطابقت رکھنے والا RTMP سافٹ ویئر · اختیاری آڈیو</string>
+    <string name="rtmp_method_intro">RTMP ایک عام اسٹریمنگ معیار ہے جسے ویڈیو پلیئرز اور میڈیا سرورز استعمال کرتے ہیں۔ بطور ڈیفالٹ، یہ آلہ اسٹریم ہوسٹ کرتا ہے۔ آپ اسے میڈیا سرور کو بھی بھیج سکتے ہیں۔</string>
+    <string-array name="rtmp_method_benefits">
+        <item>ایپ میں دکھایا گیا RTMP پتہ کھول کر VLC جیسے پلیئرز میں دیکھیں۔</item>
+        <item>اسٹریم میڈیا سرور کو بھیجیں، بشمول ان سرورز کے جو صارف نام اور پاس ورڈ مانگتے ہیں۔</item>
+        <item>مائیکروفون کی آڈیو، آلے کی آڈیو، یا دونوں شامل کریں۔</item>
+        <item>اپنے پلیئر یا سرور کے مطابق ویڈیو اور آڈیو فارمیٹس، سائز اور معیار منتخب کریں۔</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>پلیئرز کا اس آلے سے منسلک ہو سکنا ضروری ہے، مثلاً ایک ہی Wi-Fi پر۔ ہوسٹنگ انٹرنیٹ کے بغیر کام کرتی ہے۔</item>
+        <item>سرور کو بھیجتے وقت اس آلے کا سرور تک پہنچ سکنا ضروری ہے۔ خفیہ کردہ کنکشن کے لیے rtmps:// پتہ استعمال کریں۔ فارمیٹ rtmp://host/app/streamKey ہے۔</item>
+        <item>آپ کے پلیئر یا سرور کو آپ کے منتخب کردہ فارمیٹس سپورٹ کرنے چاہئیں۔ AAC کے ساتھ H.264 ہر جگہ کام کرتا ہے؛ H.265 کے لیے Enhanced RTMP سپورٹ ضروری ہے۔</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">RTMP موڈ منتخب کریں:</string>
+    <string name="rtmp_mode_server">سرور</string>
+    <string name="rtmp_mode_server_hint">اس ڈیوائس کو RTMP سرور بنائیں</string>
+    <string name="rtmp_mode_client">کلائنٹ</string>
+    <string name="rtmp_mode_client_hint">ریموٹ RTMP سرور سے جڑیں</string>
+
+    <string name="rtmp_interfaces_title">RTMP سرور پتہ</string>
+    <string name="rtmp_interfaces_no_address">کوئی پتہ نہیں ملا۔\nکنکشن چیک کریں یا سرور کی ترتیبات ایڈجسٹ کریں (انٹرفیس فلٹر، ایڈریس فلٹر)۔</string>
+    <string name="rtmp_interfaces_discovering">پتے تلاش کیے جا رہے ہیں…</string>
+    <string name="rtmp_interfaces_interface_label">انٹرفیس:\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">پتہ کاپی کریں</string>
+    <string name="rtmp_interfaces_description_share">پتہ شیئر کریں</string>
+    <string name="rtmp_interfaces_description_qr">پتہ QR کوڈ میں دکھائیں</string>
+    <string name="rtmp_interfaces_qr_content_description">QR کوڈ</string>
+    <string name="rtmp_interfaces_copied">پتہ کاپی ہو گیا</string>
+    <string name="rtmp_interfaces_share_title">RTMP پتہ شیئر کریں</string>
+    <string name="rtmp_bindings_retry">دوبارہ کوشش</string>
+    <string name="rtmp_bind_error_port_in_use">خرابی: پورٹ استعمال میں ہے</string>
+    <string name="rtmp_bind_error_address_not_available">خرابی: پتہ دستیاب نہیں</string>
+    <string name="rtmp_bind_error_permission_denied">خرابی: اجازت نہیں</string>
+    <string name="rtmp_bind_error_unknown">خرابی: لسنر ناکام</string>
+
+    <string name="rtmp_server_parameters">سرور کی ترتیبات</string>
+    <string name="rtmp_client_parameters">کلائنٹ کی ترتیبات</string>
+
+    <string name="rtmp_stream_start">اسٹریم شروع کریں</string>
+    <string name="rtmp_stream_stop">اسٹریم روکیں</string>
+
+    <string name="rtmp_error_notification_permission_required">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات فعال چاہیے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
+    <string name="rtmp_error_screen_capture_start_blocked">Android نے اسکرین شیئرنگ شروع ہونے سے روک دی۔ ScreenStream کھلا رکھیں اور دوبارہ شروع کریں۔</string>
+    <string name="rtmp_error_projection_acquire_rejected">اسکرین کیپچر کی اجازت اب درست نہیں ہے۔ اسکرین شیئرنگ دوبارہ شروع کریں۔</string>
+    <string name="rtmp_error_audio_permission_required">آڈیو کے ساتھ اسٹریمنگ شروع کرنے کے لیے مائیکروفون اجازت ضروری ہے۔</string>
+    <string name="rtmp_error_audio_start_blocked">Android نے آڈیو شیئرنگ شروع ہونے سے روک دی۔ ScreenStream کھلا رکھیں اور آڈیو کے ساتھ دوبارہ شروع کریں۔</string>
+    <string name="rtmp_error_ip_address_not_found">کوئی پتہ نہیں ملا۔ کنکشن چیک کریں یا سرور کی ترتیبات ایڈجسٹ کریں (انٹرفیس فلٹر، ایڈریس فلٹر)۔</string>
+    <string name="rtmp_error_unspecified">کچھ غلط ہو گیا۔</string>
+
+    <string name="rtmp_media_server">میڈیا سرور</string>
+    <string name="rtmp_server_address">RTMP سرور پتہ</string>
+
+    <string name="rtmp_connection_connected">سرور سے جڑ گیا</string>
+    <string name="rtmp_connection_connecting">سرور سے جڑ رہے ہیں…</string>
+    <string name="rtmp_connection_disconnected">سرور منقطع ہو گیا</string>
+    <string name="rtmp_connection_error">کنکشن خرابی</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">عوامی IPv4</string>
+    <string name="rtmp_label_public_ipv6">عوامی IPv6</string>
+    <string name="rtmp_label_loopback">لوپ بیک</string>
+
+    <string name="rtmp_video_parameters">ویڈیو ترتیبات</string>
+    <string name="rtmp_video_encoder">ویڈیو انکوڈر:</string>
+    <string name="rtmp_video_encoder_auto">خودکار</string>
+    <string name="rtmp_video_h264_profile">H.264 پروفائل:</string>
+    <string name="rtmp_video_h264_profile_auto">خودکار</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">فعال پروفائل: %1$s</string>
+    <string name="rtmp_video_resize_image">تصویر سائز: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">اسکرین سائز: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">ویڈیو سائز: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">فریم ریٹ: %1$d فریم/سیکنڈ</string>
+    <string name="rtmp_video_bitrate">ویڈیو بٹریٹ: %1$s/سیکنڈ</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtmp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtmp_audio_parameters">آڈیو ترتیبات</string>
+    <string name="rtmp_audio_mic">مائیکروفون</string>
+    <string name="rtmp_audio_mic_mute">مائیک خاموش کریں</string>
+    <string name="rtmp_audio_device">اندرونی آڈیو</string>
+    <string name="rtmp_audio_device_mute">اندرونی آڈیو خاموش کریں</string>
+    <string name="rtmp_audio_encoder">آڈیو انکوڈر:</string>
+    <string name="rtmp_audio_encoder_auto">خودکار</string>
+    <string name="rtmp_audio_bitrate">آڈیو بٹریٹ: %1$s/سیکنڈ</string>
+    <string name="rtmp_audio_capture_issue_detected">آڈیو کیپچر کا مسئلہ ملا</string>
+
+    <string name="rtmp_connection_access_denied">رسائی مسترد</string>
+    <string name="rtmp_connection_no_credentials">یوزرنیم اور پاس ورڈ دیں</string>
+    <string name="rtmp_connection_invalid_credentials">یوزرنیم یا پاس ورڈ غلط ہے</string>
+
+    <string name="rtmp_close">بند کریں</string>
+    <string name="rtmp_pref_interface_filter">انٹرفیس فلٹر</string>
+    <string name="rtmp_pref_interface_filter_summary">سرور کیلئے نیٹ ورک انٹرفیس منتخب کریں</string>
+    <string name="rtmp_pref_interface_filter_wifi">وائی فائی</string>
+    <string name="rtmp_pref_interface_filter_mobile">موبائل</string>
+    <string name="rtmp_pref_interface_filter_ethernet">ایتھرنیٹ</string>
+    <string name="rtmp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtmp_pref_interface_filter_unknown">نامعلوم</string>
+    <string name="rtmp_pref_filter_no_restriction">کوئی پابندی نہیں</string>
+    <string name="rtmp_pref_address_filter">ایڈریس فلٹر</string>
+    <string name="rtmp_pref_address_filter_summary">سرور کیلئے IP اقسام منتخب کریں</string>
+    <string name="rtmp_pref_address_filter_private">پرائیویٹ</string>
+    <string name="rtmp_pref_address_filter_localhost">لوکل ہوسٹ</string>
+    <string name="rtmp_pref_address_filter_public">عوامی</string>
+    <string name="rtmp_pref_enable_ipv4">IPv4 سپورٹ فعال کریں</string>
+    <string name="rtmp_pref_enable_ipv4_summary">IPv4 پتوں پر سرور چلائیں</string>
+    <string name="rtmp_pref_enable_ipv6">IPv6 سپورٹ فعال کریں</string>
+    <string name="rtmp_pref_enable_ipv6_summary">IPv6 پتوں پر سرور چلائیں</string>
+    <string name="rtmp_pref_server_port">سرور پورٹ</string>
+    <string name="rtmp_pref_server_port_summary">آنے والے کنکشنز کیلئے پورٹ سیٹ کریں</string>
+    <string name="rtmp_pref_server_port_text">آنے والے کنکشنز کیلئے سرور پورٹ سیٹ کریں۔\nقدریں: 1025–65535\nڈیفالٹ: 8554</string>
+</resources>

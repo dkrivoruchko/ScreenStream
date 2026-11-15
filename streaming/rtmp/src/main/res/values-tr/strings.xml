@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">Kurtar</string>
+    <string name="rtmp_error_open_settings">Ayarları aç</string>
+    <string name="rtmp_error_start_screen_sharing">Ekran paylaşımını başlat</string>
+    <string name="rtmp_error_start_with_audio">Sesle başlat</string>
+    <string name="rtmp_error_allow_microphone">Mikrofona izin ver</string>
+    <string name="rtmp_error_local_network_permission_required">Cihazların yayınınıza bağlanabilmesi için yerel ağ erişimi gereklidir.</string>
+
+    <string name="rtmp_method_title">RTMP: oynatıcılar ve medya sunucuları</string>
+    <string name="rtmp_method_summary">Bir video oynatıcıda izleyin veya yayını bir medya sunucusuna gönderin.</string>
+    <string name="rtmp_method_conditions">Uyumlu RTMP yazılımı · İsteğe bağlı ses</string>
+    <string name="rtmp_method_intro">RTMP, video oynatıcılar ve medya sunucuları tarafından kullanılan yaygın bir yayın standardıdır. Varsayılan olarak yayını bu cihaz barındırır. Yayını bir medya sunucusuna da gönderebilirsiniz.</string>
+    <string-array name="rtmp_method_benefits">
+        <item>Uygulamada gösterilen RTMP adresini açarak VLC gibi oynatıcılarda izleyin.</item>
+        <item>Yayını, kullanıcı adı ve şifre isteyen sunucular dahil bir medya sunucusuna gönderin.</item>
+        <item>Mikrofon sesi, cihaz sesi veya ikisini birden ekleyin.</item>
+        <item>Video ve ses biçimlerini, boyutu ve kaliteyi oynatıcınıza veya sunucunuza göre seçin.</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>Oynatıcılar bu cihaza bağlanabilmelidir, örneğin aynı Wi-Fi ağında. Barındırma internet olmadan çalışır.</item>
+        <item>Bir sunucuya gönderirken bu cihaz sunucuya erişebilmelidir. Şifreli bağlantı için rtmps:// adresi kullanın. Biçim rtmp://host/app/streamKey şeklindedir.</item>
+        <item>Oynatıcınız veya sunucunuz seçtiğiniz biçimleri desteklemelidir. AAC ile H.264 her yerde çalışır; H.265 için Enhanced RTMP desteği gerekir.</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">RTMP modunu seçin:</string>
+    <string name="rtmp_mode_server">Sunucu</string>
+    <string name="rtmp_mode_server_hint">Bu cihazı RTMP sunucusu olarak kullan</string>
+    <string name="rtmp_mode_client">İstemci</string>
+    <string name="rtmp_mode_client_hint">Uzak bir RTMP sunucusuna bağlan</string>
+
+    <string name="rtmp_interfaces_title">RTMP sunucu adresi</string>
+    <string name="rtmp_interfaces_no_address">Adres bulunamadı.\nBağlantıyı kontrol edin veya sunucu ayarlarını düzenleyin (Arayüz filtresi, Adres filtresi).</string>
+    <string name="rtmp_interfaces_discovering">Adresler bulunuyor…</string>
+    <string name="rtmp_interfaces_interface_label">Arayüz:\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">Adresi kopyala</string>
+    <string name="rtmp_interfaces_description_share">Adresi paylaş</string>
+    <string name="rtmp_interfaces_description_qr">Adresi QR kodu olarak göster</string>
+    <string name="rtmp_interfaces_qr_content_description">QR kodu</string>
+    <string name="rtmp_interfaces_copied">Adres kopyalandı</string>
+    <string name="rtmp_interfaces_share_title">RTMP adresini paylaş</string>
+    <string name="rtmp_bindings_retry">Yeniden dene</string>
+    <string name="rtmp_bind_error_port_in_use">Hata: Bağlantı noktası kullanımda</string>
+    <string name="rtmp_bind_error_address_not_available">Hata: Adres kullanılamıyor</string>
+    <string name="rtmp_bind_error_permission_denied">Hata: İzin reddedildi</string>
+    <string name="rtmp_bind_error_unknown">Hata: Dinleyici başlatılamadı</string>
+
+    <string name="rtmp_server_parameters">Sunucu ayarları</string>
+    <string name="rtmp_client_parameters">İstemci ayarları</string>
+
+    <string name="rtmp_stream_start">Yayını başlat</string>
+    <string name="rtmp_stream_stop">Yayını durdur</string>
+
+    <string name="rtmp_error_notification_permission_required">Bu uygulamanın yayın hizmetini başlatmak için bildirimleri etkinleştirmesi gerekir.\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
+    <string name="rtmp_error_screen_capture_start_blocked">Android ekran paylaşımının başlatılmasını engelledi. ScreenStream’i açık tutun ve tekrar başlatın.</string>
+    <string name="rtmp_error_projection_acquire_rejected">Ekran yakalama izni artık geçerli değil. Ekran paylaşımını tekrar başlatın.</string>
+    <string name="rtmp_error_audio_permission_required">Sesle yayını başlatmak için mikrofon izni gereklidir.</string>
+    <string name="rtmp_error_audio_start_blocked">Android ses paylaşımının başlatılmasını engelledi. ScreenStream’i açık tutun ve sesle tekrar başlatın.</string>
+    <string name="rtmp_error_ip_address_not_found">Adres bulunamadı. Bağlantıyı kontrol edin veya sunucu ayarlarını düzenleyin (Arayüz filtresi, Adres filtresi).</string>
+    <string name="rtmp_error_unspecified">Bir şeyler ters gitti.</string>
+
+    <string name="rtmp_media_server">Medya sunucusu</string>
+    <string name="rtmp_server_address">RTMP sunucu adresi</string>
+
+    <string name="rtmp_connection_connected">Sunucu bağlandı</string>
+    <string name="rtmp_connection_connecting">Sunucuya bağlanıyor…</string>
+    <string name="rtmp_connection_disconnected">Sunucu bağlantısı kesildi</string>
+    <string name="rtmp_connection_error">Bağlantı hatası</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">Genel IPv4</string>
+    <string name="rtmp_label_public_ipv6">Genel IPv6</string>
+    <string name="rtmp_label_loopback">Loopback</string>
+
+    <string name="rtmp_video_parameters">Video ayarları</string>
+    <string name="rtmp_video_encoder">Video kodlayıcı:</string>
+    <string name="rtmp_video_encoder_auto">Otomatik</string>
+    <string name="rtmp_video_h264_profile">H.264 profili:</string>
+    <string name="rtmp_video_h264_profile_auto">Otomatik</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">Etkin profil: %1$s</string>
+    <string name="rtmp_video_resize_image">Görüntüyü yeniden boyutlandır: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">Ekran boyutu: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">Video boyutu: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">Kare hızı: %1$d kare/sn</string>
+    <string name="rtmp_video_bitrate">Video bit hızı: %1$s/sn</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtmp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtmp_audio_parameters">Ses ayarları</string>
+    <string name="rtmp_audio_mic">Mikrofon</string>
+    <string name="rtmp_audio_mic_mute">Mikrofonu kapat</string>
+    <string name="rtmp_audio_device">Dahili ses</string>
+    <string name="rtmp_audio_device_mute">Dahili sesi kapat</string>
+    <string name="rtmp_audio_encoder">Ses kodlayıcı:</string>
+    <string name="rtmp_audio_encoder_auto">Otomatik</string>
+    <string name="rtmp_audio_bitrate">Ses bit hızı: %1$s/sn</string>
+    <string name="rtmp_audio_capture_issue_detected">Ses yakalama sorunu algılandı</string>
+
+    <string name="rtmp_connection_access_denied">Erişim reddedildi</string>
+    <string name="rtmp_connection_no_credentials">Kullanıcı adı ve parola belirtin</string>
+    <string name="rtmp_connection_invalid_credentials">Kullanıcı adı veya parola geçersiz</string>
+
+    <string name="rtmp_close">Kapat</string>
+    <string name="rtmp_pref_interface_filter">Arayüz filtresi</string>
+    <string name="rtmp_pref_interface_filter_summary">Sunucu için ağ arayüzlerini seçin</string>
+    <string name="rtmp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtmp_pref_interface_filter_mobile">Mobil</string>
+    <string name="rtmp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtmp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtmp_pref_interface_filter_unknown">bilinmeyen</string>
+    <string name="rtmp_pref_filter_no_restriction">Kısıtlama yok</string>
+    <string name="rtmp_pref_address_filter">Adres filtresi</string>
+    <string name="rtmp_pref_address_filter_summary">Sunucu için IP adresi türlerini seçin</string>
+    <string name="rtmp_pref_address_filter_private">Özel</string>
+    <string name="rtmp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtmp_pref_address_filter_public">Genel</string>
+    <string name="rtmp_pref_enable_ipv4">IPv4 desteğini etkinleştir</string>
+    <string name="rtmp_pref_enable_ipv4_summary">Sunucuyu IPv4 adreslerinde de çalıştır</string>
+    <string name="rtmp_pref_enable_ipv6">IPv6 desteğini etkinleştir</string>
+    <string name="rtmp_pref_enable_ipv6_summary">Sunucuyu IPv6 adreslerinde de çalıştır</string>
+    <string name="rtmp_pref_server_port">Sunucu bağlantı noktası</string>
+    <string name="rtmp_pref_server_port_summary">Gelen bağlantılar için bağlantı noktasını ayarla</string>
+    <string name="rtmp_pref_server_port_text">Gelen bağlantılar için sunucu bağlantı noktasını ayarlayın.\nDeğerler: 1025–65535\nVarsayılan: 8554</string>
+</resources>

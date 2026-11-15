@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">Herstellen</string>
+    <string name="rtmp_error_open_settings">Instellingen openen</string>
+    <string name="rtmp_error_start_screen_sharing">Scherm delen starten</string>
+    <string name="rtmp_error_start_with_audio">Starten met audio</string>
+    <string name="rtmp_error_allow_microphone">Microfoon toestaan</string>
+    <string name="rtmp_error_local_network_permission_required">Toegang tot het lokale netwerk is vereist zodat apparaten verbinding kunnen maken met uw stream.</string>
+
+    <string name="rtmp_method_title">RTMP: Spelers en mediaservers</string>
+    <string name="rtmp_method_summary">Kijk in een videospeler of stuur de stream naar een mediaserver.</string>
+    <string name="rtmp_method_conditions">Compatibele RTMP-software · Optionele audio</string>
+    <string name="rtmp_method_intro">RTMP is een veelgebruikte streamingstandaard voor videospelers en mediaservers. Standaard host dit apparaat de stream. Je kunt de stream ook naar een mediaserver sturen.</string>
+    <string-array name="rtmp_method_benefits">
+        <item>Kijk in spelers zoals VLC door het RTMP-adres te openen dat in de app wordt getoond.</item>
+        <item>Stuur de stream naar een mediaserver, ook naar servers die om een gebruikersnaam en wachtwoord vragen.</item>
+        <item>Voeg microfoonaudio, apparaataudio of beide toe.</item>
+        <item>Kies video- en audioformaten, grootte en kwaliteit die passen bij je speler of server.</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>Spelers moeten verbinding kunnen maken met dit apparaat, bijvoorbeeld via hetzelfde Wi-Fi-netwerk. Hosten werkt zonder internet.</item>
+        <item>Bij verzenden naar een server moet dit apparaat die server kunnen bereiken. Gebruik voor een versleutelde verbinding een rtmps://-adres. Het formaat is rtmp://host/app/streamKey.</item>
+        <item>Je speler of server moet de gekozen formaten ondersteunen. H.264 met AAC werkt overal; H.265 vereist ondersteuning voor Enhanced RTMP.</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">Selecteer RTMP-modus:</string>
+    <string name="rtmp_mode_server">Server</string>
+    <string name="rtmp_mode_server_hint">Host dit apparaat als RTMP-server</string>
+    <string name="rtmp_mode_client">Client</string>
+    <string name="rtmp_mode_client_hint">Verbind met een externe RTMP-server</string>
+
+    <string name="rtmp_interfaces_title">RTMP-serveradres</string>
+    <string name="rtmp_interfaces_no_address">Geen adres gevonden.\nControleer de verbinding of pas Serverinstellingen aan (Interfacefilter, Adresfilter).</string>
+    <string name="rtmp_interfaces_discovering">Adressen worden gezocht…</string>
+    <string name="rtmp_interfaces_interface_label">Interface:\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">Adres kopiëren</string>
+    <string name="rtmp_interfaces_description_share">Adres delen</string>
+    <string name="rtmp_interfaces_description_qr">Toon adres als QR-code</string>
+    <string name="rtmp_interfaces_qr_content_description">QR-code</string>
+    <string name="rtmp_interfaces_copied">Adres gekopieerd</string>
+    <string name="rtmp_interfaces_share_title">RTMP-adres delen</string>
+    <string name="rtmp_bindings_retry">Opnieuw proberen</string>
+    <string name="rtmp_bind_error_port_in_use">Fout: Poort in gebruik</string>
+    <string name="rtmp_bind_error_address_not_available">Fout: Adres niet beschikbaar</string>
+    <string name="rtmp_bind_error_permission_denied">Fout: Toestemming geweigerd</string>
+    <string name="rtmp_bind_error_unknown">Fout: Listener mislukt</string>
+
+    <string name="rtmp_server_parameters">Serverinstellingen</string>
+    <string name="rtmp_client_parameters">Clientinstellingen</string>
+
+    <string name="rtmp_stream_start">Stream starten</string>
+    <string name="rtmp_stream_stop">Stream stoppen</string>
+
+    <string name="rtmp_error_notification_permission_required">Deze app heeft meldingen nodig om de streamingdienst te starten.\nSchakel meldingen in via de appinstellingen.</string>
+    <string name="rtmp_error_screen_capture_start_blocked">Android heeft het starten van scherm delen geblokkeerd. Houd ScreenStream open en start opnieuw.</string>
+    <string name="rtmp_error_projection_acquire_rejected">De schermopnamemachtiging is niet meer geldig. Start scherm delen opnieuw.</string>
+    <string name="rtmp_error_audio_permission_required">Microfoonmachtiging is vereist om te starten met streamen met audio.</string>
+    <string name="rtmp_error_audio_start_blocked">Android heeft het starten van audio delen geblokkeerd. Houd ScreenStream open en start opnieuw met audio.</string>
+    <string name="rtmp_error_ip_address_not_found">Geen adres gevonden. Controleer de verbinding of pas Serverinstellingen aan (Interfacefilter, Adresfilter).</string>
+    <string name="rtmp_error_unspecified">Er is iets misgegaan.</string>
+
+    <string name="rtmp_media_server">Mediaserver</string>
+    <string name="rtmp_server_address">RTMP-serveradres</string>
+
+    <string name="rtmp_connection_connected">Server verbonden</string>
+    <string name="rtmp_connection_connecting">Verbinding maken met server…</string>
+    <string name="rtmp_connection_disconnected">Server verbroken</string>
+    <string name="rtmp_connection_error">Verbindingsfout</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">Publiek IPv4</string>
+    <string name="rtmp_label_public_ipv6">Publiek IPv6</string>
+    <string name="rtmp_label_loopback">Loopback</string>
+
+    <string name="rtmp_video_parameters">Video-instellingen</string>
+    <string name="rtmp_video_encoder">Video-encoder:</string>
+    <string name="rtmp_video_encoder_auto">Auto</string>
+    <string name="rtmp_video_h264_profile">H.264-profiel:</string>
+    <string name="rtmp_video_h264_profile_auto">Auto</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">Actief profiel: %1$s</string>
+    <string name="rtmp_video_resize_image">Afbeelding herschalen: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">Schermgrootte: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">Videogrootte: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">Framerate: %1$d frames/sec</string>
+    <string name="rtmp_video_bitrate">Videobitrate: %1$s/sec</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtmp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtmp_audio_parameters">Audio-instellingen</string>
+    <string name="rtmp_audio_mic">Microfoon</string>
+    <string name="rtmp_audio_mic_mute">Microfoon dempen</string>
+    <string name="rtmp_audio_device">Interne audio</string>
+    <string name="rtmp_audio_device_mute">Interne audio dempen</string>
+    <string name="rtmp_audio_encoder">Audio-encoder:</string>
+    <string name="rtmp_audio_encoder_auto">Auto</string>
+    <string name="rtmp_audio_bitrate">Audiobitrate: %1$s/sec</string>
+    <string name="rtmp_audio_capture_issue_detected">Probleem met audio-opname gedetecteerd</string>
+
+    <string name="rtmp_connection_access_denied">Toegang geweigerd</string>
+    <string name="rtmp_connection_no_credentials">Geef gebruikersnaam en wachtwoord op</string>
+    <string name="rtmp_connection_invalid_credentials">Gebruikersnaam of wachtwoord is ongeldig</string>
+
+    <string name="rtmp_close">Sluiten</string>
+    <string name="rtmp_pref_interface_filter">Interfacefilter</string>
+    <string name="rtmp_pref_interface_filter_summary">Selecteer netwerkinterfaces voor server</string>
+    <string name="rtmp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtmp_pref_interface_filter_mobile">Mobiel</string>
+    <string name="rtmp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtmp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtmp_pref_interface_filter_unknown">onbekend</string>
+    <string name="rtmp_pref_filter_no_restriction">Geen beperking</string>
+    <string name="rtmp_pref_address_filter">Adresfilter</string>
+    <string name="rtmp_pref_address_filter_summary">Selecteer IP-adrestypen voor server</string>
+    <string name="rtmp_pref_address_filter_private">Privé</string>
+    <string name="rtmp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtmp_pref_address_filter_public">Publiek</string>
+    <string name="rtmp_pref_enable_ipv4">IPv4 inschakelen</string>
+    <string name="rtmp_pref_enable_ipv4_summary">Server uitvoeren op IPv4-adressen</string>
+    <string name="rtmp_pref_enable_ipv6">IPv6 inschakelen</string>
+    <string name="rtmp_pref_enable_ipv6_summary">Server uitvoeren op IPv6-adressen</string>
+    <string name="rtmp_pref_server_port">Serverpoort</string>
+    <string name="rtmp_pref_server_port_summary">Stel welke poort gebruikt mag worden voor verbindingen in</string>
+    <string name="rtmp_pref_server_port_text">Stel de server poort in voor inkomende verbindingen.\nWaardes: 1025–65535\nStandaard: 8554</string>
+</resources>
