@@ -1,0 +1,27 @@
+<resources>
+    <string name="core_continue">جاری رکھیں</string>
+
+    <string name="core_screen_capture_permission_required_title">اجازت درکار ہے</string>
+    <string name="core_screen_capture_permission_education_message">Android آپ کی اسکرین شیئر کرنے کی اجازت مانگے گا۔ اس کے بغیر اسٹریمنگ شروع نہیں ہو سکتی۔ آپ کسی بھی وقت شیئرنگ روک سکتے ہیں۔</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="core_permission_not_now">ابھی نہیں</string>
+    <string name="core_permission_open_settings">ترتیبات کھولیں</string>
+
+    <string name="core_permission_notifications_title">اطلاعات کی اجازت دیں</string>
+    <string name="core_permission_notifications_message">اطلاعات اسٹریمنگ کی حیثیت اور خرابیوں کے انتباہات دکھاتی ہیں۔ ان سے اسٹریمنگ روکیں یا ScreenStream دوبارہ کھولیں۔</string>
+
+    <string name="core_permission_local_network_title">مقامی نیٹ ورک تک رسائی</string>
+    <string name="core_permission_local_network_message">ScreenStream کو اسی نیٹ ورک کے دوسرے آلات پر اسٹریم کرنے کے لیے اپنا مقامی نیٹ ورک استعمال کرنے کی اجازت دیں۔\n\nAndroid اس اجازت کو قریبی آلات تک رسائی کے طور پر بیان کرتا ہے اور ان کی ایک دوسرے کے لحاظ سے پوزیشن معلوم کرنے کا ذکر کر سکتا ہے۔</string>
+    <string name="core_permission_local_network_off_title">مقامی نیٹ ورک تک رسائی بند ہے</string>
+    <string name="core_permission_local_network_settings_message">اسی مقامی نیٹ ورک کے آلات پر اسٹریم کرنے کے لیے ایپ کی ترتیبات میں اجازتیں کھولیں اور قریبی آلات کی اجازت دیں۔</string>
+
+    <string name="core_permission_microphone_title">مائیکروفون تک رسائی</string>
+    <string name="core_permission_microphone_message">اسٹریم میں اپنے مائیکروفون کی آواز شامل کرنے کے لیے مائیکروفون تک رسائی کی اجازت دیں۔\n\nاس کے بغیر مائیکروفون کی آڈیو اسٹریم نہیں کی جا سکتی۔</string>
+    <string name="core_permission_device_audio_title">آلے کی آڈیو تک رسائی</string>
+    <string name="core_permission_device_audio_message">آلے کی آڈیو اسٹریم کرنے کے لیے Android کو مائیکروفون کی اجازت درکار ہے۔ اس سے آپ کا مائیکروفون آن نہیں ہوتا۔\n\nصرف وہ آڈیو اسٹریم کی جا سکتی ہے جسے شیئر کرنے کی اجازت Android اور آڈیو چلانے والی ایپ دیں۔</string>
+
+    <string name="core_permission_audio_title">مائیکروفون اور آلے کی آڈیو</string>
+    <string name="core_permission_audio_message">مائیکروفون اور آلے کی آڈیو اسٹریم کرنے کے لیے مائیکروفون تک رسائی کی اجازت دیں۔\n\nآلے کی آڈیو صرف اسی وقت اسٹریم کی جا سکتی ہے جب Android اور آڈیو چلانے والی ایپ اسے شیئر کرنے کی اجازت دیں۔</string>
+    <string name="core_permission_audio_settings_message">مائیکروفون یا آلے کی آڈیو اسٹریم کرنے کے لیے ایپ کی ترتیبات میں مائیکروفون تک رسائی کی اجازت دیں۔\n\nاس کے بغیر آڈیو اسٹریم نہیں کی جا سکتی۔</string>
+</resources>

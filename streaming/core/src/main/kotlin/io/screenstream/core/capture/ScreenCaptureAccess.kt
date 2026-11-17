@@ -105,5 +105,12 @@ public interface ScreenCaptureAccess {
     public interface Grant
 }
 
-/** A matching Android consent launcher failed; [cause] retains the original technical failure. */
+/**
+ * Failure to launch Android's screen-capture consent dialog, surfaced by [ScreenCaptureAccess.requestConsent].
+ *
+ * The consent host reports a failure thrown by its launcher; Core wraps it only for a matching, submitted
+ * request that is still active. The original failure is retained as [cause]; cancellation is propagated
+ * separately. This type lets callers distinguish a consent-launch failure from normal
+ * [ScreenCaptureAccess.ConsentResult.NotGranted] outcomes and other capture-start failures.
+ */
 public class ConsentLaunchException(cause: Throwable) : RuntimeException("Could not launch screen capture consent", cause)

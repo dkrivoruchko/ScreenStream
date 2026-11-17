@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Aberto</string>
+    <string name="mjpeg_collapsed">Fechado</string>
+
     <string name="mjpeg_action_close">Fechar</string>
 
     <string name="mjpeg_pref_value_on">Ativado</string>

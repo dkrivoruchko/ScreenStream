@@ -51,6 +51,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 import java.io.IOException
+import io.screenstream.core.R as CoreR
 
 @Composable
 internal fun SettingsRoute(
@@ -195,7 +196,7 @@ private fun SettingsScreen(
             item(key = "NOTIFICATIONS", contentType = "ITEM") {
                 SettingsItem {
                     SettingActionRow(
-                        iconRes = R.drawable.notifications_24px,
+                        iconRes = CoreR.drawable.core_icon_notifications,
                         title = stringResource(R.string.app_pref_notification),
                         summary = stringResource(R.string.app_pref_notification_summary),
                         onClick = onNotificationSettingsClick,

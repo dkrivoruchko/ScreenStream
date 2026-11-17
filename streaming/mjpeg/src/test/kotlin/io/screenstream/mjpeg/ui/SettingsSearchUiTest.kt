@@ -120,8 +120,8 @@ internal class SettingsSearchUiTest {
         }
         val imageGroup = text(R.string.mjpeg_pref_image_group)
         val connectionGroup = text(R.string.mjpeg_pref_connection_group)
-        val expanded = compose.activity.getString(info.dvkr.screenstream.common.R.string.common_expanded)
-        val collapsed = compose.activity.getString(info.dvkr.screenstream.common.R.string.common_collapsed)
+        val expanded = compose.activity.getString(R.string.mjpeg_expanded)
+        val collapsed = compose.activity.getString(R.string.mjpeg_collapsed)
         scrollTo(imageGroup)
         compose.onNodeWithText(imageGroup).performClick()
         compose.onNodeWithText(imageGroup).assert(stateDescription(expanded))

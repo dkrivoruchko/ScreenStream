@@ -111,7 +111,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         val submissionsBefore = host.systemConsentAttempts.size
         val reusesBefore = host.reusedConsentAttempts.size
         compose.onNodeWithText(context.getString(R.string.mjpeg_stream_start_capture)).assertIsEnabled().performClick()
-        val continueText = context.getString(info.dvkr.screenstream.common.R.string.common_continue)
+        val continueText = context.getString(io.screenstream.core.R.string.core_continue)
         awaitHostCondition(host, "capture education or consent admission") {
             host.systemConsentAttempts.size > submissionsBefore || host.reusedConsentAttempts.size > reusesBefore ||
                     compose.onAllNodesWithText(continueText).fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()

@@ -28,7 +28,6 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 rootProject.name = "ScreenStream"
 
 include(":app")
-include(":common")
 include(":streaming:core")
 include(":streaming:mjpeg")
 include(":streaming:rtsp")

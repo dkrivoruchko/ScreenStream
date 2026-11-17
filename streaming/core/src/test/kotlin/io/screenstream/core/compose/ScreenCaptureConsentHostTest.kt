@@ -18,8 +18,8 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
-import info.dvkr.screenstream.common.R
 import io.screenstream.core.CoreKoinTestRule
+import io.screenstream.core.R
 import io.screenstream.core.capture.ConsentLaunchException
 import io.screenstream.core.capture.ConsentRequestObserver
 import io.screenstream.core.capture.ScreenCaptureAccess
@@ -86,8 +86,8 @@ internal class ScreenCaptureConsentHostTest {
     private lateinit var settings: StreamingSettingsStore
     private lateinit var settingsContext: CoreSettingsTestContext
     private var scenario: ActivityScenario<CoreComposeTestActivity>? = null
-    private val continueText: String get() = application.getString(R.string.common_continue)
-    private val educationTitle: String get() = application.getString(R.string.common_screen_capture_permission_required_title)
+    private val continueText: String get() = application.getString(R.string.core_continue)
+    private val educationTitle: String get() = application.getString(R.string.core_screen_capture_permission_required_title)
 
     @Before
     fun setUp() {

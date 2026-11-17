@@ -1,0 +1,27 @@
+<resources>
+    <string name="core_continue">Gaan voort</string>
+
+    <string name="core_screen_capture_permission_required_title">Toestemming benodig</string>
+    <string name="core_screen_capture_permission_education_message">Android sal vra vir toestemming om jou skerm te deel. Daarsonder kan stroming nie begin nie. Jy kan deling enige tyd stop.</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="core_permission_not_now">Nie nou nie</string>
+    <string name="core_permission_open_settings">Maak instellings oop</string>
+
+    <string name="core_permission_notifications_title">Laat kennisgewings toe</string>
+    <string name="core_permission_notifications_message">Kennisgewings wys die stroomstatus en foutwaarskuwings. Gebruik hulle om die stroom te stop of ScreenStream weer oop te maak.</string>
+
+    <string name="core_permission_local_network_title">Toegang tot plaaslike netwerk</string>
+    <string name="core_permission_local_network_message">Laat ScreenStream jou plaaslike netwerk gebruik om na ander toestelle op dieselfde netwerk te stroom.\n\nAndroid beskryf hierdie toestemming as toegang tot Toestelle in die omtrek en kan die bepaling van hul relatiewe posisie noem.</string>
+    <string name="core_permission_local_network_off_title">Toegang tot plaaslike netwerk is af</string>
+    <string name="core_permission_local_network_settings_message">Maak Toestemmings in appinstellings oop en laat Toestelle in die omtrek toe om na toestelle op dieselfde plaaslike netwerk te stroom.</string>
+
+    <string name="core_permission_microphone_title">Mikrofoontoegang</string>
+    <string name="core_permission_microphone_message">Laat mikrofoontoegang toe om klank van jou mikrofoon by die stroom in te sluit.\n\nDaarsonder kan mikrofoonklank nie gestroom word nie.</string>
+    <string name="core_permission_device_audio_title">Toegang tot toestelklank</string>
+    <string name="core_permission_device_audio_message">Android vereis mikrofoontoestemming om toestelklank te stroom. Dit skakel nie jou mikrofoon aan nie.\n\nSlegs klank wat Android en die spelende app toelaat om gedeel te word, kan gestroom word.</string>
+
+    <string name="core_permission_audio_title">Mikrofoon- en toestelklank</string>
+    <string name="core_permission_audio_message">Laat mikrofoontoegang toe om mikrofoon- en toestelklank te stroom.\n\nToestelklank kan slegs gestroom word wanneer Android en die spelende app dit toelaat.</string>
+    <string name="core_permission_audio_settings_message">Laat mikrofoontoegang in appinstellings toe om mikrofoon- of toestelklank te stroom.\n\nDaarsonder kan klank nie gestroom word nie.</string>
+</resources>

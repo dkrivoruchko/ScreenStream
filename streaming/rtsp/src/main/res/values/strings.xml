@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="rtsp_expanded">Expanded</string>
+    <string name="rtsp_collapsed">Collapsed</string>
+
     <string name="rtsp_error_recover">Recover</string>
+    <string name="rtsp_error_try_again">Try again</string>
     <string name="rtsp_error_open_settings">Open settings</string>
     <string name="rtsp_error_start_screen_sharing">Start screen sharing</string>
     <string name="rtsp_error_start_with_audio">Start with audio</string>
@@ -52,6 +56,7 @@
     <string name="rtsp_stream_stop">Stop stream</string>
 
     <string name="rtsp_error_notification_permission_required">This app needs notifications enabled to start the streaming service.\nEnable notifications in app settings.</string>
+    <string name="rtsp_error_screen_capture_permission_denied_message">Streaming didn\'t start because permission to share your screen wasn\'t granted. Tap Try again to reopen the Android permission screen.</string>
     <string name="rtsp_error_screen_capture_start_blocked">Android blocked screen sharing startup. Keep ScreenStream open and start again.</string>
     <string name="rtsp_error_projection_acquire_rejected">Screen capture permission is no longer valid. Start screen sharing again.</string>
     <string name="rtsp_error_audio_permission_required">Microphone permission is required to start streaming with audio.</string>

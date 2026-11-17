@@ -299,7 +299,9 @@ internal class ScreenCaptureAccessImpl(
             failed.job.ensureActive()
             if (!failed.waiter.isActive) throw CancellationException("Consent request is no longer active")
             if (cause is CancellationException) throw cause
-            throw ConsentLaunchException(cause)
+            val failure = ConsentLaunchException(cause)
+            log.w("ScreenCaptureAccess", "Screen capture consent launcher failed: attempt=${failed.attempt}, request=$key", failure)
+            throw failure
         }
         failed.waiter.resumeWith(outcome)
         return true

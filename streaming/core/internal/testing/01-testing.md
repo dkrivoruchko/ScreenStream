@@ -15,11 +15,12 @@ Local tests exercise production Core with controlled collaborators. The catalogu
 | Base Service · `CORE-SVC-01–06` | [StreamingModuleServiceTest](../../src/test/kotlin/io/screenstream/core/module/StreamingModuleServiceTest.kt) | Foreground ownership/presentation, supplied failures, refresh, stop/destruction and defensive timeout input |
 | Notification actions · `CORE-ACT-01–03` | [StreamingModuleActionReceiverTest](../../src/test/kotlin/io/screenstream/core/manager/StreamingModuleActionReceiverTest.kt) | Factory/receiver routing, PendingIntent target identity and malformed-input rejection |
 | Permission predicates · `CORE-PERM-01–03` | [RuntimePermissionTest](../../src/test/kotlin/io/screenstream/core/permission/RuntimePermissionTest.kt) | OS/target/grant policy, rationale hints and settings destinations |
+| Permission host UI · `CORE-PERM-04–07` | [RuntimePermissionHostTest](../../src/test/kotlin/io/screenstream/core/compose/RuntimePermissionHostTest.kt) | Request admission, saved UI lifetime, initial history, current persistence callback and supplied permission results |
 | Settings · `CORE-SET-01–04` | [StreamingSettingsStoreTest](../../src/test/kotlin/io/screenstream/core/settings/StreamingSettingsStoreTest.kt) | Shared loading, independent durable fields, admitted cancelled edits and failure recovery |
 | Consent host UI · `CORE-UI-01–10` | [ScreenCaptureConsentHostTest](../../src/test/kotlin/io/screenstream/core/compose/ScreenCaptureConsentHostTest.kt) | Education, Activity lifecycle, supplied launcher/results and finishing hook |
 | Instance content UI · `CORE-UI-11–12` | [StreamingModuleInstanceContentTest](../../src/test/kotlin/io/screenstream/core/compose/StreamingModuleInstanceContentTest.kt) | Rendering decisions at explicit recomposition checkpoints |
 
-App-owned permission request UI and notification-provider rendering/delivery are outside Core. Observer telemetry, log output, screenshots and trivial getters/defaults are not assertions. Observer failures are supplied inputs: tests check that consent remains correct, not what analytics observed. Core has no `src/androidTest` suite. These sources establish local behavior under Robolectric, not device qualification.
+App-owned rationale persistence and notification-provider rendering/delivery are outside Core. Observer telemetry, log output, screenshots and trivial getters/defaults are not assertions. Observer failures are supplied inputs: tests check that consent remains correct, not what analytics observed. Core has no `src/androidTest` suite. These sources establish local behavior under Robolectric, not device qualification.
 
 ## Required behavior versus evidence
 

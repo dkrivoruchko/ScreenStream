@@ -29,27 +29,6 @@
     <string name="app_mode_benefits">Kelebihan</string>
     <string name="app_mode_things_to_know">Yang perlu diketahui</string>
 
-    <!-- Permission explanations distinguish microphone input from device playback audio. -->
-    <string name="app_permission_not_now">Jangan sekarang</string>
-    <string name="app_permission_open_settings">Buka setelan</string>
-
-    <string name="app_permission_notifications_title">Izinkan notifikasi</string>
-    <string name="app_permission_notifications_message">Notifikasi menampilkan status streaming dan peringatan kesalahan. Gunakan notifikasi untuk menghentikan streaming atau membuka kembali ScreenStream.</string>
-
-    <string name="app_permission_local_network_title">Akses jaringan lokal</string>
-    <string name="app_permission_local_network_message">Izinkan ScreenStream menggunakan jaringan lokal Anda untuk streaming ke perangkat lain di jaringan yang sama.\n\nAndroid menjelaskan izin ini sebagai akses ke Perangkat di sekitar dan mungkin menyebutkan penentuan posisi relatifnya.</string>
-    <string name="app_permission_local_network_off_title">Akses jaringan lokal nonaktif</string>
-    <string name="app_permission_local_network_settings_message">Di setelan aplikasi, buka Izin dan izinkan Perangkat di sekitar untuk streaming ke perangkat di jaringan lokal yang sama.</string>
-
-    <string name="app_permission_microphone_title">Akses mikrofon</string>
-    <string name="app_permission_microphone_message">Izinkan akses mikrofon untuk menyertakan suara dari mikrofon Anda dalam streaming.\n\nTanpanya, audio mikrofon tidak dapat di-streaming.</string>
-    <string name="app_permission_device_audio_title">Akses audio perangkat</string>
-    <string name="app_permission_device_audio_message">Android memerlukan izin mikrofon untuk streaming audio perangkat. Ini tidak menyalakan mikrofon Anda.\n\nHanya audio yang diizinkan untuk dibagikan oleh Android dan aplikasi pemutarnya yang dapat di-streaming.</string>
-
-    <string name="app_permission_audio_title">Audio mikrofon dan perangkat</string>
-    <string name="app_permission_audio_message">Izinkan akses mikrofon untuk streaming audio mikrofon dan perangkat.\n\nAudio perangkat hanya dapat di-streaming jika Android dan aplikasi pemutarnya mengizinkan berbagi audio tersebut.</string>
-    <string name="app_permission_audio_settings_message">Izinkan akses mikrofon di setelan aplikasi untuk streaming audio mikrofon atau perangkat.\n\nTanpa izin ini, audio tidak dapat di-streaming.</string>
-
     <string name="app_notification_channel_streaming">Notifikasi streaming</string>
     <string name="app_notification_channel_error">Notifikasi kesalahan</string>
     <string name="app_notification_waiting_content">Ketuk untuk membuka aplikasi</string>

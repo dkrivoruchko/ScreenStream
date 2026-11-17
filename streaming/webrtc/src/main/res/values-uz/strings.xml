@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webrtc_expanded">Yoyilgan</string>
+    <string name="webrtc_collapsed">Yigʻilgan</string>
+
     <string name="webrtc_error_recover">Qayta tiklash</string>
+    <string name="webrtc_error_try_again">Qayta urinish</string>
     <string name="webrtc_error_open_settings">Sozlamalarni oching</string>
     <string name="webrtc_error_start_screen_sharing">Ekran ulashishni boshlash</string>
     <string name="webrtc_error_start_with_audio">Audio bilan boshlash</string>
@@ -63,6 +67,7 @@
     <string name="webrtc_error_check_network">Internetga ulanishingizni tekshiring</string>
     <string name="webrtc_error_incomplete_installation">Ilova toʻliq o‘rnatilmagan. Iltimos, ilovani Google Play orqali qayta o‘rnating.</string>
     <string name="webrtc_notification_permission_required">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnomalar yoqilgan bo\'lishi kerak.\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
+    <string name="webrtc_error_screen_capture_permission_denied_message">Ekranni ulashish ruxsati berilmagani uchun translatsiya boshlanmadi. Android ruxsat ekranini qayta ochish uchun Qayta urinish tugmasini bosing.</string>
     <string name="webrtc_error_screen_capture_start_blocked">Android ekran ulashishni boshlashni blokladi. ScreenStream ochiq tursin va qayta boshlang.</string>
     <string name="webrtc_error_projection_acquire_rejected">Ekranni yozib olish ruxsati endi yaroqli emas. Ekran ulashishni qayta boshlang.</string>
     <string name="webrtc_error_audio_permission_required">Audio bilan translatsiyani boshlash uchun mikrofon ruxsati kerak.</string>

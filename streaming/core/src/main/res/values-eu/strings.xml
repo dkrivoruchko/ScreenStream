@@ -1,0 +1,27 @@
+<resources>
+    <string name="core_continue">Jarraitu</string>
+
+    <string name="core_screen_capture_permission_required_title">Baimena behar da</string>
+    <string name="core_screen_capture_permission_education_message">Android-ek zure pantaila partekatzeko baimena eskatuko du. Hori gabe, transmisioa ezin da hasi. Partekatzea edozein unetan eten dezakezu.</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="core_permission_not_now">Orain ez</string>
+    <string name="core_permission_open_settings">Ireki ezarpenak</string>
+
+    <string name="core_permission_notifications_title">Baimendu jakinarazpenak</string>
+    <string name="core_permission_notifications_message">Jakinarazpenek transmisioaren egoera eta erroreen abisuak erakusten dituzte. Erabili itzazu transmisioa gelditzeko edo ScreenStream berriro irekitzeko.</string>
+
+    <string name="core_permission_local_network_title">Sare lokalerako sarbidea</string>
+    <string name="core_permission_local_network_message">Baimendu ScreenStream-ek sare lokala erabiltzea sare bereko beste gailuetara transmititzeko.\n\nAndroid-ek baimen hau Inguruko gailuetarako sarbide gisa deskribatzen du, eta haien kokapen erlatiboa zehaztea aipa dezake.</string>
+    <string name="core_permission_local_network_off_title">Sare lokalerako sarbidea desaktibatuta dago</string>
+    <string name="core_permission_local_network_settings_message">Aplikazioaren ezarpenetan, ireki Baimenak eta baimendu Inguruko gailuak sare lokal bereko gailuetara transmititzeko.</string>
+
+    <string name="core_permission_microphone_title">Mikrofonorako sarbidea</string>
+    <string name="core_permission_microphone_message">Baimendu mikrofonorako sarbidea haren soinua transmisioan sartzeko.\n\nBaimenik gabe, ezin da mikrofonoaren audioa transmititu.</string>
+    <string name="core_permission_device_audio_title">Gailuaren audiorako sarbidea</string>
+    <string name="core_permission_device_audio_message">Android-ek mikrofonoaren baimena behar du gailuaren audioa transmititzeko. Horrek ez du mikrofonoa pizten.\n\nAndroid-ek eta audioa erreproduzitzen duen aplikazioak partekatzea baimentzen duten audioa soilik transmiti daiteke.</string>
+
+    <string name="core_permission_audio_title">Mikrofonoaren eta gailuaren audioa</string>
+    <string name="core_permission_audio_message">Baimendu mikrofonorako sarbidea mikrofonoaren eta gailuaren audioa transmititzeko.\n\nGailuaren audioa transmititzeko, Android-ek eta audioa erreproduzitzen duen aplikazioak hura partekatzea baimendu behar dute.</string>
+    <string name="core_permission_audio_settings_message">Baimendu mikrofonorako sarbidea aplikazioaren ezarpenetan mikrofonoaren edo gailuaren audioa transmititzeko.\n\nBaimenik gabe, ezin da audioa transmititu.</string>
+</resources>

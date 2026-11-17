@@ -1,0 +1,27 @@
+<resources>
+    <string name="core_continue">Kontynuuj</string>
+
+    <string name="core_screen_capture_permission_required_title">Wymagane uprawnienia</string>
+    <string name="core_screen_capture_permission_education_message">Android poprosi o uprawnienie do udostępniania ekranu. Bez niego transmisja nie może się rozpocząć. Udostępnianie możesz zatrzymać w dowolnym momencie.</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="core_permission_not_now">Nie teraz</string>
+    <string name="core_permission_open_settings">Otwórz ustawienia</string>
+
+    <string name="core_permission_notifications_title">Zezwól na powiadomienia</string>
+    <string name="core_permission_notifications_message">Powiadomienia pokazują stan transmisji i alerty o błędach. Użyj ich, aby zatrzymać transmisję lub ponownie otworzyć ScreenStream.</string>
+
+    <string name="core_permission_local_network_title">Dostęp do sieci lokalnej</string>
+    <string name="core_permission_local_network_message">Zezwól ScreenStream na używanie sieci lokalnej, aby przesyłać strumień do innych urządzeń w tej samej sieci.\n\nAndroid opisuje to uprawnienie jako dostęp do Urządzeń w pobliżu i może wspominać o określaniu ich względnego położenia.</string>
+    <string name="core_permission_local_network_off_title">Dostęp do sieci lokalnej jest wyłączony</string>
+    <string name="core_permission_local_network_settings_message">W ustawieniach aplikacji otwórz Uprawnienia i zezwól na dostęp do Urządzeń w pobliżu, aby przesyłać strumień do urządzeń w tej samej sieci lokalnej.</string>
+
+    <string name="core_permission_microphone_title">Dostęp do mikrofonu</string>
+    <string name="core_permission_microphone_message">Zezwól na dostęp do mikrofonu, aby dołączyć jego dźwięk do strumienia.\n\nBez tego nie można przesyłać dźwięku z mikrofonu.</string>
+    <string name="core_permission_device_audio_title">Dostęp do dźwięku urządzenia</string>
+    <string name="core_permission_device_audio_message">Android wymaga uprawnienia mikrofonu do przesyłania dźwięku urządzenia. Nie włącza to mikrofonu.\n\nMożna przesyłać tylko dźwięk, na którego udostępnianie zezwalają Android i odtwarzająca go aplikacja.</string>
+
+    <string name="core_permission_audio_title">Dźwięk mikrofonu i urządzenia</string>
+    <string name="core_permission_audio_message">Zezwól na dostęp do mikrofonu, aby przesyłać dźwięk mikrofonu i urządzenia.\n\nDźwięk urządzenia można przesyłać tylko wtedy, gdy Android i odtwarzająca go aplikacja zezwalają na jego udostępnianie.</string>
+    <string name="core_permission_audio_settings_message">Zezwól na dostęp do mikrofonu w ustawieniach aplikacji, aby przesyłać dźwięk mikrofonu lub urządzenia.\n\nBez tego uprawnienia nie można przesyłać dźwięku.</string>
+</resources>

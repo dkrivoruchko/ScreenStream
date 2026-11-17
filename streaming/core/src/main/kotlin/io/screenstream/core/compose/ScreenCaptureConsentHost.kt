@@ -24,7 +24,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import info.dvkr.screenstream.common.R
+import io.screenstream.core.R
 import io.screenstream.core.capture.ScreenCaptureAccessImpl
 import io.screenstream.core.settings.StreamingSettingsStore
 import io.screenstream.foundation.logging.Logger
@@ -44,7 +44,7 @@ import org.koin.core.parameter.parametersOf
  * success, and a failed save can show it again. When the host's Activity owns the result registry,
  * disposing the submitting launcher while that Activity is finishing ends the request as HostUnavailable.
  * Other terminal losses, such as before the launcher mounts, are not detected; with a different registry,
- * a warning is logged and this hook is disabled. Runtime permission requests use the app's separate host.
+ * a warning is logged and this hook is disabled. Runtime permission requests use [RuntimePermissionHost].
  */
 @Composable
 public fun ScreenCaptureConsentHost() {
@@ -133,15 +133,15 @@ private fun ConsentRequestLauncher(
                             }
                         }
                     }
-                }) { Text(stringResource(R.string.common_continue)) }
+                }) { Text(stringResource(R.string.core_continue)) }
             },
             dismissButton = {
                 TextButton(onClick = { access.cancelBeforeSubmission(requestKey, token) }) {
                     Text(stringResource(android.R.string.cancel))
                 }
             },
-            title = { Text(stringResource(R.string.common_screen_capture_permission_required_title)) },
-            text = { Text(stringResource(R.string.common_screen_capture_permission_education_message)) },
+            title = { Text(stringResource(R.string.core_screen_capture_permission_required_title)) },
+            text = { Text(stringResource(R.string.core_screen_capture_permission_education_message)) },
         )
     }
 

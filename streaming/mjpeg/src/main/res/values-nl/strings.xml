@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Uitgevouwen</string>
+    <string name="mjpeg_collapsed">Samengevouwen</string>
+
     <string name="mjpeg_action_close">Sluiten</string>
 
     <string name="mjpeg_pref_value_on">Aan</string>

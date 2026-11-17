@@ -20,10 +20,10 @@ import info.dvkr.screenstream.review.attachAppReview
 import info.dvkr.screenstream.settings.AppSettings
 import info.dvkr.screenstream.ui.AppNavigation
 import info.dvkr.screenstream.ui.AppUpdateHost
-import info.dvkr.screenstream.ui.RuntimePermissionHost
 import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
 import info.dvkr.screenstream.update.AppUpdate
 import io.screenstream.core.StreamingModuleManager
+import io.screenstream.core.compose.RuntimePermissionHost
 import io.screenstream.core.compose.ScreenCaptureConsentHost
 import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -77,7 +77,10 @@ public class SingleActivity : AppCompatActivity() {
 
             setContent {
                 ScreenStreamTheme {
-                    RuntimePermissionHost(appSettings) {
+                    RuntimePermissionHost(
+                        initialRationaleHistory = appSettings.data.value.permissionsWithObservedRationale,
+                        onRationaleObserved = appSettings::setPermissionRationaleObserved,
+                    ) {
                         AppNavigation(
                             streamingModulesManager,
                             modifier = Modifier

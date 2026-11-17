@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webrtc_expanded">Aberto</string>
+    <string name="webrtc_collapsed">Fechado</string>
+
     <string name="webrtc_error_recover">Recuperar</string>
+    <string name="webrtc_error_try_again">Tentar novamente</string>
     <string name="webrtc_error_open_settings">Abrir configurações</string>
     <string name="webrtc_error_start_screen_sharing">Iniciar compartilhamento de tela</string>
     <string name="webrtc_error_start_with_audio">Iniciar com áudio</string>
@@ -63,6 +67,7 @@
     <string name="webrtc_error_check_network">Verifique sua conexão com a internet</string>
     <string name="webrtc_error_incomplete_installation">A instalação do aplicativo está incompleta. Reinstale o aplicativo pelo Google Play.</string>
     <string name="webrtc_notification_permission_required">Este app precisa de notificações ativadas para iniciar o serviço de transmissão.\nAtive as notificações nas configurações do app.</string>
+    <string name="webrtc_error_screen_capture_permission_denied_message">A transmissão não foi iniciada porque a permissão para compartilhar sua tela não foi concedida. Toque em Tentar novamente para reabrir a tela de permissão do Android.</string>
     <string name="webrtc_error_screen_capture_start_blocked">O Android bloqueou o início do compartilhamento de tela. Mantenha o ScreenStream aberto e inicie novamente.</string>
     <string name="webrtc_error_projection_acquire_rejected">A permissão de captura de tela não é mais válida. Inicie o compartilhamento de tela novamente.</string>
     <string name="webrtc_error_audio_permission_required">A permissão do microfone é necessária para iniciar a transmissão com áudio.</string>

@@ -104,10 +104,10 @@ public enum class PermissionState {
 /**
  * Activity-root permission request capability, separate from screen-capture consent.
  *
- * The implementing host owns explanations, Android launchers, rationale history, and request settlement
- * across Activity recreation. It settles a request on result, settings return, dismissal, or launch
- * failure; an admitted request outlives the module screen that made it. Callers get admission and
- * availability only: after a request, recheck [isGranted] and decide whether the original action still applies.
+ * [io.screenstream.core.compose.RuntimePermissionHost] provides this capability through
+ * [io.screenstream.core.compose.LocalRuntimePermissions], keeping admitted requests across screen removal
+ * and Activity recreation. Admission is not authorization; check [isGranted] before protected work and
+ * decide whether the original action still applies.
  */
 public interface RuntimePermissions {
     /**

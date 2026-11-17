@@ -1,0 +1,27 @@
+<resources>
+    <string name="core_continue">გაგრძელება</string>
+
+    <string name="core_screen_capture_permission_required_title">საჭიროა ნებართვა</string>
+    <string name="core_screen_capture_permission_education_message">Android მოგთხოვთ ეკრანის გაზიარების ნებართვას. მის გარეშე ტრანსლაცია ვერ დაიწყება. გაზიარების შეწყვეტა ნებისმიერ დროს შეგიძლიათ.</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="core_permission_not_now">ახლა არა</string>
+    <string name="core_permission_open_settings">გახსენით პარამეტრები</string>
+
+    <string name="core_permission_notifications_title">დაუშვით შეტყობინებები</string>
+    <string name="core_permission_notifications_message">შეტყობინებები აჩვენებს სტრიმინგის სტატუსსა და შეცდომების შესახებ გაფრთხილებებს. მათი მეშვეობით შეგიძლიათ შეწყვიტოთ სტრიმინგი ან ხელახლა გახსნათ ScreenStream.</string>
+
+    <string name="core_permission_local_network_title">ლოკალურ ქსელზე წვდომა</string>
+    <string name="core_permission_local_network_message">ნება დართეთ ScreenStream-ს გამოიყენოს თქვენი ლოკალური ქსელი იმავე ქსელში სხვა მოწყობილობებზე სტრიმინგისთვის.\n\nAndroid ამ ნებართვას აღწერს, როგორც ახლომახლო მოწყობილობებზე წვდომას და შეიძლება ახსენოს მათი ერთმანეთის მიმართ მდებარეობის განსაზღვრა.</string>
+    <string name="core_permission_local_network_off_title">ლოკალურ ქსელზე წვდომა გამორთულია</string>
+    <string name="core_permission_local_network_settings_message">იმავე ლოკალურ ქსელში მოწყობილობებზე სტრიმინგისთვის აპის პარამეტრებში გახსენით „ნებართვები“ და დაუშვით „ახლომახლო მოწყობილობები“.</string>
+
+    <string name="core_permission_microphone_title">მიკროფონზე წვდომა</string>
+    <string name="core_permission_microphone_message">დაუშვით მიკროფონზე წვდომა, რათა სტრიმში თქვენი მიკროფონის ხმაც ჩაირთოს.\n\nამის გარეშე მიკროფონის აუდიო ვერ გადაიცემა.</string>
+    <string name="core_permission_device_audio_title">მოწყობილობის აუდიოზე წვდომა</string>
+    <string name="core_permission_device_audio_message">მოწყობილობის აუდიოს გადასაცემად Android-ს მიკროფონის ნებართვა სჭირდება. ეს თქვენს მიკროფონს არ რთავს.\n\nგადაიცემა მხოლოდ ის აუდიო, რომლის გაზიარებაც დაშვებულია Android-ისა და მისი დამკვრელი აპის მიერ.</string>
+
+    <string name="core_permission_audio_title">მიკროფონისა და მოწყობილობის აუდიო</string>
+    <string name="core_permission_audio_message">დაუშვით მიკროფონზე წვდომა მიკროფონისა და მოწყობილობის აუდიოს გადასაცემად.\n\nმოწყობილობის აუდიო გადაიცემა მხოლოდ მაშინ, თუ Android და მისი დამკვრელი აპი გაზიარებას დაუშვებენ.</string>
+    <string name="core_permission_audio_settings_message">მიკროფონის ან მოწყობილობის აუდიოს გადასაცემად აპის პარამეტრებში დაუშვით მიკროფონზე წვდომა.\n\nამის გარეშე აუდიო ვერ გადაიცემა.</string>
+</resources>

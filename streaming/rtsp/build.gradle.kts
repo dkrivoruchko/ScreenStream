@@ -25,7 +25,6 @@ android {
 
 dependencies {
     implementation(projects.analytics)
-    implementation(projects.common)
     implementation(projects.foundation)
     implementation(projects.streaming.core)
 

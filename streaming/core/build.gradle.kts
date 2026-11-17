@@ -38,7 +38,6 @@ android {
 }
 
 dependencies {
-    implementation(projects.common)
     implementation(projects.foundation)
 
     implementation(platform(libs.androidx.compose.bom))

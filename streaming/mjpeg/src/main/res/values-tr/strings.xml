@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Genişletildi</string>
+    <string name="mjpeg_collapsed">Daraltıldı</string>
+
     <string name="mjpeg_action_close">Kapat</string>
 
     <string name="mjpeg_pref_value_on">Açık</string>

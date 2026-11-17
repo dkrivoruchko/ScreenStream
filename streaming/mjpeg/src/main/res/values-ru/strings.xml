@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Развёрнуто</string>
+    <string name="mjpeg_collapsed">Свёрнуто</string>
+
     <string name="mjpeg_action_close">Закрыть</string>
 
     <string name="mjpeg_pref_value_on">Вкл.</string>

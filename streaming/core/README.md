@@ -6,7 +6,7 @@ Core lets a host app open streaming modules, coordinate screen-capture consent a
 | --- | --- | --- |
 | [Streaming Module Contract and Manager](docs/module-contract-and-manager.md) | Module definitions, instances, commands, shutdown and health | `StreamingModule`, `StreamingModuleService`, `StreamingModuleManager` |
 | [Screen Capture Access](docs/screen-capture.md) | Screen-sharing consent and `MediaProjection` acquisition | `ScreenCaptureAccess`, `ScreenCaptureConsentHost`, `ConsentRequestObserver` |
-| [Runtime Permissions](docs/runtime-permissions.md) | Permission checks and Activity-root request UI | `RuntimePermission`, `RuntimePermissions`, `LocalRuntimePermissions` |
+| [Runtime Permissions](docs/runtime-permissions.md) | Permission checks and Activity-root request UI | `RuntimePermission`, `RuntimePermissions`, `RuntimePermissionHost`, `LocalRuntimePermissions` |
 | [Streaming Module Notifications](docs/notifications.md) | Foreground notifications, error notifications and notification actions | `StreamingModuleNotifications`, `StreamingModuleActionReceiver` |
 
 ## Key concepts
@@ -20,7 +20,7 @@ Core lets a host app open streaming modules, coordinate screen-capture consent a
 The host app:
 
 - includes `StreamingKoinModule`, which provides the manager, `ScreenCaptureAccess` and the streaming settings store, and supplies the Android `Context`, every `StreamingModule` definition, one `StreamingModuleNotifications` provider and one `ConsentRequestObserver`
-- mounts `ScreenCaptureConsentHost()` once at the Activity root and provides its `RuntimePermissions` host there through `LocalRuntimePermissions`
+- mounts `ScreenCaptureConsentHost()` once at the Activity root and wraps module UI in `RuntimePermissionHost`, supplying loaded rationale history and its app-owned persistence callback (or another `RuntimePermissions` implementation)
 - renders the selected module with `StreamingModuleManager.InstanceContent` and removes its tasks when the manager publishes `Exiting`
 - supplies a Foundation `Logger` factory accepting the source owner (`Any`)
 

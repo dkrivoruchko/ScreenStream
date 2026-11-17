@@ -46,8 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.window.layout.WindowMetricsCalculator
-import info.dvkr.screenstream.common.ui.ExpandableCard
-import info.dvkr.screenstream.common.ui.conditional
+import info.dvkr.screenstream.rtsp.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils
@@ -58,6 +57,7 @@ import info.dvkr.screenstream.rtsp.internal.EncoderUtils.getSupportedH264Profile
 import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.main.media.EncoderItem
+import info.dvkr.screenstream.rtsp.ui.conditional
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt

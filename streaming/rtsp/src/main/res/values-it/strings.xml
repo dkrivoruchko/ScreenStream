@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="rtsp_expanded">Espanso</string>
+    <string name="rtsp_collapsed">Compresso</string>
+
     <string name="rtsp_error_recover">Ripristina</string>
+    <string name="rtsp_error_try_again">Riprova</string>
     <string name="rtsp_error_open_settings">Apri impostazioni</string>
     <string name="rtsp_error_start_screen_sharing">Avvia condivisione schermo</string>
     <string name="rtsp_error_start_with_audio">Avvia con audio</string>
@@ -52,6 +56,7 @@
     <string name="rtsp_stream_stop">Ferma streaming</string>
 
     <string name="rtsp_error_notification_permission_required">Questa app richiede le notifiche attive per avviare il servizio di streaming.\nAttiva le notifiche nelle impostazioni dell\'app.</string>
+    <string name="rtsp_error_screen_capture_permission_denied_message">Lo streaming non è iniziato perché l\'autorizzazione a condividere lo schermo non è stata concessa. Tocca Riprova per riaprire la schermata delle autorizzazioni di Android.</string>
     <string name="rtsp_error_screen_capture_start_blocked">Android ha bloccato l’avvio della condivisione schermo. Tieni ScreenStream aperto e riprova.</string>
     <string name="rtsp_error_projection_acquire_rejected">L’autorizzazione alla cattura dello schermo non è più valida. Avvia di nuovo la condivisione schermo.</string>
     <string name="rtsp_error_audio_permission_required">L’autorizzazione del microfono è necessaria per avviare lo streaming con audio.</string>

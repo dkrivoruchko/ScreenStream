@@ -1,0 +1,27 @@
+<resources>
+    <string name="core_continue">Devam et</string>
+
+    <string name="core_screen_capture_permission_required_title">İzin gerekli</string>
+    <string name="core_screen_capture_permission_education_message">Android ekranınızı paylaşmak için izin isteyecek. Bu izin olmadan yayın başlatılamaz. Paylaşımı istediğiniz zaman durdurabilirsiniz.</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="core_permission_not_now">Şimdi değil</string>
+    <string name="core_permission_open_settings">Ayarları aç</string>
+
+    <string name="core_permission_notifications_title">Bildirimlere izin ver</string>
+    <string name="core_permission_notifications_message">Bildirimler yayın durumunu ve hata uyarılarını gösterir. Yayını durdurmak veya ScreenStream’i yeniden açmak için bildirimleri kullanın.</string>
+
+    <string name="core_permission_local_network_title">Yerel ağ erişimi</string>
+    <string name="core_permission_local_network_message">ScreenStream uygulamasının aynı ağdaki diğer cihazlara yayın yapmak için yerel ağınızı kullanmasına izin verin.\n\nAndroid bu izni Yakındaki cihazlara erişim olarak açıklar ve cihazların birbirlerine göre konumlarının belirlenmesinden söz edebilir.</string>
+    <string name="core_permission_local_network_off_title">Yerel ağ erişimi kapalı</string>
+    <string name="core_permission_local_network_settings_message">Aynı yerel ağdaki cihazlara yayın yapmak için uygulama ayarlarında İzinler’i açın ve Yakındaki cihazlar’a izin verin.</string>
+
+    <string name="core_permission_microphone_title">Mikrofon erişimi</string>
+    <string name="core_permission_microphone_message">Mikrofonunuzun sesini yayına eklemek için mikrofon erişimine izin verin.\n\nBu izin olmadan mikrofon sesi yayınlanamaz.</string>
+    <string name="core_permission_device_audio_title">Cihaz sesi erişimi</string>
+    <string name="core_permission_device_audio_message">Android, cihaz sesini yayınlamak için mikrofon izni gerektirir. Bu, mikrofonunuzu açmaz.\n\nYalnızca Android ve sesi çalan uygulamanın paylaşılmasına izin verdiği ses yayınlanabilir.</string>
+
+    <string name="core_permission_audio_title">Mikrofon ve cihaz sesi</string>
+    <string name="core_permission_audio_message">Mikrofon ve cihaz sesini yayınlamak için mikrofon erişimine izin verin.\n\nCihaz sesi yalnızca Android ve sesi çalan uygulama paylaşılmasına izin verdiğinde yayınlanabilir.</string>
+    <string name="core_permission_audio_settings_message">Mikrofon veya cihaz sesini yayınlamak için uygulama ayarlarında mikrofon erişimine izin verin.\n\nBu izin olmadan ses yayınlanamaz.</string>
+</resources>

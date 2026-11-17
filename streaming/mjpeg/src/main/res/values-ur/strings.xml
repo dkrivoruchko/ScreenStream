@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">پھیلایا گیا</string>
+    <string name="mjpeg_collapsed">سکیڑا گیا</string>
+
     <string name="mjpeg_action_close">بند کریں</string>
 
     <string name="mjpeg_pref_value_on">آن</string>

@@ -86,10 +86,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.window.core.layout.WindowSizeClass
-import info.dvkr.screenstream.common.ui.ExpandableCard
 import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
+import io.screenstream.mjpeg.ui.ExpandableCard
 import io.screenstream.mjpeg.ui.LocalMjpegSnackbarHostState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart

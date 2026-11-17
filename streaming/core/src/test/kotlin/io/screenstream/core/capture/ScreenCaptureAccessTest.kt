@@ -429,6 +429,11 @@ internal class ScreenCaptureAccessTest {
         val failure = assertFailure<ConsentLaunchException>(pending)
         assertTrue(generateSequence<Throwable>(failure) { it.cause }.any { it === cause })
         assertFalse(access.failLaunch(key, cause))
+        assertNull(access.currentRequest.value)
+
+        val successor = request()
+        completeConsent()
+        assertIs<ScreenCaptureAccess.ConsentResult.Granted>(successor.result.getCompleted())
     }
 
     // Cases: CORE-CAP-05, CORE-CAP-07

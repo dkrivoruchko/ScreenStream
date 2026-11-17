@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Expanded</string>
+    <string name="mjpeg_collapsed">Collapsed</string>
+
     <string name="mjpeg_action_close">Close</string>
 
     <string name="mjpeg_pref_value_on">On</string>

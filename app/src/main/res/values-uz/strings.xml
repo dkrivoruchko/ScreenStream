@@ -29,27 +29,6 @@
     <string name="app_mode_benefits">Afzalliklar</string>
     <string name="app_mode_things_to_know">Bilib qoʻying</string>
 
-    <!-- Permission explanations distinguish microphone input from device playback audio. -->
-    <string name="app_permission_not_now">Hozir emas</string>
-    <string name="app_permission_open_settings">Sozlamalarni oching</string>
-
-    <string name="app_permission_notifications_title">Bildirishnomalarga ruxsat bering</string>
-    <string name="app_permission_notifications_message">Bildirishnomalar translatsiya holati va xatolar haqidagi ogohlantirishlarni ko‘rsatadi. Ular orqali translatsiyani to‘xtating yoki ScreenStreamni qayta oching.</string>
-
-    <string name="app_permission_local_network_title">Mahalliy tarmoqqa kirish</string>
-    <string name="app_permission_local_network_message">ScreenStreamga bir xil tarmoqdagi boshqa qurilmalarga translatsiya qilish uchun mahalliy tarmoqdan foydalanishga ruxsat bering.\n\nAndroid bu ruxsatni Yaqin-atrofdagi qurilmalarga kirish deb ta’riflaydi va ularning bir-biriga nisbatan joylashuvini aniqlashni eslatishi mumkin.</string>
-    <string name="app_permission_local_network_off_title">Mahalliy tarmoqqa kirish faol emas</string>
-    <string name="app_permission_local_network_settings_message">Bir xil mahalliy tarmoqdagi qurilmalarga translatsiya qilish uchun ilova sozlamalarida Ruxsatlar bo‘limini oching va Yaqin-atrofdagi qurilmalarga ruxsat bering.</string>
-
-    <string name="app_permission_microphone_title">Mikrofonga kirish</string>
-    <string name="app_permission_microphone_message">Mikrofoningiz ovozini translatsiyaga qo‘shish uchun mikrofonga kirishga ruxsat bering.\n\nBu ruxsatsiz mikrofon audiosini translatsiya qilib bo‘lmaydi.</string>
-    <string name="app_permission_device_audio_title">Qurilma audiosiga kirish</string>
-    <string name="app_permission_device_audio_message">Qurilma audiosini translatsiya qilish uchun Android mikrofon ruxsatini talab qiladi. Bu mikrofoningizni yoqmaydi.\n\nFaqat Android va audioni ijro etayotgan ilova ulashishga ruxsat bergan audio translatsiya qilinishi mumkin.</string>
-
-    <string name="app_permission_audio_title">Mikrofon va qurilma audiosi</string>
-    <string name="app_permission_audio_message">Mikrofon va qurilma audiosini translatsiya qilish uchun mikrofonga kirishga ruxsat bering.\n\nQurilma audiosi faqat Android va audioni ijro etayotgan ilova uni ulashishga ruxsat berganda translatsiya qilinishi mumkin.</string>
-    <string name="app_permission_audio_settings_message">Mikrofon yoki qurilma audiosini translatsiya qilish uchun ilova sozlamalarida mikrofonga kirishga ruxsat bering.\n\nBu ruxsatsiz audioni translatsiya qilib bo‘lmaydi.</string>
-
     <string name="app_notification_channel_streaming">Translatsiya bildirishnomalari</string>
     <string name="app_notification_channel_error">Xato bildirishnomalari</string>
     <string name="app_notification_waiting_content">Ilovani ochish uchun bosing</string>

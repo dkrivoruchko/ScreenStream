@@ -59,13 +59,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import info.dvkr.screenstream.common.ui.RobotoMonoBold
-import info.dvkr.screenstream.common.ui.stylePlaceholder
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
 import io.screenstream.foundation.qr.generateQRBitmap
@@ -74,6 +74,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private val RobotoMonoBold: FontFamily = FontFamily(Font(R.font.roboto_mono_bold, FontWeight.Bold))
 
 @Composable
 internal fun StreamCard(

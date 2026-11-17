@@ -40,14 +40,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.common.ui.ExpandableCard
-import info.dvkr.screenstream.common.ui.conditional
+import info.dvkr.screenstream.rtsp.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.AudioCodecInfo
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.getBitRateInKbits
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.main.media.EncoderItem
+import info.dvkr.screenstream.rtsp.ui.conditional
 import kotlin.math.roundToInt
 
 @Composable

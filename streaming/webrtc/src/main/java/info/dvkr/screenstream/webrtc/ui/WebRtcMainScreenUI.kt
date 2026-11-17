@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.webrtc.ui
 
 import android.content.ActivityNotFoundException
+import android.os.SystemClock
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,8 +38,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
 import androidx.lifecycle.compose.dropUnlessStarted
-import info.dvkr.screenstream.common.ui.DoubleClickProtection
-import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
@@ -60,7 +59,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
-import info.dvkr.screenstream.common.R as CommonR
+import io.screenstream.core.R as CoreR
 
 @Composable
 internal fun WebRtcMainScreenUI(
@@ -190,11 +189,11 @@ internal fun WebRtcMainScreenUI(
                     TextButton(onClick = {
                         dismissCaptureRetry()
                         requestStart()
-                    }) { Text(stringResource(CommonR.string.common_try_again)) }
+                    }) { Text(stringResource(R.string.webrtc_error_try_again)) }
                 },
                 dismissButton = { TextButton(onClick = dismissCaptureRetry) { Text(stringResource(android.R.string.cancel)) } },
-                title = { Text(stringResource(CommonR.string.common_screen_capture_permission_required_title)) },
-                text = { Text(stringResource(CommonR.string.common_screen_capture_permission_denied_message)) },
+                title = { Text(stringResource(CoreR.string.core_screen_capture_permission_required_title)) },
+                text = { Text(stringResource(R.string.webrtc_error_screen_capture_permission_denied_message)) },
             )
         }
 
@@ -279,11 +278,14 @@ internal fun WebRtcMainScreenUI(
             if (state.error != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
         }
 
-        val doubleClickProtection = remember { DoubleClickProtection.get() }
+        var lastClickTimeMs by remember { mutableStateOf<Long?>(null) }
 
         Button(
             onClick = dropUnlessStarted {
-                doubleClickProtection.processClick {
+                val now = SystemClock.elapsedRealtime()
+                val previousClickTimeMs = lastClickTimeMs
+                lastClickTimeMs = now
+                if (previousClickTimeMs == null || now - previousClickTimeMs >= 300L) {
                     if (state.isStreaming) {
                         state.captureAttempt?.let(requestStop)
                     } else {

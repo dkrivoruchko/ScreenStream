@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="rtsp_expanded">Развёрнуто</string>
+    <string name="rtsp_collapsed">Свёрнуто</string>
+
     <string name="rtsp_error_recover">Восстановить</string>
+    <string name="rtsp_error_try_again">Повторить</string>
     <string name="rtsp_error_open_settings">Открыть настройки</string>
     <string name="rtsp_error_start_screen_sharing">Начать демонстрацию экрана</string>
     <string name="rtsp_error_start_with_audio">Запустить со звуком</string>
@@ -52,6 +56,7 @@
     <string name="rtsp_stream_stop">Остановить трансляцию</string>
 
     <string name="rtsp_error_notification_permission_required">Этому приложению нужны включенные уведомления, чтобы запустить службу трансляции.\nВключите уведомления в настройках приложения.</string>
+    <string name="rtsp_error_screen_capture_permission_denied_message">Трансляция не началась, потому что разрешение на показ экрана не предоставлено. Нажмите Повторить, чтобы снова открыть экран разрешения Android.</string>
     <string name="rtsp_error_screen_capture_start_blocked">Android заблокировал запуск демонстрации экрана. Оставьте ScreenStream открытым и запустите снова.</string>
     <string name="rtsp_error_projection_acquire_rejected">Разрешение на захват экрана больше недействительно. Начните демонстрацию экрана снова.</string>
     <string name="rtsp_error_audio_permission_required">Для запуска трансляции со звуком требуется разрешение на микрофон.</string>

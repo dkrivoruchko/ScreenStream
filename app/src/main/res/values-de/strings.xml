@@ -29,27 +29,6 @@
     <string name="app_mode_benefits">Vorteile</string>
     <string name="app_mode_things_to_know">Wissenswertes</string>
 
-    <!-- Permission explanations distinguish microphone input from device playback audio. -->
-    <string name="app_permission_not_now">Nicht jetzt</string>
-    <string name="app_permission_open_settings">Einstellungen öffnen</string>
-
-    <string name="app_permission_notifications_title">Benachrichtigungen erlauben</string>
-    <string name="app_permission_notifications_message">Benachrichtigungen zeigen den Streamstatus und Fehlermeldungen an. Darüber können Sie den Stream stoppen oder ScreenStream erneut öffnen.</string>
-
-    <string name="app_permission_local_network_title">Zugriff auf lokales Netzwerk</string>
-    <string name="app_permission_local_network_message">Erlauben Sie ScreenStream, Ihr lokales Netzwerk zu verwenden, um an andere Geräte im selben Netzwerk zu streamen.\n\nAndroid beschreibt diese Berechtigung als Zugriff auf Geräte in der Nähe und erwähnt möglicherweise die Bestimmung ihrer relativen Position.</string>
-    <string name="app_permission_local_network_off_title">Zugriff auf lokales Netzwerk ist deaktiviert</string>
-    <string name="app_permission_local_network_settings_message">Öffnen Sie in den App-Einstellungen Berechtigungen und erteilen Sie die Berechtigung „Geräte in der Nähe“, um an Geräte im selben lokalen Netzwerk zu streamen.</string>
-
-    <string name="app_permission_microphone_title">Mikrofonzugriff</string>
-    <string name="app_permission_microphone_message">Erlauben Sie den Mikrofonzugriff, um Ton von Ihrem Mikrofon in den Stream aufzunehmen.\n\nOhne ihn kann Mikrofonton nicht gestreamt werden.</string>
-    <string name="app_permission_device_audio_title">Zugriff auf Geräteaudio</string>
-    <string name="app_permission_device_audio_message">Android benötigt die Mikrofonberechtigung, um Geräteaudio zu streamen. Dadurch wird Ihr Mikrofon nicht eingeschaltet.\n\nEs kann nur Audio gestreamt werden, dessen Freigabe Android und die wiedergebende App erlauben.</string>
-
-    <string name="app_permission_audio_title">Mikrofon- und Geräteaudio</string>
-    <string name="app_permission_audio_message">Erlauben Sie den Mikrofonzugriff, um Mikrofon- und Geräteaudio zu streamen.\n\nGeräteaudio kann nur gestreamt werden, wenn Android und die wiedergebende App dessen Freigabe erlauben.</string>
-    <string name="app_permission_audio_settings_message">Erlauben Sie den Mikrofonzugriff in den App-Einstellungen, um Mikrofon- oder Geräteaudio zu streamen.\n\nOhne diese Berechtigung kann kein Audio gestreamt werden.</string>
-
     <string name="app_notification_channel_streaming">Streaming-Benachrichtigungen</string>
     <string name="app_notification_channel_error">Fehlerbenachrichtigungen</string>
     <string name="app_notification_waiting_content">Zum Öffnen der App tippen</string>

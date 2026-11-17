@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Rozwinięte</string>
+    <string name="mjpeg_collapsed">Zwinięte</string>
+
     <string name="mjpeg_action_close">Zamknij</string>
 
     <string name="mjpeg_pref_value_on">Włączone</string>
