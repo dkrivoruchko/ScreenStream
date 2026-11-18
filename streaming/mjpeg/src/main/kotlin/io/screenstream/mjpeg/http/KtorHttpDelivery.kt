@@ -487,7 +487,11 @@ internal class KtorHttpDelivery(
             // A canceled physical engine can fail its await while this persistent owner is active.
             currentCoroutineContext().ensureActive()
             if (cause !is CancellationException) {
-                log.w("Http.listener", "HTTP listener failed at ${address.ip.hostAddress}:${entry.port}", cause)
+                log.w(
+                    "Http.listener",
+                    "HTTP listener attempt failed: interfaceType=${address.interfaceType.name}, " +
+                            "attempt=${entry.bindAttempts}, exceptionType=${cause.javaClass.simpleName}",
+                )
             }
             failure = when (cause) {
                 is SecurityException -> ServerFailure.PermissionDenied

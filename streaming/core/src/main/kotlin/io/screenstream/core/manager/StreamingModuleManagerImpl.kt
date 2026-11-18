@@ -164,7 +164,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 val instance = launchInstance(target)
                 val started = awaitUntil(instance.startupSettled, instance.firstStatusDeadlineElapsedMillis)
                 if (transitionJob !== opening) return@launch
-                if (!started) failInstance(instance)
+                if (!started) failInstance(instance, firstStatusDeadlineExpired = true)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 log.e("Initialize", "Failed to open streaming module", error)
@@ -291,7 +291,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             }
             androidContext.startService(startup)
         } catch (error: Throwable) {
-            log.e("Startup", "Android module startup failed", error)
+            log.e("Startup", "Android module startup failed: module=${moduleId.value}", error)
             instance.reportFailure(null)
         } finally {
             instance.dispatchDone.complete(Unit)
@@ -299,13 +299,24 @@ internal class StreamingModuleManagerImpl internal constructor(
         return instance
     }
 
-    private fun failInstance(instance: LaunchRecord, @StringRes messageResource: Int? = null) {
+    private fun failInstance(
+        instance: LaunchRecord,
+        @StringRes messageResource: Int? = null,
+        firstStatusDeadlineExpired: Boolean = false,
+    ) {
+        val wasOpening = firstStatusDeadlineExpired && instance.state == LaunchState.Starting && !instance.isClosing
         if (!instance.fail(messageResource)) return
         if (!instance.isFinishReported) instance.requestModuleShutdown(shutdownDeadline())
         try {
             if (currentInstance === instance && !instance.isClosing) publishState()
         } finally {
             instance.startupSettled.complete(Unit)
+        }
+        if (wasOpening && !instance.failureQueued) {
+            log.w(
+                "Startup",
+                "First status deadline expired: module=${instance.instanceId.moduleId.value}, setupEntered=${instance.startupReceived}",
+            )
         }
     }
 
@@ -319,7 +330,7 @@ internal class StreamingModuleManagerImpl internal constructor(
         if (instance.state == LaunchState.Starting &&
             SystemClock.elapsedRealtime() > instance.firstStatusDeadlineElapsedMillis
         ) {
-            failInstance(instance)
+            failInstance(instance, firstStatusDeadlineExpired = true)
             return
         }
         if (!instance.acceptStatus(status, heartbeatAtUptimeMillis)) return
@@ -435,7 +446,8 @@ internal class StreamingModuleManagerImpl internal constructor(
         private var draining = false
 
         @Volatile
-        private var failureQueued = false
+        var failureQueued = false
+            private set
 
         @Volatile
         private var shutdownRequested = false
@@ -485,7 +497,12 @@ internal class StreamingModuleManagerImpl internal constructor(
                 controllerState.value = created
                 if (isAdmitted()) created.startModule() else requestControllerShutdown(created)
             } catch (error: Throwable) {
-                log.e("Startup", "Module controller startup failed", error)
+                log.e(
+                    "Startup",
+                    "Module controller startup failed: module=${instanceId.moduleId.value}, " +
+                            "startupRemainingMs=${firstStatusDeadlineElapsedMillis - SystemClock.elapsedRealtime()}",
+                    error,
+                )
                 reportFailure(null)
             } finally {
                 setup.complete(Unit)

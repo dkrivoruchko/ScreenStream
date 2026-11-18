@@ -383,8 +383,8 @@ internal class MjpegStreamingModuleController(
             else -> null
         }
         if (latestState.isStopRequested) removeScreenOffStop()
-        reportNewSessionFailure(attempt, capture.processedState.captureFailure, latestState.captureFailure)
-        reportNewSessionFailure(attempt, capture.processedState.cleanupFailure, latestState.cleanupFailure)
+        reportNewSessionFailure(attempt, capture.processedState.captureFailure, latestState.captureFailure, latestState.startSucceeded)
+        reportNewSessionFailure(attempt, capture.processedState.cleanupFailure, latestState.cleanupFailure, latestState.startSucceeded)
 
         if (latestState.cleanupSucceeded != null) capture.addressLoss = null
         capture.processedState = latestState
@@ -404,9 +404,10 @@ internal class MjpegStreamingModuleController(
         attempt: StreamingModule.CaptureAttemptId,
         previous: MjpegCaptureSession.State.Failure?,
         current: MjpegCaptureSession.State.Failure?,
+        engineStartConfirmed: Boolean,
     ) {
         if (current == null || current === previous) return
-        log.e(current.stage, "Capture failed: $attempt", current.cause)
+        log.e(current.stage, "Capture failed: $attempt, engineStartConfirmed=$engineStartConfirmed", current.cause)
         lastFailure = current
     }
 

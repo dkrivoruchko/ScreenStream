@@ -194,6 +194,7 @@ public abstract class StreamingModuleService : Service() {
      * failure, and rethrows.
      */
     @MainThread
+    @SuppressLint("InlinedApi")
     private fun tryPromoteForeground(serviceTypes: Int, notification: Notification): Boolean {
         val failure = synchronized(gate) {
             val originalManagerHandle = managerHandle ?: return false
@@ -208,11 +209,17 @@ public abstract class StreamingModuleService : Service() {
                 cause
             }
         }
-        if (failure != null) {
-            reportServiceFailure()
-            throw failure
+        if (failure == null) return true
+        val attempt = foregroundAttempt
+        reportServiceFailure()
+        if (attempt != null && (serviceTypes and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION) != 0) {
+            log.e(
+                "StreamingModuleService",
+                "Android capture foreground promotion failed: module=${attempt.instanceId.moduleId.value}, requestedServiceTypes=$serviceTypes",
+                failure,
+            )
         }
-        return true
+        throw failure
     }
 
     /** Content-only update using the existing foreground type mask. */

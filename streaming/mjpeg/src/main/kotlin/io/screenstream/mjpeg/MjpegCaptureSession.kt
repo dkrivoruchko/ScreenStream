@@ -508,6 +508,13 @@ internal class MjpegCaptureSession(
             log.e("Engine.statsObservation", "Statistics observation failed", cause)
         }.launchIn(this)
 
+        engineSession.diagnosticEvents.onEach { event ->
+            val cause = event.cause
+            if (event.source == "SessionCoordinator" && event.eventName == "TerminalFailure" && cause != null) {
+                log.w("Engine.terminalFailure", "Engine terminal failure: attemptId=${id.uuid}, causeType=${cause.javaClass.name}")
+            }
+        }.launchIn(this)
+
         engineSession.start(initialParameters)
         synchronized(stateGate) {
             commitCaptureStateLocked(state.value.copy(startSucceeded = true))

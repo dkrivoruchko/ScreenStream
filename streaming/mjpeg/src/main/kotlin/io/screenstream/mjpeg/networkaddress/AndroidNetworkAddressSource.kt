@@ -1,10 +1,13 @@
 package io.screenstream.mjpeg.networkaddress
 
+import android.system.ErrnoException
+import android.system.OsConstants
 import io.screenstream.foundation.logging.Logger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 import java.net.InetAddress
+import java.net.SocketException
 import java.util.Collections
 
 /** Reads native interface evidence on IO; observer resources and lifecycle belong to the monitor. */
@@ -28,7 +31,12 @@ internal class AndroidNetworkAddressSource(
                 failedInterfaces.remove(name)
             } catch (error: Exception) {
                 if (failedInterfaces.add(name)) {
-                    log.w("readInterface", "Interface address read failed; interface=$name", error)
+                    val level = if (error is SocketException && (error.cause as? ErrnoException)?.errno == OsConstants.ENODEV) {
+                        Logger.Level.Debug
+                    } else {
+                        Logger.Level.Warn
+                    }
+                    log.log(level, "readInterface", "Interface address read failed; interface=$name", error)
                 }
             }
         }
