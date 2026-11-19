@@ -19,6 +19,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicReference
 
 internal class PlayIntegrity(
     serviceContext: Context,
@@ -34,7 +35,7 @@ internal class PlayIntegrity(
         private var standardIntegrityManager: StandardIntegrityManager? = null
 
         @JvmStatic
-        private var integrityTokenProvider: StandardIntegrityManager.StandardIntegrityTokenProvider? = null
+        private val integrityTokenProvider = AtomicReference<StandardIntegrityManager.StandardIntegrityTokenProvider?>(null)
     }
 
     private val appContext: Context = serviceContext.applicationContext
@@ -85,10 +86,7 @@ internal class PlayIntegrity(
         log.d("PlayIntegrity.getToken")
 
         prepareIntegrityToken(forceUpdate) {
-            onSuccess {
-                integrityTokenProvider = it
-                getPlayIntegrityToken(it, nonce, callback)
-            }
+            onSuccess { getPlayIntegrityToken(it, nonce, callback) }
             onFailure { callback(Result.failure(it)) }
         }
     }
@@ -97,9 +95,10 @@ internal class PlayIntegrity(
         forceUpdate: Boolean,
         callback: Result<StandardIntegrityManager.StandardIntegrityTokenProvider>.() -> Unit
     ) {
-        if (forceUpdate.not()) integrityTokenProvider?.let {
+        val cachedProvider = integrityTokenProvider.get()
+        if (!forceUpdate && cachedProvider != null) {
             log.d("PlayIntegrity.prepareIntegrityToken", "forceUpdate: $forceUpdate. Skipping")
-            callback(Result.success(it))
+            callback(Result.success(cachedProvider))
             return
         }
 
@@ -111,6 +110,9 @@ internal class PlayIntegrity(
 
         requireNotNull(standardIntegrityManager).prepareIntegrityToken(prepareTokenRequest)
             .addOnSuccessListener { tokenProvider -> // @MainThread
+                integrityTokenProvider.updateAndGet { current ->
+                    if (current == null || current === cachedProvider) tokenProvider else current
+                }
                 log.d("PlayIntegrity.prepareIntegrityToken", "IntegrityTokenProvider updated")
                 callback(Result.success(tokenProvider))
             }.addOnFailureListener { error -> // @MainThread
@@ -145,6 +147,9 @@ internal class PlayIntegrity(
                 log.d("PlayIntegrity.getPlayIntegrityToken", "Success")
                 callback(Result.success(integrityToken))
             }.addOnFailureListener { error -> // @MainThread
+                if (error is StandardIntegrityException && error.errorCode == StandardIntegrityErrorCode.INTEGRITY_TOKEN_PROVIDER_INVALID) {
+                    integrityTokenProvider.compareAndSet(tokenProvider, null)
+                }
                 log.e(
                     "PlayIntegrity.getPlayIntegrityToken",
                     "Integrity request failed: type=${error.javaClass.simpleName}, code=${(error as? StandardIntegrityException)?.errorCode}",

@@ -291,7 +291,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             }
             androidContext.startService(startup)
         } catch (error: Throwable) {
-            log.e("Startup", "Android module startup failed: module=${moduleId.value}", error)
+            log.e("Startup", "Android module startup failed: module=${moduleId.value}, instanceId=${instance.instanceId.uuid}", error)
             instance.reportFailure(null)
         } finally {
             instance.dispatchDone.complete(Unit)
@@ -500,7 +500,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 log.e(
                     "Startup",
                     "Module controller startup failed: module=${instanceId.moduleId.value}, " +
-                            "startupRemainingMs=${firstStatusDeadlineElapsedMillis - SystemClock.elapsedRealtime()}",
+                            "startupRemainingMs=${firstStatusDeadlineElapsedMillis - SystemClock.elapsedRealtime()}, instanceId=${instanceId.uuid}",
                     error,
                 )
                 reportFailure(null)

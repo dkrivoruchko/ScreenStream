@@ -11,7 +11,11 @@ kotlin {
 
 android {
     namespace = "info.dvkr.screenstream.rtsp"
-    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    compileSdk {
+        version = release(rootProject.extra["compileSdkVersion"] as Int) {
+            minorApiLevel = rootProject.extra["compileSdkMinorVersion"] as Int
+        }
+    }
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 
     defaultConfig {

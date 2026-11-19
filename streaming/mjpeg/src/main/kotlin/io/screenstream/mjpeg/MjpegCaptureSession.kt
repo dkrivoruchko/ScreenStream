@@ -510,8 +510,12 @@ internal class MjpegCaptureSession(
 
         engineSession.diagnosticEvents.onEach { event ->
             val cause = event.cause
-            if (event.source == "SessionCoordinator" && event.eventName == "TerminalFailure" && cause != null) {
-                log.w("Engine.terminalFailure", "Engine terminal failure: attemptId=${id.uuid}, causeType=${cause.javaClass.name}")
+            if (event.source == "SessionCoordinator" && event.eventName == "TerminalFailure") {
+                log.w(
+                    "Engine.terminalFailure",
+                    "Engine terminal failure: attemptId=${id.uuid}, causeType=${cause?.javaClass?.name ?: "none"}, " +
+                            "framesProduced=${engineSession.stats.value.producedFrameCount}",
+                )
             }
         }.launchIn(this)
 

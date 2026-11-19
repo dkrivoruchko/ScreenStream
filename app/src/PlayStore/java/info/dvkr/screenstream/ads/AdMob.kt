@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
@@ -220,7 +219,6 @@ public class AdMob(private val context: Context) : KoinComponent {
             runCatching {
                 val initializationConfig = InitializationConfig.Builder(appId)
                     .apply { requestConfiguration?.let(::setRequestConfiguration) }
-                    .setExtras(Bundle().apply { putBoolean(InitializationConfig.FORCE_CRONET_KEY, true) })
                     .build()
                 MobileAds.initialize(context, initializationConfig) {
                     scope.launch {

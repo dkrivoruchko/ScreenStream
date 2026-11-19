@@ -50,13 +50,18 @@ internal object JWTHelper : KoinComponent {
         if (firstAttempt.isSuccess) return firstAttempt.getOrThrow()
 
         val firstCause = firstAttempt.exceptionOrNull()!!
-        if (firstCause.isAndroidKeystoreFailure().not()) throw firstCause
+        val aliasWasMissing = firstCause is MissingSigningKeyAliasException
+        // An absent alias can use the hardware retry after failed initialization.
+        if (!aliasWasMissing && !firstCause.isAndroidKeystoreFailure()) throw firstCause
 
         log.w("createJWT", "AndroidKeyStore failed. Retrying with key reset.", firstCause)
 
         val secondAttempt = runCatching {
-            if (keyStore.containsAlias(KEY_ALIAS)) removeKey()
-            createKey()
+            val aliasExists = keyStore.containsAlias(KEY_ALIAS)
+            if (!aliasExists || !aliasWasMissing) {
+                if (aliasExists) removeKey()
+                createKey()
+            }
             createJWT(environment, streamId, getPublicKey(), getPrivateKey())
         }
         if (secondAttempt.isSuccess) return secondAttempt.getOrThrow()
@@ -131,6 +136,8 @@ internal object JWTHelper : KoinComponent {
     private fun Throwable.isAndroidKeystoreFailure(): Boolean = generateSequence(this) { it.cause }
         .any { it is ProviderException || it.javaClass.name == "android.security.KeyStoreException" }
 
+    private class MissingSigningKeyAliasException : IllegalStateException("Key not found, alias: $KEY_ALIAS")
+
     private val ByteArray.toBase64UrlSafeNoPadding
         inline get() : String = Base64.encodeToString(this, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING)
 
@@ -166,7 +173,7 @@ internal object JWTHelper : KoinComponent {
     }
 
     private fun getPublicKey(): PublicKey {
-        keyStore.containsAlias(KEY_ALIAS) || throw IllegalStateException("Key not found, alias: $KEY_ALIAS")
+        keyStore.containsAlias(KEY_ALIAS) || throw MissingSigningKeyAliasException()
         return keyStore.getCertificate(KEY_ALIAS).publicKey!!
     }
 
@@ -179,7 +186,7 @@ internal object JWTHelper : KoinComponent {
     private fun getPrivateKey(): PrivateKey {
         log.d("getPrivateKey", KEY_ALIAS)
 
-        keyStore.containsAlias(KEY_ALIAS) || throw IllegalStateException("Key not found, alias: $KEY_ALIAS")
+        keyStore.containsAlias(KEY_ALIAS) || throw MissingSigningKeyAliasException()
         val key = keyStore.getKey(KEY_ALIAS, null)!!
         return key as? PrivateKey ?: throw IllegalStateException("Key is not PrivateKey, alias: $KEY_ALIAS")
     }

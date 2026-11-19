@@ -13,7 +13,7 @@
     "test": "node --test preview/*test.cjs test/*.test.cjs"
   },
   "devDependencies": {
-    "acorn": "8.15.0",
-    "ws": "8.22.0"
+    "acorn": "8.19.0",
+    "ws": "8.23.0"
   }
 }

@@ -29,7 +29,11 @@ android {
     }
 
     namespace = "info.dvkr.screenstream"
-    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    compileSdk {
+        version = release(rootProject.extra["compileSdkVersion"] as Int) {
+            minorApiLevel = rootProject.extra["compileSdkMinorVersion"] as Int
+        }
+    }
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
     ndkVersion = rootProject.extra["ndkVersion"] as String
 
@@ -155,7 +159,7 @@ dependencies {
     "PlayStoreImplementation"(libs.play.app.review)
     "PlayStoreImplementation"(libs.ads.mobile.sdk)
     "PlayStoreImplementation"(libs.user.messaging.platform)
-    // Ads SDK 1.6.0 schedules CONNECTED offline pings using WorkManager 2.7.
+    // The Ads SDK still requests WorkManager 2.7.0 for offline pings with a CONNECTED constraint.
     // WorkManager 2.11.2+ fixes blocked background-network tracking on Android 15+.
     // Remove this override when the ads SDK requires WorkManager 2.11.2 or newer.
     "PlayStoreImplementation"(libs.androidx.work.runtime)

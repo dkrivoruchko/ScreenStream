@@ -8,7 +8,9 @@ kotlin {
 android {
     namespace = "io.screenstream.analytics"
     compileSdk {
-        version = release(rootProject.extra["compileSdkVersion"] as Int)
+        version = release(rootProject.extra["compileSdkVersion"] as Int) {
+            minorApiLevel = rootProject.extra["compileSdkMinorVersion"] as Int
+        }
     }
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 

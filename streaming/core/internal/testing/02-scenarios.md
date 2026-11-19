@@ -152,6 +152,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 - advance the clock past the deadline, then report a status before the scheduler observes the deadline
 - report a status before the deadline, then let the deadline pass before the manager applies it
 - advance past the deadline before the Service start is delivered
+- deliver the Service start in time, advance elapsed realtime past the deadline while building the waiting-foreground notification, then explicitly restart the failed instance
 
 **Expected.**
 
@@ -160,6 +161,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 - **Deep sleep counts.** The startup deadline uses elapsed realtime, so deep sleep alone can expire it.
 - **Late status.** A status reported after the deadline, or reported before it but applied after it, doesn't produce `Running`.
 - **Late delivery.** A fresh start delivered after the deadline neither promotes to foreground nor invokes the factory. The unowned Service stops if it has no newer pending start; the instance stays failed.
+- **Expiry during setup.** If the deadline expires during waiting-foreground notification construction, the Service skips foreground promotion and Controller creation and stops if no newer start is pending. The manager reports `Failed`. Restarting that exact failed instance can open a new instance.
 
 **Evidence boundary.** Robolectric's clock stands in for real deep sleep and scheduling delay. Real ordinary dispatch followed by delayed delivery and Service teardown needs platform qualification; local absence of promotion does not prove process survival on Android.
 

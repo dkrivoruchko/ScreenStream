@@ -153,7 +153,13 @@ internal class ScreenCaptureAccessImpl(
             } catch (cause: SecurityException) {
                 if (!retryAfterRecentForegroundStart || Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE || foregroundDelay == null ||
                     foregroundDelay !in 0L..PROJECTION_ACQUIRE_RETRY_WINDOW_MILLIS
-                ) throw cause
+                ) {
+                    log.w(
+                        "ScreenCaptureAccess",
+                        "Projection acquisition denied: attemptId=${accepted.attempt.uuid}, foregroundToAcquireMs=${foregroundDelay ?: "none"}",
+                    )
+                    throw cause
+                }
                 accepted.job.ensureActive()
                 SystemClock.sleep(PROJECTION_ACQUIRE_RETRY_DELAY_MILLIS)
                 accepted.job.ensureActive()

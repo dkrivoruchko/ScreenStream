@@ -13,7 +13,11 @@ kotlin {
 
 android {
     namespace = "info.dvkr.screenstream.webrtc"
-    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    compileSdk {
+        version = release(rootProject.extra["compileSdkVersion"] as Int) {
+            minorApiLevel = rootProject.extra["compileSdkMinorVersion"] as Int
+        }
+    }
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
     ndkVersion = rootProject.extra["ndkVersion"] as String
 
