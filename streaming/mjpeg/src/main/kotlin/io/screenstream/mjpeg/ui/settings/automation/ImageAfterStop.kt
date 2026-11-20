@@ -64,7 +64,7 @@ internal fun ImageAfterStopSettingItem(
                         val label = stringResource(ImageAfterStopSearch.labelResIds.getValue(option))
                         if (option == StreamBehaviorSettings.DEFAULT_POST_STOP_IMAGE) stringResource(R.string.mjpeg_pref_default_option, label) else label
                     },
-                    onValueSelected = { selected -> if (selected != postStopImage) onBehaviorChange { copy(postStopImage = selected) } },
+                    onSelectOption = { selected -> if (selected != postStopImage) onBehaviorChange { copy(postStopImage = selected) } },
                     onDismissRequest = {
                         menuExpanded = false
                         openerFocus.markDismissed()

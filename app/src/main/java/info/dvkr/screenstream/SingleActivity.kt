@@ -75,10 +75,11 @@ public class SingleActivity : AppCompatActivity() {
                 waitingForSettings = false
             }
 
+            val initialRationaleHistory = appSettings.data.value.permissionsWithObservedRationale
             setContent {
                 ScreenStreamTheme {
                     RuntimePermissionHost(
-                        initialRationaleHistory = appSettings.data.value.permissionsWithObservedRationale,
+                        initialRationaleHistory = initialRationaleHistory,
                         onRationaleObserved = appSettings::setPermissionRationaleObserved,
                     ) {
                         AppNavigation(

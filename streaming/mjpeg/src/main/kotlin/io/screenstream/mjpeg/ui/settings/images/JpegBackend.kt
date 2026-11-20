@@ -89,7 +89,7 @@ internal fun JpegBackendSettingItem(
                         } else JpegBackendSearch.options.getValue(option).descriptionRes
                         Text(stringResource(descriptionRes))
                     },
-                    onValueSelected = { selected -> if (selected != backendPolicy) onImageChange { copy(jpegBackendPolicy = selected) } },
+                    onSelectOption = { selected -> if (selected != backendPolicy) onImageChange { copy(jpegBackendPolicy = selected) } },
                     onDismissRequest = {
                         menuExpanded = false
                         openerFocus.markDismissed()

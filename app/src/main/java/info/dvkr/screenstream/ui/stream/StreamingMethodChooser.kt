@@ -97,7 +97,7 @@ internal fun StreamingMethodCard(
                 if (selectedMethod != null) {
                     Text(
                         text = stringResource(R.string.app_mode_selected_method),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -117,7 +117,7 @@ internal fun StreamingMethodCard(
                 if (selectedMethod != null) {
                     Text(
                         text = stringResource(R.string.app_mode_choose_another_method),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

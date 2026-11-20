@@ -26,9 +26,9 @@ internal fun EncoderItem(
     encoderName: String,
     isHardwareAccelerated: Boolean,
     isCBRModeSupported: Boolean,
+    modifier: Modifier = Modifier,
     hwColor: Color = MaterialTheme.colorScheme.primary.let { if (isHardwareAccelerated.not()) it.copy(alpha = 0.5f) else it },
-    cbrColor: Color = MaterialTheme.colorScheme.primary.let { if (isCBRModeSupported.not()) it.copy(alpha = 0.5f) else it },
-    modifier: Modifier = Modifier
+    cbrColor: Color = MaterialTheme.colorScheme.primary.let { if (isCBRModeSupported.not()) it.copy(alpha = 0.5f) else it }
 ) {
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {

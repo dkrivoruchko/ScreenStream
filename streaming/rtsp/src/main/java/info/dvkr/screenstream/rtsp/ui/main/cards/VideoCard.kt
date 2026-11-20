@@ -20,10 +20,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -102,7 +102,7 @@ internal fun VideoCard(
             onAutoSelectChange = { updateSettings { copy(videoCodecAutoSelect = videoCodecAutoSelect.not()) } },
             selectedEncoder = selectedVideoEncoder,
             availableEncoders = EncoderUtils.availableVideoEncoders,
-            onCodecSelected = { updateSettings { copy(videoCodec = it) } },
+            onSelectEncoder = { updateSettings { copy(videoCodec = it) } },
             enabled = isStreaming.not(),
             modifier = Modifier
                 .padding(top = 4.dp)
@@ -117,7 +117,7 @@ internal fun VideoCard(
             H264Profile(
                 selectedProfile = settings.videoH264Profile.takeIf { it in supportedH264Profiles } ?: RtspSettings.Values.H264Profile.AUTO,
                 supportedProfiles = supportedH264Profiles,
-                onProfileSelected = { updateSettings { copy(videoH264Profile = it) } },
+                onSelectProfile = { updateSettings { copy(videoH264Profile = it) } },
                 enabled = isStreaming.not(),
                 modifier = Modifier
                     .padding(top = 4.dp)
@@ -200,7 +200,7 @@ private fun VideoEncoder(
     onAutoSelectChange: (Boolean) -> Unit,
     selectedEncoder: VideoCodecInfo?,
     availableEncoders: List<VideoCodecInfo>,
-    onCodecSelected: (String) -> Unit,
+    onSelectEncoder: (String) -> Unit,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -275,7 +275,7 @@ private fun VideoEncoder(
                         },
                         onClick = {
                             expanded = false
-                            onCodecSelected(encoder.name)
+                            onSelectEncoder(encoder.name)
                         },
                         contentPadding = PaddingValues()
                     )
@@ -299,6 +299,8 @@ private fun ImageSize(
         var counter by remember { mutableLongStateOf(0) }
         var sliderPosition by remember(resizeFactor, counter) { mutableFloatStateOf(resizeFactor) }
         var currentResultSize by remember(resultSize, counter) { mutableStateOf(resultSize) }
+        val sliderState = remember { SliderState(trackRange = 10f..100f) }
+        sliderState.value = sliderPosition
         val scope = rememberCoroutineScope()
 
         Text(text = stringResource(R.string.rtsp_video_resize_image, sliderPosition))
@@ -306,20 +308,27 @@ private fun ImageSize(
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = stringResource(R.string.rtsp_video_resize_image_10), modifier = Modifier.align(Alignment.CenterVertically))
             Slider(
-                state = rememberSliderState(
-                    value = sliderPosition,
-                    trackRange = 10F..100F
-                ),
-                onValueChange = {
-                    sliderPosition = it
-                    currentResultSize = IntSize((screenSize.width * it / 100F).roundToInt(), (screenSize.height * it / 100F).roundToInt())
+                state = sliderState,
+                onValueChange = { position ->
+                    sliderState.value = position
+                    sliderPosition = position
+                    currentResultSize = IntSize(
+                        (screenSize.width * position / 100F).roundToInt(),
+                        (screenSize.height * position / 100F).roundToInt(),
+                    )
                 },
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
                     .weight(1f)
                     .align(Alignment.CenterVertically),
                 enabled = enabled,
-                onValueChangeFinished = { onValueChange.invoke(sliderPosition); scope.launch { delay(250.milliseconds); counter = counter + 1 } },
+                onValueChangeFinished = {
+                    onValueChange.invoke(sliderPosition)
+                    scope.launch {
+                        delay(250.milliseconds)
+                        counter += 1
+                    }
+                },
             )
             Text(text = stringResource(R.string.rtsp_video_resize_image_100), modifier = Modifier.align(Alignment.CenterVertically))
         }
@@ -359,21 +368,24 @@ private fun Fps(
 ) {
     Column(modifier = modifier) {
         var sliderPosition by remember(fpsRange, fps) { mutableFloatStateOf(fps.coerceIn(fpsRange).toFloat()) }
+        val trackRange = fpsRange.start.toFloat()..fpsRange.endInclusive.toFloat()
+        val sliderState = remember(trackRange) { SliderState(trackRange = trackRange) }
+        sliderState.value = sliderPosition
 
         Text(text = stringResource(R.string.rtsp_video_frame_rate, sliderPosition.roundToInt()))
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = fpsRange.start.toString(), modifier = Modifier.align(Alignment.CenterVertically))
             Slider(
-                state = rememberSliderState(
-                    value = sliderPosition,
-                    trackRange = fpsRange.start.toFloat()..fpsRange.endInclusive.toFloat()
-                ),
-                onValueChange = { sliderPosition = it },
+                state = sliderState,
+                onValueChange = { position ->
+                    sliderState.value = position
+                    sliderPosition = position
+                },
                 modifier = Modifier
-                                .padding(horizontal = 8.dp)
-                                .weight(1f)
-                                .align(Alignment.CenterVertically),
+                    .padding(horizontal = 8.dp)
+                    .weight(1f)
+                    .align(Alignment.CenterVertically),
                 enabled = enabled,
                 onValueChangeFinished = { onValueChange.invoke(sliderPosition.roundToInt()) },
             )
@@ -393,6 +405,9 @@ private fun Bitrate(
     Column(modifier = modifier) {
         var isDragging by remember { mutableStateOf(false) }
         var sliderPosition by remember { mutableFloatStateOf((bitrateBits / 1000).coerceIn(bitrateRangeKbits).toFloat()) }
+        val trackRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat()
+        val sliderState = remember(trackRange) { SliderState(trackRange = trackRange) }
+        sliderState.value = sliderPosition
 
         LaunchedEffect(bitrateBits, bitrateRangeKbits) {
             if (!isDragging) {
@@ -401,7 +416,7 @@ private fun Bitrate(
         }
 
         Text(
-            text = stringResource(R.string.rtsp_video_bitrate, sliderPosition.roundToInt().toKOrMBitString()),
+            text = stringResource(R.string.rtsp_video_bitrate, sliderState.value.roundToInt().toKOrMBitString()),
             modifier = Modifier
         )
 
@@ -411,12 +426,11 @@ private fun Bitrate(
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
             Slider(
-                state = rememberSliderState(
-                    value = sliderPosition,
-                    trackRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat()
-                ), onValueChange = {
+                state = sliderState,
+                onValueChange = { position ->
                     isDragging = true
-                    sliderPosition = it
+                    sliderState.value = position
+                    sliderPosition = position
                 },
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
@@ -425,7 +439,7 @@ private fun Bitrate(
                 enabled = enabled,
                 onValueChangeFinished = {
                     isDragging = false
-                    onValueChange.invoke((sliderPosition * 1000).roundToInt())
+                    onValueChange.invoke((sliderState.value * 1000).roundToInt())
                 },
             )
             Text(
@@ -445,7 +459,7 @@ internal fun Int.toKOrMBitString(): String =
 private fun H264Profile(
     selectedProfile: RtspSettings.Values.H264Profile,
     supportedProfiles: List<RtspSettings.Values.H264Profile>,
-    onProfileSelected: (RtspSettings.Values.H264Profile) -> Unit,
+    onSelectProfile: (RtspSettings.Values.H264Profile) -> Unit,
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -497,7 +511,7 @@ private fun H264Profile(
                             Text(text = text)
                         },
                         onClick = {
-                            onProfileSelected(profile)
+                            onSelectProfile(profile)
                             expanded = false
                         }
                     )

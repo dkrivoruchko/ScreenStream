@@ -20,9 +20,10 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.datastore.preferences.core)
+    api(libs.androidx.datastore.preferences.core)
+    api(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.serialization.core)
 
-    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)

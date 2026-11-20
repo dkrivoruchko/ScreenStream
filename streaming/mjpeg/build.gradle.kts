@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.androidx.window.core)
 
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.io.core)
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.koin.compose)
@@ -84,10 +85,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.uiautomator)
-
-    // Compose tests bring Espresso 3.5; 3.7 fixes InputManager access on API 37.
-    // Remove this override when Compose test libraries include that fix.
-    androidTestImplementation(libs.androidx.test.espresso.core)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

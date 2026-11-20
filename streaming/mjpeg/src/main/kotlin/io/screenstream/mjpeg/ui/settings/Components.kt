@@ -331,7 +331,7 @@ internal fun <T> SettingDropdownMenu(
     selectedValue: T,
     options: List<T>,
     optionLabel: @Composable (T) -> String,
-    onValueSelected: (T) -> Unit,
+    onSelectOption: (T) -> Unit,
     onDismissRequest: () -> Unit,
     enabled: Boolean = true,
     optionSupportingText: (@Composable (T) -> Unit)? = null,
@@ -353,7 +353,7 @@ internal fun <T> SettingDropdownMenu(
             SelectableDropdownMenuItem(
                 selected = selectedValue == option,
                 onClick = {
-                    onValueSelected(option)
+                    onSelectOption(option)
                     onDismissRequest()
                 },
                 text = { Text(optionLabel(option), fontWeight = FontWeight.Normal) },

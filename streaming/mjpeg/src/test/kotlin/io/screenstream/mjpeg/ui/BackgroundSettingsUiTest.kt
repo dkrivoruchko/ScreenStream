@@ -1,5 +1,7 @@
 package io.screenstream.mjpeg.ui
 
+import android.app.Application
+import android.content.pm.ApplicationInfo
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -11,6 +13,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -18,6 +21,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.LayoutDirection
 import io.screenstream.mjpeg.IsolatedSettingsContext
 import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.R
@@ -92,6 +96,34 @@ internal class BackgroundSettingsUiTest {
         assertEquals(initial, compose.awaitSavedMjpegSettings(settings))
     }
 
+    @Test
+    @Config(application = RtlTestApplication::class, qualifiers = "ar-ldrtl")
+    fun channelLabelsAreOnTheRightInRtl() {
+        val settings = newSettings()
+        val initial = compose.awaitSavedMjpegSettings(settings)
+        render(settings, initial)
+        openEditor()
+
+        val channelLabels = listOf(
+            R.string.mjpeg_pref_web_background_red,
+            R.string.mjpeg_pref_web_background_green,
+            R.string.mjpeg_pref_web_background_blue,
+        )
+        for (resource in channelLabels) {
+            val slider = channelSlider(resource).performScrollTo()
+            val label = compose.onNodeWithText(text(resource))
+            val sliderBounds = slider.getUnclippedBoundsInRoot()
+            val labelBounds = label.getUnclippedBoundsInRoot()
+            assertEquals(LayoutDirection.Rtl, label.fetchSemanticsNode().layoutInfo.layoutDirection, "Editor label layout direction")
+            val sliderCenterX = (sliderBounds.left + sliderBounds.right) / 2f
+            val labelCenterX = (labelBounds.left + labelBounds.right) / 2f
+            assertTrue(
+                labelCenterX > sliderCenterX,
+                "${text(resource)} label $labelBounds should be to the right of its slider $sliderBounds",
+            )
+        }
+    }
+
     private fun render(settings: MjpegSettings, initial: MjpegSettings.Data) {
         compose.setContent {
             val data by settings.data.collectAsState(initial)
@@ -132,4 +164,12 @@ internal class BackgroundSettingsUiTest {
     private fun hexField() = compose.onNodeWithText(text(R.string.mjpeg_pref_web_background_hex_label))
     private fun channelSlider(resource: Int) = compose.onNodeWithContentDescription(text(resource))
     private fun text(resource: Int, vararg arguments: Any): String = compose.activity.getString(resource, *arguments)
+}
+
+internal class RtlTestApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // The library test manifest does not inherit the app's supportsRtl setting.
+        applicationInfo.flags = applicationInfo.flags or ApplicationInfo.FLAG_SUPPORTS_RTL
+    }
 }

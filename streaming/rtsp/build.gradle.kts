@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.androidx.window.core)
 
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.io.core)
 
     implementation(libs.koin.compose)
     implementation(libs.koin.annotations)

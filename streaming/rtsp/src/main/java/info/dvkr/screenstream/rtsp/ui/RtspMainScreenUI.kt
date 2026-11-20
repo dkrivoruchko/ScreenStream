@@ -206,7 +206,7 @@ internal fun RtspMainScreenUI(
     }
 
     RtspPermissionActionEffect(
-        permissionActions, settings.enableMic, settings.enableDeviceAudio, selectedMode, state.mode,
+        permissionActions, runtimePermissions, settings.enableMic, settings.enableDeviceAudio, selectedMode, state.mode,
         state.isStreaming, state.waitingCastPermission, state.startAttemptId, state.error,
         isRelevant = ::isActionRelevant,
         onGranted = { action ->
@@ -269,6 +269,13 @@ internal fun RtspMainScreenUI(
                         error.isStartupPolicyError()
             }?.let { error ->
                 item(key = "ERROR") {
+                    val hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio
+                    val errorPermissionState = when (error) {
+                        is RtspError.AudioPermissionRequired -> if (hasEnabledAudioSource) audioPermissionState else null
+                        is RtspError.NotificationPermissionRequired -> notificationPermissionState
+                        is RtspError.LocalNetworkPermissionRequired -> localNetworkPermissionState
+                        else -> null
+                    }
                     ErrorCard(
                         error = error,
                         sendEvent = { event ->
@@ -278,7 +285,8 @@ internal fun RtspMainScreenUI(
                                 sendEvent(if (event is RtspEvent.RecoverError) event.copy(errorToken = displayedToken) else event)
                             }
                         },
-                        hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio,
+                        hasEnabledAudioSource = hasEnabledAudioSource,
+                        permissionState = errorPermissionState,
                         retryStartupPolicyError = { requestStart(error, state.errorToken) },
                         requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio, error, state.errorToken) },
                         requestNotificationPermission = requestNotificationPermission@{
@@ -314,7 +322,7 @@ internal fun RtspMainScreenUI(
                 ModeCard(
                     sendEvent = sendEvent,
                     selectedMode = selectedMode,
-                    onModeSelected = { mode -> updateSettings { copy(mode = mode) } },
+                    onSelectMode = { mode -> updateSettings { copy(mode = mode) } },
                     isStreaming = state.captureAttempt != null,
                     serverBindings = state.serverBindings,
                     clientStatus = state.clientStatus,

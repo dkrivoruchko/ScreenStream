@@ -102,7 +102,7 @@ With protection off, this transaction changes nothing and writes nothing. Enabli
 **Edits.** Both kinds of PIN edit are access changes, so they need the setup-edit policy described in the next section.
 
 - **Generate new PIN** works with either PIN option.
-- **A typed PIN** requires Permanent PIN. The editor checks for six ASCII digits. The save transform checks the option and format again against the latest saved access group, so if a change of PIN option races with the edit, the PIN stays unchanged.
+- **A typed PIN** requires Permanent PIN. The editor checks for six ASCII digits before queuing a save. The save transform checks the PIN option in the latest saved access group, so if a change of PIN option races with the edit, the PIN stays unchanged.
 
 **Storage and display.** `SecretValue` hides the PIN in `toString()`, which keeps it out of generated strings and logs. Serialization still writes the digits as plain text into the app's private storage.
 

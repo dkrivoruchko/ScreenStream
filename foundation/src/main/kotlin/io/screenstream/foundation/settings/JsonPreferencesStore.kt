@@ -94,7 +94,7 @@ public class JsonPreferencesStore<T : Any>(
      * encoding, and storage failures propagate. Caller cancellation propagates but does not prove that a
      * write was not committed.
      */
-    public suspend fun updateData(transform: T.() -> T): Unit {
+    public suspend fun updateData(transform: T.() -> T) {
         dataStore.edit { preferences ->
             val stored: T? = try {
                 decodeStored(preferences)

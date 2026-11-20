@@ -41,8 +41,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = rootProject.extra["minSdkVersion"] as Int
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
-        versionCode = 46000
-        versionName = "4.6.0-beta1"
+        versionCode = 45001
+        versionName = "4.5.1"
 
         ndk.abiFilters.addAll(listOf("armeabi-v7a", "x86", "arm64-v8a", "x86_64"))
     }
@@ -165,7 +165,14 @@ dependencies {
     "PlayStoreImplementation"(libs.androidx.work.runtime)
     "PlayStoreImplementation"(platform(libs.firebase.bom))
     "PlayStoreImplementation"(libs.firebase.analytics)
-    "PlayStoreImplementation"(libs.firebase.crashlytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics.ndk)
     "PlayStoreImplementation"(libs.kermit.crashlytics)
+
+    constraints {
+        // Navigation 3 UI 1.2.2 requests NavigationEvent Compose 1.1.1. Keep this override
+        // until Navigation 3 pulls in 1.2.0 or newer with the child dispatcher fallback fix.
+        implementation(libs.androidx.navigationevent.compose) {
+            because("NavigationEvent 1.2.0 propagates unhandled Back events to the parent dispatcher fallback (b/531988076)")
+        }
+    }
 }

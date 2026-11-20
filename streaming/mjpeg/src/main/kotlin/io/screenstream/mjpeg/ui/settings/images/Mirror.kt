@@ -66,7 +66,7 @@ internal fun MirrorSettingItem(
                         val label = stringResource(MirrorSearch.labelResIds.getValue(option))
                         if (option == ImageSettings.DEFAULT_MIRROR) stringResource(R.string.mjpeg_pref_default_option, label) else label
                     },
-                    onValueSelected = { selected -> if (selected != mirror) onImageChange { copy(mirror = selected) } },
+                    onSelectOption = { selected -> if (selected != mirror) onImageChange { copy(mirror = selected) } },
                     onDismissRequest = {
                         menuExpanded = false
                         openerFocus.markDismissed()

@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -82,11 +83,13 @@ internal fun WebRtcMainScreenUI(
     val state = webRtcState.value
     val settings = webRtcSettingsState.value
     val runtimePermissions = LocalRuntimePermissions.current
+    val currentRequestStart by rememberUpdatedState(requestStart)
+    val currentRequestRecovery by rememberUpdatedState(requestRecovery)
     var pendingPermission by retain(instanceId) { mutableStateOf<PendingPermissionRequest?>(null) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val lifecycleState by lifecycle.currentStateAsState()
     fun recoverCurrentError() {
-        webRtcStateFlow.value.errorToken?.let(requestRecovery)
+        webRtcStateFlow.value.errorToken?.let(currentRequestRecovery)
     }
 
     fun requestPermission(permission: RuntimePermission, action: PendingPermissionAction) {
@@ -172,7 +175,7 @@ internal fun WebRtcMainScreenUI(
                     }
 
                     is PendingPermissionAction.RecoverError -> {
-                        if (action.permission.androidPermission == RuntimePermission.RecordAudio.androidPermission) requestStart()
+                        if (action.permission.androidPermission == RuntimePermission.RecordAudio.androidPermission) currentRequestStart()
                         else recoverCurrentError()
                     }
                 }
@@ -204,12 +207,20 @@ internal fun WebRtcMainScreenUI(
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 4.dp, end = 4.dp, bottom = 64.dp),
         ) {
-            state.error?.let {
+            state.error?.let { error ->
                 item(key = "ERROR") {
+                    val hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio
+                    val permission = when (error) {
+                        is WebRtcError.AudioPermissionRequired -> if (hasEnabledAudioSource) RuntimePermission.RecordAudio else null
+                        is WebRtcError.NotificationPermissionRequired -> RuntimePermission.Notifications
+                        else -> null
+                    }
+                    val errorPermissionState = permission?.let { runtimePermissions.state(it).collectAsStateWithLifecycle().value }
                     ErrorCard(
-                        error = it,
+                        error = error,
                         recoverError = { state.errorToken?.let(requestRecovery) },
-                        hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio,
+                        hasEnabledAudioSource = hasEnabledAudioSource,
+                        permissionState = errorPermissionState,
                         retryStartupPolicyError = { requestStart() },
                         requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio) },
                         requestNotificationPermission = requestNotificationPermission@{
@@ -232,7 +243,7 @@ internal fun WebRtcMainScreenUI(
                             }
                         },
                         modifier = Modifier.padding(8.dp),
-                        showRecoverAction = !(state.isStreaming && it is WebRtcError.SignalingServerUnavailable)
+                        showRecoverAction = !(state.isStreaming && error is WebRtcError.SignalingServerUnavailable)
                     )
                 }
             }

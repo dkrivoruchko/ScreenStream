@@ -12,7 +12,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
-import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
 import io.screenstream.core.permission.RuntimePermissions
@@ -50,12 +49,12 @@ internal fun <A : Any> rememberRtspPermissionActions(ownerKey: Any? = Unit): Rts
 @Composable
 internal fun <A : Any> RtspPermissionActionEffect(
     actions: RtspPermissionActions<A>,
+    permissions: RuntimePermissions,
     vararg relevanceKeys: Any?,
     isRelevant: (A) -> Boolean,
     onGranted: suspend (A) -> Unit,
 ) {
     val request = actions.request ?: return
-    val permissions = LocalRuntimePermissions.current
     val currentIsRelevant by rememberUpdatedState(isRelevant)
     val currentOnGranted by rememberUpdatedState(onGranted)
     val lifecycle = LocalLifecycleOwner.current.lifecycle

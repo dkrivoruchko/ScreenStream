@@ -56,7 +56,7 @@ internal fun RotationSettingItem(
                         val label = stringResource(R.string.mjpeg_pref_image_rotation_option, option.degrees)
                         if (option == ImageSettings.DEFAULT_ROTATION) stringResource(R.string.mjpeg_pref_default_option, label) else label
                     },
-                    onValueSelected = { selected -> if (selected != rotation) onImageChange { copy(rotation = selected) } },
+                    onSelectOption = { selected -> if (selected != rotation) onImageChange { copy(rotation = selected) } },
                     onDismissRequest = {
                         menuExpanded = false
                         openerFocus.markDismissed()
