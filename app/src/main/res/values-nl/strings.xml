@@ -29,27 +29,6 @@
     <string name="app_mode_benefits">Voordelen</string>
     <string name="app_mode_things_to_know">Goed om te weten</string>
 
-    <!-- Permission explanations distinguish microphone input from device playback audio. -->
-    <string name="app_permission_not_now">Niet nu</string>
-    <string name="app_permission_open_settings">Instellingen openen</string>
-
-    <string name="app_permission_notifications_title">Meldingen toestaan</string>
-    <string name="app_permission_notifications_message">Meldingen tonen de streamstatus en foutmeldingen. Gebruik ze om de stream te stoppen of ScreenStream opnieuw te openen.</string>
-
-    <string name="app_permission_local_network_title">Toegang tot lokaal netwerk</string>
-    <string name="app_permission_local_network_message">Sta ScreenStream toe uw lokale netwerk te gebruiken om naar andere apparaten op hetzelfde netwerk te streamen.\n\nAndroid beschrijft deze toestemming als toegang tot Apparaten in de buurt en vermeldt mogelijk het bepalen van hun relatieve positie.</string>
-    <string name="app_permission_local_network_off_title">Toegang tot lokaal netwerk is uitgeschakeld</string>
-    <string name="app_permission_local_network_settings_message">Open Rechten in de appinstellingen en sta Apparaten in de buurt toe om naar apparaten op hetzelfde lokale netwerk te streamen.</string>
-
-    <string name="app_permission_microphone_title">Microfoontoegang</string>
-    <string name="app_permission_microphone_message">Sta microfoontoegang toe om geluid van uw microfoon in de stream op te nemen.\n\nZonder deze toestemming kan microfoonaudio niet worden gestreamd.</string>
-    <string name="app_permission_device_audio_title">Toegang tot apparaataudio</string>
-    <string name="app_permission_device_audio_message">Android vereist microfoontoestemming om apparaataudio te streamen. Dit schakelt uw microfoon niet in.\n\nAlleen audio die Android en de afspelende app toestaan te delen, kan worden gestreamd.</string>
-
-    <string name="app_permission_audio_title">Microfoon- en apparaataudio</string>
-    <string name="app_permission_audio_message">Sta microfoontoegang toe om microfoon- en apparaataudio te streamen.\n\nApparaataudio kan alleen worden gestreamd als Android en de afspelende app het delen toestaan.</string>
-    <string name="app_permission_audio_settings_message">Sta microfoontoegang toe in de appinstellingen om microfoon- of apparaataudio te streamen.\n\nZonder deze toestemming kan audio niet worden gestreamd.</string>
-
     <string name="app_notification_channel_streaming">Meldingen voor streaming</string>
     <string name="app_notification_channel_error">Foutmeldingen</string>
     <string name="app_notification_waiting_content">Tik om de app te openen</string>

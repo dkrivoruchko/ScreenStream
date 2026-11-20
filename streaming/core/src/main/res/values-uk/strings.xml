@@ -1,0 +1,27 @@
+<resources>
+    <string name="core_continue">Продовжити</string>
+
+    <string name="core_screen_capture_permission_required_title">Потрібен дозвіл</string>
+    <string name="core_screen_capture_permission_education_message">Android попросить дозвіл на показ екрана. Без нього трансляцію неможливо розпочати. Ви можете зупинити показ у будь-який момент.</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="core_permission_not_now">Не зараз</string>
+    <string name="core_permission_open_settings">Відкрити налаштування</string>
+
+    <string name="core_permission_notifications_title">Дозволити сповіщення</string>
+    <string name="core_permission_notifications_message">Сповіщення показують стан трансляції та повідомлення про помилки. Використовуйте їх, щоб зупинити трансляцію або знову відкрити ScreenStream.</string>
+
+    <string name="core_permission_local_network_title">Доступ до локальної мережі</string>
+    <string name="core_permission_local_network_message">Дозвольте ScreenStream використовувати локальну мережу для трансляції на інші пристрої в тій самій мережі.\n\nAndroid описує цей дозвіл як доступ до пристроїв поблизу й може згадувати визначення їхнього взаємного розташування.</string>
+    <string name="core_permission_local_network_off_title">Доступ до локальної мережі вимкнено</string>
+    <string name="core_permission_local_network_settings_message">У налаштуваннях застосунку відкрийте «Дозволи» й надайте доступ до пристроїв поблизу для трансляції на пристрої в тій самій локальній мережі.</string>
+
+    <string name="core_permission_microphone_title">Доступ до мікрофона</string>
+    <string name="core_permission_microphone_message">Дозвольте доступ до мікрофона, щоб додати його звук до трансляції.\n\nБез цього звук із мікрофона не може транслюватися.</string>
+    <string name="core_permission_device_audio_title">Доступ до звуку пристрою</string>
+    <string name="core_permission_device_audio_message">Для трансляції звуку пристрою Android потребує дозволу на доступ до мікрофона. Це не вмикає ваш мікрофон.\n\nМожна транслювати лише звук, яким дозволяють ділитися Android і застосунок, що його відтворює.</string>
+
+    <string name="core_permission_audio_title">Звук мікрофона та пристрою</string>
+    <string name="core_permission_audio_message">Дозвольте доступ до мікрофона для трансляції звуку мікрофона та пристрою.\n\nЗвук пристрою може транслюватися лише тоді, коли Android і застосунок, що його відтворює, дозволяють ділитися ним.</string>
+    <string name="core_permission_audio_settings_message">Надайте доступ до мікрофона в налаштуваннях застосунку, щоб транслювати звук із мікрофона або пристрою.\n\nБез цього дозволу звук не може транслюватися.</string>
+</resources>

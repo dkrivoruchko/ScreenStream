@@ -54,6 +54,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,14 +86,47 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.window.core.layout.WindowSizeClass
-import info.dvkr.screenstream.common.ui.ExpandableCard
+import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.R
+import io.screenstream.mjpeg.settings.MjpegSettings
+import io.screenstream.mjpeg.ui.ExpandableCard
 import io.screenstream.mjpeg.ui.LocalMjpegSnackbarHostState
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.text.ParsePosition
 import java.util.Locale
+
+@Composable
+internal fun rememberMjpegSettingsSave(
+    settings: MjpegSettings,
+    logTag: String,
+    logMessage: String,
+    onError: () -> Unit
+): (MjpegSettings.Data.() -> MjpegSettings.Data) -> Unit {
+    val log: Logger = koinInject(parametersHolder = remember(settings) { parametersOf(settings) })
+    val coroutineScope = rememberCoroutineScope()
+    return remember(settings, log, coroutineScope, logTag, logMessage, onError) {
+        { transform: MjpegSettings.Data.() -> MjpegSettings.Data ->
+            // Enter the save transaction before the settings group can leave composition.
+            coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                try {
+                    settings.updateData(transform)
+                } catch (failure: CancellationException) {
+                    throw failure
+                } catch (failure: Exception) {
+                    log.e(logTag, logMessage, failure)
+                    onError()
+                }
+            }
+        }
+    }
+}
 
 internal class SettingOpenerFocus {
     val requester: FocusRequester = FocusRequester()
@@ -297,7 +331,7 @@ internal fun <T> SettingDropdownMenu(
     selectedValue: T,
     options: List<T>,
     optionLabel: @Composable (T) -> String,
-    onValueSelected: (T) -> Unit,
+    onSelectOption: (T) -> Unit,
     onDismissRequest: () -> Unit,
     enabled: Boolean = true,
     optionSupportingText: (@Composable (T) -> Unit)? = null,
@@ -319,7 +353,7 @@ internal fun <T> SettingDropdownMenu(
             SelectableDropdownMenuItem(
                 selected = selectedValue == option,
                 onClick = {
-                    onValueSelected(option)
+                    onSelectOption(option)
                     onDismissRequest()
                 },
                 text = { Text(optionLabel(option), fontWeight = FontWeight.Normal) },

@@ -4,16 +4,16 @@ import android.app.ForegroundServiceTypeException
 import android.app.ServiceStartNotAllowedException
 import android.os.Build
 import android.os.SystemClock
-import info.dvkr.screenstream.common.analytics.EntryPoint
-import info.dvkr.screenstream.common.analytics.SessionKey
-import info.dvkr.screenstream.common.analytics.StartFailGroup
-import info.dvkr.screenstream.common.analytics.StreamMode
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalytics
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
+import io.screenstream.analytics.EntryPoint
+import io.screenstream.analytics.SessionKey
+import io.screenstream.analytics.StartFailGroup
+import io.screenstream.analytics.StreamMode
+import io.screenstream.analytics.StreamingSessionAnalytics
+import io.screenstream.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ConsentLaunchException
 import io.screenstream.core.capture.ScreenCaptureAccess
-import io.screenstream.core.logW
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.http.HttpDelivery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -25,12 +25,17 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 
 /** One capture's observations; never owns admission, media, or cleanup. */
 internal class MjpegSessionAnalytics(
     private val factory: StreamingSessionAnalyticsFactory,
     private val attempt: StreamingModule.CaptureAttemptId,
-) {
+) : KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     private class StopSnapshot(val reason: MjpegCaptureSession.StopReason, val activeConsumers: Int)
 
     private val gate = Any()
@@ -140,7 +145,7 @@ internal class MjpegSessionAnalytics(
             .map { delivery -> delivery.clients.count { it.state == HttpDelivery.ClientInfo.State.Active } }
             .distinctUntilChanged()
             .onEach { count -> consumersChanged(count, SystemClock.elapsedRealtime()) }
-            .catch { cause -> this@MjpegSessionAnalytics.logW("MjpegSessionAnalytics", "MJPEG analytics observation failed", cause) }
+            .catch { cause -> log.w("MjpegSessionAnalytics", "MJPEG analytics observation failed", cause) }
             .launchIn(scope)
     }
 
@@ -173,7 +178,7 @@ internal class MjpegSessionAnalytics(
         try {
             action()
         } catch (cause: Throwable) {
-            logW("MjpegSessionAnalytics", "MJPEG analytics observation failed", cause)
+            log.w("MjpegSessionAnalytics", "MJPEG analytics observation failed", cause)
         }
     }
 }

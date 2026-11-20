@@ -14,6 +14,7 @@ import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.asByteWriteChannel
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.http.web.WebRoutes
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
@@ -30,6 +31,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.io.Buffer
 import kotlinx.io.RawSink
 import kotlinx.io.readByteArray
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -49,6 +51,9 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
 internal class HttpDeliveryCredentialRotationTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-ACC-09, MJPEG-OBS-03, MJPEG-OBS-06, MJPEG-IMG-15, MJPEG-WEB-11
     @Test(timeout = 45_000)
     fun protectedAndOpenRotationsCutOffOldMediaWritersAndWebSocketAdmission() {

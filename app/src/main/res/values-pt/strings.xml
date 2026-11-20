@@ -29,27 +29,6 @@
     <string name="app_mode_benefits">Vantagens</string>
     <string name="app_mode_things_to_know">Bom saber</string>
 
-    <!-- Permission explanations distinguish microphone input from device playback audio. -->
-    <string name="app_permission_not_now">Agora não</string>
-    <string name="app_permission_open_settings">Abrir configurações</string>
-
-    <string name="app_permission_notifications_title">Permitir notificações</string>
-    <string name="app_permission_notifications_message">As notificações mostram o status da transmissão e alertas de erro. Use-as para interromper a transmissão ou reabrir o ScreenStream.</string>
-
-    <string name="app_permission_local_network_title">Acesso à rede local</string>
-    <string name="app_permission_local_network_message">Permita que o ScreenStream use sua rede local para transmitir para outros dispositivos na mesma rede.\n\nO Android descreve esta permissão como acesso a Dispositivos por perto e pode mencionar a determinação da posição relativa deles.</string>
-    <string name="app_permission_local_network_off_title">O acesso à rede local está desativado</string>
-    <string name="app_permission_local_network_settings_message">Nas configurações do app, abra Permissões e conceda a permissão Dispositivos por perto para transmitir para dispositivos na mesma rede local.</string>
-
-    <string name="app_permission_microphone_title">Acesso ao microfone</string>
-    <string name="app_permission_microphone_message">Permita o acesso ao microfone para incluir o som dele na transmissão.\n\nSem essa permissão, o áudio do microfone não pode ser transmitido.</string>
-    <string name="app_permission_device_audio_title">Acesso ao áudio do dispositivo</string>
-    <string name="app_permission_device_audio_message">O Android exige permissão de microfone para transmitir o áudio do dispositivo. Isso não liga o microfone.\n\nSó pode ser transmitido o áudio que o Android e o app que o reproduz permitem compartilhar.</string>
-
-    <string name="app_permission_audio_title">Áudio do microfone e do dispositivo</string>
-    <string name="app_permission_audio_message">Permita o acesso ao microfone para transmitir o áudio do microfone e do dispositivo.\n\nO áudio do dispositivo só pode ser transmitido quando o Android e o app que o reproduz permitem compartilhá-lo.</string>
-    <string name="app_permission_audio_settings_message">Permita o acesso ao microfone nas configurações do app para transmitir áudio do microfone ou do dispositivo.\n\nSem essa permissão, o áudio não pode ser transmitido.</string>
-
     <string name="app_notification_channel_streaming">Notificações de transmissão</string>
     <string name="app_notification_channel_error">Notificações de erro</string>
     <string name="app_notification_waiting_content">Toque para abrir o aplicativo</string>

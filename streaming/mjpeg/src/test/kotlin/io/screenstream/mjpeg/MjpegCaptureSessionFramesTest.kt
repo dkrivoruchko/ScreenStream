@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -34,6 +35,9 @@ import kotlin.time.Duration.Companion.seconds
 @Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
 // This SDK-invariant adapter boundary does not prove platform capture, graphics or JPEG validity.
 internal class MjpegCaptureSessionFramesTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-CAP-08
     @Test
     fun copiedFramesRemainOwnedWhenBorrowedSourceStorageIsReused() = runTest(StandardTestDispatcher()) {

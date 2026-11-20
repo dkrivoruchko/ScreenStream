@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="rtsp_expanded">Ausgeklappt</string>
+    <string name="rtsp_collapsed">Eingeklappt</string>
+
     <string name="rtsp_error_recover">Wiederherstellen</string>
+    <string name="rtsp_error_try_again">Erneut versuchen</string>
     <string name="rtsp_error_open_settings">Einstellungen öffnen</string>
     <string name="rtsp_error_start_screen_sharing">Bildschirmfreigabe starten</string>
     <string name="rtsp_error_start_with_audio">Mit Audio starten</string>
@@ -52,6 +56,7 @@
     <string name="rtsp_stream_stop">Stream stoppen</string>
 
     <string name="rtsp_error_notification_permission_required">Diese App benötigt aktivierte Benachrichtigungen, um den Streaming-Dienst zu starten.\nAktivieren Sie Benachrichtigungen in den App-Einstellungen.</string>
+    <string name="rtsp_error_screen_capture_permission_denied_message">Der Stream wurde nicht gestartet, weil keine Berechtigung zum Teilen Ihres Bildschirms erteilt wurde. Tippen Sie auf Erneut versuchen, um den Android-Berechtigungsbildschirm erneut zu öffnen.</string>
     <string name="rtsp_error_screen_capture_start_blocked">Android hat den Start der Bildschirmfreigabe blockiert. Lassen Sie ScreenStream geöffnet und starten Sie erneut.</string>
     <string name="rtsp_error_projection_acquire_rejected">Die Bildschirmaufnahme-Berechtigung ist nicht mehr gültig. Starten Sie die Bildschirmfreigabe erneut.</string>
     <string name="rtsp_error_audio_permission_required">Die Mikrofonberechtigung ist erforderlich, um das Streaming mit Audio zu starten.</string>

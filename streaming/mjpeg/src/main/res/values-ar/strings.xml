@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">موسَّع</string>
+    <string name="mjpeg_collapsed">مطويّ</string>
+
     <string name="mjpeg_action_close">إغلاق</string>
 
     <string name="mjpeg_pref_value_on">مفعّل</string>

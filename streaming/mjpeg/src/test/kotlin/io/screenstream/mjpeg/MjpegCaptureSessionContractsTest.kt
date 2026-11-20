@@ -29,6 +29,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -48,6 +49,9 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
 internal class MjpegCaptureSessionContractsTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-CAP-07, MJPEG-CAP-08
     @Test
     fun captureGenerationSurvivesReconfigurationAndChangesAfterSuspension() = runTest {

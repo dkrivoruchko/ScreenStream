@@ -7,10 +7,12 @@ import android.media.projection.MediaProjection
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 
 @RequiresApi(Build.VERSION_CODES.Q)
 internal class InternalAudioSource(
+    log: Logger,
     audioParams: AudioSource.Params,
     private val mediaProjection: MediaProjection,
     dispatcher: CoroutineDispatcher,
@@ -18,7 +20,7 @@ internal class InternalAudioSource(
     onCaptureError: (Throwable) -> Unit
 ) : AudioSource {
 
-    private val audioCapture = AudioCapture(audioParams, dispatcher, onAudioFrame, onCaptureError)
+    private val audioCapture = AudioCapture(log, audioParams, dispatcher, onAudioFrame, onCaptureError)
 
     override val isRunning: Boolean
         get() = audioCapture.isRunning()

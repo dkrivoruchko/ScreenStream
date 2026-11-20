@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.TetheringManager
 import android.os.SystemClock
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -13,6 +14,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -42,6 +44,9 @@ import kotlin.time.TimeSource
 @Config(manifest = Config.NONE, sdk = [34], instrumentedPackages = ["io.screenstream.mjpeg.networkaddress"])
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class AndroidNetworkAddressCadenceTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-NET-06
     @Test
     fun incompleteBackoffBecomesPeriodicAndCompleteObservationRestartsTheRetrySequence() = runTest(timeout = 20.seconds) {

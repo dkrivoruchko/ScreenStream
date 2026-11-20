@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.rtsp.ui
 
 import android.content.ActivityNotFoundException
+import android.os.SystemClock
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,10 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.retain.retain
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,10 +40,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
 import androidx.window.core.layout.WindowSizeClass
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.ui.DoubleClickProtection
-import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
@@ -57,13 +56,15 @@ import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
-import info.dvkr.screenstream.common.R as CommonR
+import io.screenstream.core.R as CoreR
 
 @Composable
 internal fun RtspMainScreenUI(
@@ -80,6 +81,7 @@ internal fun RtspMainScreenUI(
     val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val log: Logger = koinInject(parametersHolder = remember(instanceId) { parametersOf(instanceId) })
     val state = rtspState.value
     val settings = rtspSettingsState.value
     val selectedMode = settings.mode
@@ -204,7 +206,7 @@ internal fun RtspMainScreenUI(
     }
 
     RtspPermissionActionEffect(
-        permissionActions, settings.enableMic, settings.enableDeviceAudio, selectedMode, state.mode,
+        permissionActions, runtimePermissions, settings.enableMic, settings.enableDeviceAudio, selectedMode, state.mode,
         state.isStreaming, state.waitingCastPermission, state.startAttemptId, state.error,
         isRelevant = ::isActionRelevant,
         onGranted = { action ->
@@ -240,7 +242,7 @@ internal fun RtspMainScreenUI(
                 onDismissRequest = {},
                 confirmButton = {
                     TextButton(onClick = { sendEvent(RtspEvent.RetryConsent(retryToken, retry = true)) }) {
-                        Text(stringResource(CommonR.string.common_try_again))
+                        Text(stringResource(R.string.rtsp_error_try_again))
                     }
                 },
                 dismissButton = {
@@ -248,8 +250,8 @@ internal fun RtspMainScreenUI(
                         Text(stringResource(android.R.string.cancel))
                     }
                 },
-                title = { Text(stringResource(CommonR.string.common_screen_capture_permission_required_title)) },
-                text = { Text(stringResource(CommonR.string.common_screen_capture_permission_denied_message)) },
+                title = { Text(stringResource(CoreR.string.core_screen_capture_permission_required_title)) },
+                text = { Text(stringResource(R.string.rtsp_error_screen_capture_permission_denied_message)) },
             )
         }
 
@@ -267,6 +269,13 @@ internal fun RtspMainScreenUI(
                         error.isStartupPolicyError()
             }?.let { error ->
                 item(key = "ERROR") {
+                    val hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio
+                    val errorPermissionState = when (error) {
+                        is RtspError.AudioPermissionRequired -> if (hasEnabledAudioSource) audioPermissionState else null
+                        is RtspError.NotificationPermissionRequired -> notificationPermissionState
+                        is RtspError.LocalNetworkPermissionRequired -> localNetworkPermissionState
+                        else -> null
+                    }
                     ErrorCard(
                         error = error,
                         sendEvent = { event ->
@@ -276,7 +285,8 @@ internal fun RtspMainScreenUI(
                                 sendEvent(if (event is RtspEvent.RecoverError) event.copy(errorToken = displayedToken) else event)
                             }
                         },
-                        hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio,
+                        hasEnabledAudioSource = hasEnabledAudioSource,
+                        permissionState = errorPermissionState,
                         retryStartupPolicyError = { requestStart(error, state.errorToken) },
                         requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio, error, state.errorToken) },
                         requestNotificationPermission = requestNotificationPermission@{
@@ -293,9 +303,9 @@ internal fun RtspMainScreenUI(
                                     try {
                                         context.startActivity(settingsIntent)
                                     } catch (failure: ActivityNotFoundException) {
-                                        XLog.w(context.getLog("NotificationSettings", "Settings Activity is unavailable"), failure)
+                                        log.w("NotificationSettings", "Settings Activity is unavailable", failure)
                                     } catch (failure: SecurityException) {
-                                        XLog.w(context.getLog("NotificationSettings", "Settings Activity launch was denied"), failure)
+                                        log.w("NotificationSettings", "Settings Activity launch was denied", failure)
                                     }
                                 }
                             } else {
@@ -312,7 +322,7 @@ internal fun RtspMainScreenUI(
                 ModeCard(
                     sendEvent = sendEvent,
                     selectedMode = selectedMode,
-                    onModeSelected = { mode -> updateSettings { copy(mode = mode) } },
+                    onSelectMode = { mode -> updateSettings { copy(mode = mode) } },
                     isStreaming = state.captureAttempt != null,
                     serverBindings = state.serverBindings,
                     clientStatus = state.clientStatus,
@@ -369,14 +379,17 @@ internal fun RtspMainScreenUI(
             if (state.error != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
         }
 
-        val doubleClickProtection = remember { DoubleClickProtection.get() }
+        var lastClickTimeMs by remember { mutableStateOf<Long?>(null) }
 
         val mediaServerUrlError = selectedMode == RtspSettings.Values.Mode.CLIENT &&
                 runCatching { RtspUrl.parse(settings.serverAddress) }.isFailure
 
         Button(
             onClick = dropUnlessStarted {
-                doubleClickProtection.processClick {
+                val now = SystemClock.elapsedRealtime()
+                val previousClickTimeMs = lastClickTimeMs
+                lastClickTimeMs = now
+                if (previousClickTimeMs == null || now - previousClickTimeMs >= 300L) {
                     if (state.isStreaming) {
                         state.captureAttempt?.let { sendEvent(RtspEvent.StopStream("User action: Button", it)) }
                     } else {

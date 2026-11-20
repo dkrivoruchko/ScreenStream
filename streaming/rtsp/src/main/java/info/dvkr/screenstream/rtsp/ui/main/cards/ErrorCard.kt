@@ -17,20 +17,18 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import info.dvkr.screenstream.rtsp.ui.isStartupPolicyError
-import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.permission.PermissionState
-import io.screenstream.core.permission.RuntimePermission
 
 @Composable
 internal fun ErrorCard(
     error: RtspError,
     sendEvent: (event: RtspEvent) -> Unit,
     hasEnabledAudioSource: Boolean,
+    permissionState: PermissionState?,
     retryStartupPolicyError: () -> Unit,
     requestAudioPermission: () -> Unit,
     requestNotificationPermission: () -> Unit,
@@ -39,13 +37,6 @@ internal fun ErrorCard(
 ) {
     val startupPolicyError = error.isStartupPolicyError()
     val isAudioPermissionError = error is RtspError.AudioPermissionRequired && hasEnabledAudioSource
-    val permission = when {
-        isAudioPermissionError -> RuntimePermission.RecordAudio
-        error is RtspError.NotificationPermissionRequired -> RuntimePermission.Notifications
-        error is RtspError.LocalNetworkPermissionRequired -> RuntimePermission.LocalNetwork
-        else -> null
-    }
-    val permissionState = permission?.let { LocalRuntimePermissions.current.state(it).collectAsStateWithLifecycle().value }
 
     ElevatedCard(modifier = modifier) {
         Column(

@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import io.screenstream.mjpeg.IsolatedSettingsContext
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
@@ -45,6 +46,9 @@ import kotlin.time.Duration.Companion.seconds
 @Config(sdk = [34], qualifiers = "en")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 internal class SettingsSearchUiTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = MjpegKoinTestRule()
+
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
@@ -116,8 +120,8 @@ internal class SettingsSearchUiTest {
         }
         val imageGroup = text(R.string.mjpeg_pref_image_group)
         val connectionGroup = text(R.string.mjpeg_pref_connection_group)
-        val expanded = compose.activity.getString(info.dvkr.screenstream.common.R.string.common_expanded)
-        val collapsed = compose.activity.getString(info.dvkr.screenstream.common.R.string.common_collapsed)
+        val expanded = compose.activity.getString(R.string.mjpeg_expanded)
+        val collapsed = compose.activity.getString(R.string.mjpeg_collapsed)
         scrollTo(imageGroup)
         compose.onNodeWithText(imageGroup).performClick()
         compose.onNodeWithText(imageGroup).assert(stateDescription(expanded))

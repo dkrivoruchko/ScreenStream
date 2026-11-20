@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -44,20 +43,19 @@ internal fun StreamPinContent(
 ) {
     var pinRevealed by remember(pin, hidePinOnCapture) { mutableStateOf(false) }
     val clipboard = LocalClipboard.current
-    val resources = LocalResources.current
     val coroutineScope = rememberCoroutineScope()
+    val copyLabel = stringResource(R.string.mjpeg_stream_pin_copy)
+    val copiedMessage = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) stringResource(R.string.mjpeg_stream_pin_copied) else null
     val hiddenPinDescription = stringResource(R.string.mjpeg_stream_pin_hidden)
     val revealActionDescription = stringResource(if (pinRevealed) R.string.mjpeg_pin_hide_description else R.string.mjpeg_pin_show_description)
     val onCopyPin: () -> Unit = {
         coroutineScope.launch {
-            val clip = ClipData.newPlainText(resources.getString(R.string.mjpeg_stream_pin_copy), pin.value)
+            val clip = ClipData.newPlainText(copyLabel, pin.value)
             clip.description.extras = PersistableBundle().apply {
                 putBoolean("android.content.extra.IS_SENSITIVE", true)
             }
             clipboard.setClipEntry(ClipEntry(clip))
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                onShowMessage(resources.getString(R.string.mjpeg_stream_pin_copied))
-            }
+            copiedMessage?.let(onShowMessage)
         }
     }
 
@@ -109,7 +107,7 @@ internal fun StreamPinContent(
                     onClick = onCopyPin,
                     modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                 ) {
-                    Text(stringResource(R.string.mjpeg_stream_pin_copy))
+                    Text(copyLabel)
                 }
             }
         }

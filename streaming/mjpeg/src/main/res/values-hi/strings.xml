@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">बड़ा किया गया</string>
+    <string name="mjpeg_collapsed">छोटा किया गया</string>
+
     <string name="mjpeg_action_close">बंद करें</string>
 
     <string name="mjpeg_pref_value_on">चालू</string>

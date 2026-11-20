@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Espanso</string>
+    <string name="mjpeg_collapsed">Compresso</string>
+
     <string name="mjpeg_action_close">Chiudi</string>
 
     <string name="mjpeg_pref_value_on">Attivo</string>

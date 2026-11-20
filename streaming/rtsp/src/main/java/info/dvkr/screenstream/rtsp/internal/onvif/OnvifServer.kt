@@ -1,12 +1,11 @@
 package info.dvkr.screenstream.rtsp.internal.onvif
 
 import android.content.Context
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.RtspServerEndpoint
 import info.dvkr.screenstream.rtsp.internal.VideoParams
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +16,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 internal class OnvifServer(
+    private val log: Logger,
     context: Context,
     deviceId: String,
     appVersion: String,
@@ -27,8 +27,8 @@ internal class OnvifServer(
     private val scope: CoroutineScope = CoroutineScope(scopeJob + Dispatchers.IO)
     private val endpoints: List<RtspServerEndpoint> = endpoints.filterNot { it.address.isLoopbackAddress }
     private val deviceInfo = OnvifDeviceInfo(deviceId = deviceId, appVersion = appVersion)
-    private val httpServer = OnvifHttpServer(deviceInfo, protocolPolicy)
-    private val discoveryServer = OnvifDiscoveryServer(context, deviceInfo)
+    private val httpServer = OnvifHttpServer(log, deviceInfo, protocolPolicy)
+    private val discoveryServer = OnvifDiscoveryServer(log, context, deviceInfo)
     private val stateMutex = Mutex()
     private var videoMetadata: OnvifVideoMetadata? = null
     private var enabled: Boolean = false
@@ -71,7 +71,7 @@ internal class OnvifServer(
         try {
             val serviceEndpoints = httpServer.start(scope, endpoints)
             if (serviceEndpoints.isEmpty()) {
-                XLog.w(getLog("OnvifServer", "No ONVIF HTTP endpoints started"))
+                log.w("OnvifServer", "No ONVIF HTTP endpoints started")
                 httpServer.stop()
             } else {
                 discoveryServer.start(scope, serviceEndpoints)
@@ -80,7 +80,7 @@ internal class OnvifServer(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
-            XLog.w(getLog("OnvifServer", "Failed to start: ${error.message}"), error)
+            log.w("OnvifServer", "Publication failed", error)
             stopPublicationLocked()
         }
     }

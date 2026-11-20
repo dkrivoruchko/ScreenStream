@@ -3,7 +3,7 @@
 ## Project Map
 ScreenStream has Local (MJPEG, video only), Global (WebRTC), and RTSP modes. RTSP server mode hosts the device; client mode publishes to an external media server. `FDroid` excludes ads and WebRTC; `PlayStore` includes both.
 
-- `app`: Compose shell, DI, and flavor integration; `common`: shared UI and utilities.
+- `app`: Compose shell, DI, and flavor integration.
 - `streaming/core`: module lifecycle, capture consent, permissions, and notifications.
 - `streaming/mjpeg`, `streaming/rtsp`, `streaming/webrtc`: mode implementations.
 - `streaming/webrtc-runtime`: vendored Java/JNI runtime; follow its [README](streaming/webrtc-runtime/README.md) before modifying it.
@@ -20,7 +20,7 @@ ScreenStream has Local (MJPEG, video only), Global (WebRTC), and RTSP modes. RTS
 
 ## Localization
 
-- Android strings live in `app`, `common`, and the three mode modules. Avoid hardcoded UI text.
+- Android strings live in `app`, `streaming/core`, and the three mode modules. Avoid hardcoded UI text.
 - Each locale must preserve its module's English `values/strings.xml` key order, blank-line placement, and formatting placeholders (such as `%1$s`).
 - Use compact AOSP-style UI terms; prefer “stream”/“device”. Use standard loanwords where appropriate.
 

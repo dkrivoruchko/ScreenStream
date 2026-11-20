@@ -1,5 +1,6 @@
 package io.screenstream.mjpeg.http
 
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.http.web.WebRoutes.WebSocketAdmission
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import kotlinx.coroutines.Job
@@ -7,6 +8,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -21,6 +23,9 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
 internal class HttpDeliveryAccessBoundaryTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-ACC-04, MJPEG-ACC-05, MJPEG-ACC-10, MJPEG-WEB-09
     @Test(timeout = 30_000)
     fun allListenersSharePeerBudgetAndFullTableDeniesPinAndSocketButKeepsViewingCredentials(): Unit = runBlocking {

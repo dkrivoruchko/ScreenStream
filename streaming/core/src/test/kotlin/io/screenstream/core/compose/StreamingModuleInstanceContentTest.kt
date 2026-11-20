@@ -18,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ActivityScenario
 import androidx.window.core.layout.WindowSizeClass
+import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.manager.StreamingModuleManagerImpl
 import io.screenstream.core.module.StreamingModule
@@ -52,6 +53,9 @@ import kotlin.time.Duration.Companion.seconds
 @Config(sdk = [34], qualifiers = "en")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 internal class StreamingModuleInstanceContentTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = CoreKoinTestRule()
+
     @get:Rule
     val compose = createEmptyComposeRule()
 

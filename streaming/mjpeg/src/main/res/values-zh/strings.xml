@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">已展开</string>
+    <string name="mjpeg_collapsed">已收起</string>
+
     <string name="mjpeg_action_close">关闭</string>
 
     <string name="mjpeg_pref_value_on">开启</string>

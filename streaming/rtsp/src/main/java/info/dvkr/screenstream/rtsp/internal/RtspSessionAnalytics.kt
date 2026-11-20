@@ -3,22 +3,22 @@ package info.dvkr.screenstream.rtsp.internal
 import android.app.ForegroundServiceTypeException
 import android.app.ServiceStartNotAllowedException
 import android.os.Build
-import android.util.Log
-import info.dvkr.screenstream.common.analytics.EntryPoint
-import info.dvkr.screenstream.common.analytics.SessionKey
-import info.dvkr.screenstream.common.analytics.StartFailGroup
-import info.dvkr.screenstream.common.analytics.StreamMode
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalytics
-import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspError
+import io.screenstream.analytics.EntryPoint
+import io.screenstream.analytics.SessionKey
+import io.screenstream.analytics.StartFailGroup
+import io.screenstream.analytics.StreamMode
+import io.screenstream.analytics.StreamingSessionAnalytics
+import io.screenstream.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ConsentLaunchException
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 
 /** Module-private telemetry ownership; it neither admits capture nor changes its lifetime. */
-internal class RtspSessionAnalytics(private val factory: StreamingSessionAnalyticsFactory) {
+internal class RtspSessionAnalytics(private val factory: StreamingSessionAnalyticsFactory, private val log: Logger) {
     private class Session(val key: SessionKey, val streamMode: StreamMode) {
         var handle: StreamingSessionAnalytics? = null
         var consentEntered = false
@@ -189,7 +189,7 @@ internal class RtspSessionAnalytics(private val factory: StreamingSessionAnalyti
 
     private inline fun observe(action: () -> Unit) {
         runCatching(action).onFailure { cause ->
-            runCatching { Log.w("RtspSessionAnalytics", "RTSP session analytics failed", cause) }
+            runCatching { log.w("analytics", "Session reporting failed", cause) }
         }
     }
 }

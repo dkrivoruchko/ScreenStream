@@ -1,5 +1,7 @@
 package io.screenstream.mjpeg.networkaddress
 
+import io.screenstream.mjpeg.MjpegKoinTestRule
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -16,6 +18,9 @@ import kotlin.test.assertTrue
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
 internal class AndroidNetworkAddressSourceTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-NET-06, MJPEG-NET-07
     @Test
     fun nativeEmptyDownAndOmittedInterfacesOverrideCallbacksButFailedReadsUseFallback() {

@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Diperluas</string>
+    <string name="mjpeg_collapsed">Diciutkan</string>
+
     <string name="mjpeg_action_close">Tutup</string>
 
     <string name="mjpeg_pref_value_on">Aktif</string>

@@ -9,12 +9,16 @@ kotlin {
 
 android {
     namespace = "io.screenstream.capture"
-    compileSdk = 37
-    buildToolsVersion = "37.0.0"
-    ndkVersion = "29.0.14206865"
+    compileSdk {
+        version = release(rootProject.extra["compileSdkVersion"] as Int) {
+            minorApiLevel = rootProject.extra["compileSdkMinorVersion"] as Int
+        }
+    }
+    buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
+    ndkVersion = rootProject.extra["ndkVersion"] as String
 
     defaultConfig {
-        minSdk = 24
+        minSdk = rootProject.extra["minSdkVersion"] as Int
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -29,7 +33,6 @@ android {
             }
         }
 
-        consumerProguardFiles("consumer-rules.pro")
     }
 
     externalNativeBuild {
@@ -76,16 +79,16 @@ tasks.named("check") {
 }
 
 dependencies {
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    api(libs.kotlinx.coroutines.core)
 
-    implementation("androidx.annotation:annotation:1.11.0")
+    implementation(libs.androidx.annotation)
 
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
-    testImplementation("io.mockk:mockk:1.14.11")
-    testImplementation("org.robolectric:robolectric:4.17")
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
 
-    androidTestImplementation("androidx.test:runner:1.7.0")
-    androidTestImplementation("androidx.test.ext:junit:1.3.0")
-    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.4.1")
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.androidx.test.uiautomator)
 }

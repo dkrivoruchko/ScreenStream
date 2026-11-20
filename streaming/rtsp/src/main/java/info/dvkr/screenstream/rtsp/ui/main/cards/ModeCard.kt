@@ -3,13 +3,9 @@ package info.dvkr.screenstream.rtsp.ui.main.cards
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
@@ -20,9 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -39,7 +32,7 @@ import info.dvkr.screenstream.rtsp.ui.main.mode.ServerMode
 internal fun ModeCard(
     sendEvent: (RtspEvent) -> Unit,
     selectedMode: RtspSettings.Values.Mode,
-    onModeSelected: (RtspSettings.Values.Mode) -> Unit,
+    onSelectMode: (RtspSettings.Values.Mode) -> Unit,
     isStreaming: Boolean,
     serverBindings: List<RtspBinding>,
     clientStatus: RtspClientStatus,
@@ -64,7 +57,7 @@ internal fun ModeCard(
 
                         ModeSelector(
                             selected = selectedMode,
-                            onSelect = onModeSelected,
+                            onSelect = onSelectMode,
                             enabled = isStreaming.not()
                         )
                     }
@@ -87,50 +80,7 @@ internal fun ModeCard(
                     )
                 }
             }
-
-//            BetaCornerBadge(
-//                modifier = Modifier
-//                    .align(Alignment.TopEnd)
-//                    .zIndex(1f)
-//            )
         }
-    }
-}
-
-private val BetaBadgeContainerColor = Color(0xFFF6C343)
-private val BetaBadgeTextColor = Color(0xFF2E2300)
-private val BetaCornerShape = GenericShape { size, _ ->
-    moveTo(size.width, 0f)
-    lineTo(size.width, size.height)
-    lineTo(0f, 0f)
-    close()
-}
-
-@Composable
-private fun BetaCornerBadge(
-    modifier: Modifier = Modifier
-) {
-    Box(modifier = modifier.size(64.dp)) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            shape = BetaCornerShape,
-            color = BetaBadgeContainerColor,
-            tonalElevation = 0.dp,
-            shadowElevation = 4.dp
-        ) {}
-
-        Text(
-            text = "BETA",
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = (-4).dp, y = 28.dp)
-                .graphicsLayer {
-                    rotationZ = 45f
-                    transformOrigin = TransformOrigin(1f, 0f)
-                },
-            style = MaterialTheme.typography.labelLarge,
-            color = BetaBadgeTextColor
-        )
     }
 }
 

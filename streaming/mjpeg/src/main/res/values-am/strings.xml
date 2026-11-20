@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">ተዘርግቷል</string>
+    <string name="mjpeg_collapsed">ተሰብስቧል</string>
+
     <string name="mjpeg_action_close">ዝጋ</string>
 
     <string name="mjpeg_pref_value_on">በርቷል</string>

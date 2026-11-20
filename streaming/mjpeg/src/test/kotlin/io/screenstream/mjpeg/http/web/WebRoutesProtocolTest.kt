@@ -21,6 +21,7 @@ import io.ktor.utils.io.ByteChannel
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readAvailable
 import io.ktor.utils.io.writeFully
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.http.HttpAccess
 import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
 import io.screenstream.mjpeg.http.HttpListener
@@ -45,6 +46,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -62,6 +64,9 @@ import kotlin.time.TimeSource
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
 internal class WebRoutesProtocolTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-WEB-01, MJPEG-WEB-02, MJPEG-WEB-14
     @Test
     fun pipelineRequiresDirectListenerAuthorityAndAppliesHeadersBeforeRouting() = testApplication {

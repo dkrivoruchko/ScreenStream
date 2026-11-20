@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performTextReplacement
 import io.screenstream.capture.OutputSize
 import io.screenstream.capture.Rotation
 import io.screenstream.mjpeg.IsolatedSettingsContext
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.ImageSettings
 import io.screenstream.mjpeg.settings.MjpegSettings
@@ -38,6 +39,9 @@ import kotlin.time.Duration.Companion.seconds
 @Config(sdk = [34], qualifiers = "en")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 internal class SizeSettingsUiTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = MjpegKoinTestRule()
+
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 

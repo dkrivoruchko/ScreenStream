@@ -12,7 +12,11 @@ kotlin {
 
 android {
     namespace = "io.screenstream.core"
-    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    compileSdk {
+        version = release(rootProject.extra["compileSdkVersion"] as Int) {
+            minorApiLevel = rootProject.extra["compileSdkMinorVersion"] as Int
+        }
+    }
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 
     defaultConfig {
@@ -36,19 +40,30 @@ android {
 }
 
 dependencies {
-    api(projects.common)
-    api(libs.androidx.window.core)
+    implementation(projects.foundation)
 
-    implementation(libs.koin.core)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.window.core)
+
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.core)
+
+    implementation(libs.koin.compose)
     implementation(libs.koin.annotations)
-    implementation(libs.xlog)
 
-    testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlinx.serialization.json)
     testImplementation(libs.robolectric)
+    // Used directly for pressBack; Espresso 3.7 also fixes InputManager access on API 37.
+    testImplementation(libs.androidx.test.espresso.core)
+
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
-    testImplementation(libs.androidx.test.espresso.core)
-    testImplementation(libs.androidx.test.junit)
 }

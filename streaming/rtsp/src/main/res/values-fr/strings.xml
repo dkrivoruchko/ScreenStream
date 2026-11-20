@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="rtsp_expanded">Développé</string>
+    <string name="rtsp_collapsed">Réduit</string>
+
     <string name="rtsp_error_recover">Rétablir</string>
+    <string name="rtsp_error_try_again">Réessayer</string>
     <string name="rtsp_error_open_settings">Ouvrir les paramètres</string>
     <string name="rtsp_error_start_screen_sharing">Démarrer le partage d’écran</string>
     <string name="rtsp_error_start_with_audio">Démarrer avec l’audio</string>
@@ -52,6 +56,7 @@
     <string name="rtsp_stream_stop">Arrêter la diffusion</string>
 
     <string name="rtsp_error_notification_permission_required">Cette application nécessite l\'activation des notifications pour démarrer le service de diffusion.\nActivez les notifications dans les paramètres de l\'application.</string>
+    <string name="rtsp_error_screen_capture_permission_denied_message">La diffusion n\'a pas démarré car l\'autorisation de partager votre écran n\'a pas été accordée. Appuyez sur Réessayer pour rouvrir l\'écran d\'autorisation Android.</string>
     <string name="rtsp_error_screen_capture_start_blocked">Android a bloqué le démarrage du partage d’écran. Gardez ScreenStream ouvert et recommencez.</string>
     <string name="rtsp_error_projection_acquire_rejected">L’autorisation de capture d’écran n’est plus valide. Démarrez à nouveau le partage d’écran.</string>
     <string name="rtsp_error_audio_permission_required">L’autorisation du micro est requise pour démarrer la diffusion avec l’audio.</string>

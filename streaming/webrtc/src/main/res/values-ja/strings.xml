@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webrtc_expanded">開いています</string>
+    <string name="webrtc_collapsed">閉じています</string>
+
     <string name="webrtc_error_recover">復旧</string>
+    <string name="webrtc_error_try_again">再試行</string>
     <string name="webrtc_error_open_settings">設定を開く</string>
     <string name="webrtc_error_start_screen_sharing">画面共有を開始</string>
     <string name="webrtc_error_start_with_audio">音声付きで開始</string>
@@ -63,6 +67,7 @@
     <string name="webrtc_error_check_network">インターネット接続を確認してください</string>
     <string name="webrtc_error_incomplete_installation">アプリのインストールが不完全です。Google Play からアプリを再インストールしてください。</string>
     <string name="webrtc_notification_permission_required">ストリーミングサービスを開始するには、このアプリの通知を有効にする必要があります。\nアプリ設定で通知を有効にしてください。</string>
+    <string name="webrtc_error_screen_capture_permission_denied_message">画面共有の許可が付与されなかったため、配信は開始されませんでした。Android の許可画面をもう一度開くには、再試行をタップしてください。</string>
     <string name="webrtc_error_screen_capture_start_blocked">Android により画面共有の開始がブロックされました。ScreenStream を開いたまま、もう一度開始してください。</string>
     <string name="webrtc_error_projection_acquire_rejected">画面キャプチャの権限は無効になりました。画面共有をもう一度開始してください。</string>
     <string name="webrtc_error_audio_permission_required">音声付きでストリーミングを開始するにはマイクの権限が必要です。</string>

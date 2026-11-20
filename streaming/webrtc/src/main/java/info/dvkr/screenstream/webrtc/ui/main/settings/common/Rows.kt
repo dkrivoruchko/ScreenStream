@@ -17,7 +17,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.common.ui.conditional
+import info.dvkr.screenstream.webrtc.ui.conditional
 
 @Composable
 internal fun SettingSwitchRow(

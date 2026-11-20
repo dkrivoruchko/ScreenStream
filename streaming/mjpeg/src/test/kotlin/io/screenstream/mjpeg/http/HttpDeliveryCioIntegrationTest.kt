@@ -15,6 +15,7 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readReason
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.http.HttpDelivery.ServerFailure
 import io.screenstream.mjpeg.http.HttpDelivery.ServerState
 import io.screenstream.mjpeg.settings.AccessSettings
@@ -41,6 +42,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -76,6 +78,9 @@ import kotlin.uuid.Uuid
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
 internal class HttpDeliveryCioIntegrationTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-WEB-08, MJPEG-IMG-09, MJPEG-OBS-01, MJPEG-OBS-03, MJPEG-OBS-04
     @Test
     @LooperMode(LooperMode.Mode.PAUSED)

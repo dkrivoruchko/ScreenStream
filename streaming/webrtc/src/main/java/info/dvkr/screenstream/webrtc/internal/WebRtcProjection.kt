@@ -13,9 +13,8 @@ import android.os.Looper
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.window.layout.WindowMetricsCalculator
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.R
+import io.screenstream.foundation.logging.Logger
 import org.webrtc.AudioSource
 import org.webrtc.AudioTrack
 import org.webrtc.DefaultVideoDecoderFactory
@@ -36,7 +35,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.min
 
-internal class WebRtcProjection(private val serviceContext: Context, private val ownerHandler: Handler) : AudioRecordDataCallback {
+internal class WebRtcProjection(private val serviceContext: Context, private val ownerHandler: Handler, private val log: Logger) : AudioRecordDataCallback {
 
     private companion object {
         @JvmStatic
@@ -84,7 +83,7 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
     internal var isRunning: Boolean = false
 
     init {
-        XLog.d(getLog("init"))
+        log.d("WebRtcProjection.init")
 
         val initializationOptions = PeerConnectionFactory.InitializationOptions.builder(serviceContext.applicationContext)
             .createInitializationOptions()
@@ -114,13 +113,13 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
         VideoCodec.entries.first { it.name == name.uppercase() }.let { if (isHardwareSupported) it.priority + 10 else it.priority }
 
     internal fun setMicrophoneMute(mute: Boolean) {
-        XLog.d(this@WebRtcProjection.getLog("setMicrophoneMute", "$mute"))
+        log.d("WebRtcProjection.setMicrophoneMute", "$mute")
         audioDeviceModule.setMicrophoneMute(mute)
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
     internal fun setDeviceAudioMute(mute: Boolean) = synchronized(lock) {
-        XLog.d(this@WebRtcProjection.getLog("setDeviceAudioMute", "$mute"))
+        log.d("WebRtcProjection.setDeviceAudioMute", "$mute")
         deviceAudioMute = mute
         if (!mute) deviceAudioRecoveryUsed = false
     }
@@ -140,7 +139,7 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
                 if (isStopped || isRunning.not()) return
                 mediaProjection
             } ?: run {
-                XLog.i(getLog("onAudioDataRecorded", "MediaProjection is null. Ignoring device-audio mix."))
+                log.i("WebRtcProjection.onAudioDataRecorded", "MediaProjection is null. Ignoring device-audio mix.")
                 return
             }
 
@@ -191,7 +190,7 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
     ): Boolean {
         checkOwnerThread()
         synchronized(lock) {
-            XLog.d(getLog("start"))
+            log.d("WebRtcProjection.start")
             check(screenCapturer == null && videoSource == null && audioSource == null && localMediaSteam == null) {
                 "Previous capture resources have not been released"
             }
@@ -217,25 +216,26 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
                     helper,
                     object : MediaProjection.Callback() {
                         override fun onStop() {
-                            XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onStop"))
+                            log.i("WebRtcProjection.MediaProjection.Callback", "onStop")
                             synchronized(lock) {
                                 if (this@WebRtcProjection.mediaProjection === mediaProjection) isStopped = true
                             }
                         }
 
                         override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
-                            XLog.v(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
+                            log.v("WebRtcProjection.MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible")
                         }
 
                         override fun onCapturedContentResize(width: Int, height: Int) {
-                            XLog.v(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentResize: width:$width, height:$height"))
+                            log.v("WebRtcProjection.MediaProjection.Callback", "onCapturedContentResize: width:$width, height:$height")
                             synchronized(lock) {
                                 if (this@WebRtcProjection.mediaProjection === mediaProjection) changeCaptureFormat(width, height)
                             }
                         }
                     },
                     callbackHandler = ownerHandler,
-                    onCaptureFatal = onCaptureFatal
+                    onCaptureFatal = onCaptureFatal,
+                    log = log
                 )
                 newCapturer = capturer
                 newHelper = null
@@ -245,7 +245,7 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
                     mediaProjection, screeSize.width(), screeSize.height(), videoSource.capturerObserver, isStartupStillValid
                 )
                 if (!captureStarted) {
-                    XLog.i(getLog("start", "Capture start failed. Stopping projection."))
+                    log.i("WebRtcProjection.start", "Capture start failed. Stopping projection.")
                     return false
                 }
 
@@ -255,9 +255,9 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
                 val audioTrack = peerConnectionFactory.createAudioTrack("AudioTrack@$mediaStreamId", audioSource)
                 newAudioTrack = audioTrack
                 val mediaStream = LocalMediaSteam(mediaStreamId, videoTrack, audioTrack)
-                XLog.d(getLog("start", "MediaStreamId: $mediaStreamId"))
+                log.d("WebRtcProjection.start", "Media stream created")
                 if (!isStartupStillValid()) {
-                    XLog.i(getLog("start", "Startup invalidated after capture start."))
+                    log.i("WebRtcProjection.start", "Startup invalidated after capture start.")
                     return false
                 }
 
@@ -304,17 +304,18 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
         checkOwnerThread()
         synchronized(lock) {
             if (isStopped || isRunning.not()) {
-                XLog.i(this@WebRtcProjection.getLog("changeCaptureFormat", "Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
+                log.i("WebRtcProjection.changeCaptureFormat", "Ignoring: isStopped=$isStopped, isRunning=$isRunning")
                 return
             }
             if (width <= 0 || height <= 0) {
-                XLog.e(
-                    this@WebRtcProjection.getLog("changeCaptureFormat", "Invalid size: $width x $height. Ignoring."),
+                log.e(
+                    "WebRtcProjection.changeCaptureFormat",
+                    "Invalid size: $width x $height. Ignoring.",
                     IllegalArgumentException("Invalid capture size: $width x $height")
                 )
                 return
             }
-            XLog.d(this@WebRtcProjection.getLog("changeCaptureFormat", "width:$width, height:$height"))
+            log.d("WebRtcProjection.changeCaptureFormat", "width:$width, height:$height")
             screenCapturer?.changeCaptureFormat(width, height)
         }
     }
@@ -323,10 +324,10 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
         checkOwnerThread()
         synchronized(lock) {
             if (isStopped || isRunning.not()) {
-                XLog.i(this@WebRtcProjection.getLog("forceKeyFrame", "Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
+                log.i("WebRtcProjection.forceKeyFrame", "Ignoring: isStopped=$isStopped, isRunning=$isRunning")
                 return
             }
-            XLog.d(this@WebRtcProjection.getLog("forceKeyFrame"))
+            log.d("WebRtcProjection.forceKeyFrame")
             screenCapturer?.apply {
                 val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
                 changeCaptureFormat(screeSize.width() - 1, screeSize.height() - 1)
@@ -338,7 +339,7 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
     internal fun stop() {
         checkOwnerThread()
         synchronized(lock) {
-            XLog.d(getLog("stop"))
+            log.d("WebRtcProjection.stop")
 
             val capturer = screenCapturer
             val mediaStream = localMediaSteam
@@ -433,7 +434,7 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
 
     internal fun destroy() {
         checkOwnerThread()
-        XLog.d(getLog("destroy"))
+        log.d("WebRtcProjection.destroy")
         stop()
         peerConnectionFactory.dispose()
         rootEglBase.release()
@@ -464,10 +465,10 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
                 .setAudioFormat(format)
                 .setAudioPlaybackCaptureConfig(playbackConfig)
                 .build()
-        }.onFailure { e -> XLog.e(getLog("createAudioRecord", "Cannot create AudioRecord"), e) }.getOrNull() ?: return null
+        }.onFailure { e -> log.e("WebRtcProjection.createAudioRecord", "Cannot create AudioRecord", e) }.getOrNull() ?: return null
 
         if (record.state != AudioRecord.STATE_INITIALIZED) {
-            XLog.w(getLog("createAudioRecord", "AudioRecord not initialized."))
+            log.w("WebRtcProjection.createAudioRecord", "AudioRecord not initialized.")
             record.release()
             return null
         }
@@ -484,11 +485,9 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
             if (unsupportedDeviceAudioMixLogged) return false
             unsupportedDeviceAudioMixLogged = true
         }
-        XLog.w(
-            getLog(
-                "onAudioDataRecorded", "Device-audio mix requires direct PCM16 mono buffer. " +
-                        "format=$audioFormat, channelCount=$channelCount, isDirect=${audioBuffer.isDirect}."
-            )
+        log.w(
+            "WebRtcProjection.onAudioDataRecorded",
+            "Device-audio mix requires direct PCM16 mono buffer. " + "format=$audioFormat, channelCount=$channelCount, isDirect=${audioBuffer.isDirect}.",
         )
         return false
     }
@@ -501,7 +500,7 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
         val shouldRetry = synchronized(lock) {
             if (record != null) {
                 runCatching { record.release() }.onFailure {
-                    XLog.w(getLog("onAudioDataRecorded", "AudioRecord.release failed"), it)
+                    log.w("WebRtcProjection.onAudioDataRecorded", "AudioRecord.release failed", it)
                 }
                 if (deviceAudioRecord === record) deviceAudioRecord = null
             }
@@ -514,12 +513,12 @@ internal class WebRtcProjection(private val serviceContext: Context, private val
         }
         if (shouldRetry) {
             val details = cause?.message?.let { " Cause: $it" } ?: ""
-            XLog.w(getLog("onAudioDataRecorded", "$message Retrying AudioRecord recreation once.$details"))
+            log.w("WebRtcProjection.onAudioDataRecorded", "$message Retrying AudioRecord recreation once.$details")
             return
         }
 
-        if (cause == null) XLog.w(getLog("onAudioDataRecorded", "$message Disabling device audio."), IllegalStateException(message))
-        else XLog.w(getLog("onAudioDataRecorded", "$message Disabling device audio."), cause)
+        if (cause == null) log.w("WebRtcProjection.onAudioDataRecorded", "$message Disabling device audio.", IllegalStateException(message))
+        else log.w("WebRtcProjection.onAudioDataRecorded", "$message Disabling device audio.", cause)
         setDeviceAudioMute(true)
         notifyDeviceAudioUnavailable()
     }

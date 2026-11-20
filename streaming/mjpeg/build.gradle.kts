@@ -12,8 +12,13 @@ kotlin {
 
 android {
     namespace = "io.screenstream.mjpeg"
-    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    compileSdk {
+        version = release(rootProject.extra["compileSdkVersion"] as Int) {
+            minorApiLevel = rootProject.extra["compileSdkMinorVersion"] as Int
+        }
+    }
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
+    ndkVersion = rootProject.extra["ndkVersion"] as String
 
     defaultConfig {
         minSdk = rootProject.extra["minSdkVersion"] as Int
@@ -40,33 +45,47 @@ android {
 }
 
 dependencies {
-    implementation(projects.common)
+    implementation(projects.analytics)
+    implementation(projects.foundation)
     implementation(projects.streaming.core)
     implementation(projects.screenCaptureEngine)
 
-    implementation(libs.koin.core)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.window)
+    implementation(libs.androidx.window.core)
+
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.io.core)
+    implementation(libs.kotlinx.serialization.json)
+
+    implementation(libs.koin.compose)
     implementation(libs.koin.annotations)
+
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.compression)
     implementation(libs.ktor.server.default.headers)
     implementation(libs.ktor.server.websockets)
 
-    testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.ktor.server.test.host)
+
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
-    testImplementation(libs.androidx.test.espresso.core)
-    testImplementation(libs.androidx.test.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.kotlin.test.junit)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    androidTestImplementation(libs.androidx.test.espresso.core)
+    androidTestImplementation(libs.androidx.activity.compose)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.uiautomator)
+
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }

@@ -8,6 +8,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Looper
 import android.os.SystemClock
 import androidx.activity.result.ActivityResult
+import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +26,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -51,6 +53,9 @@ import kotlin.test.assertTrue
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [ScreenCaptureAccessTest.ProjectionManagerShadow::class])
 internal class ScreenCaptureAccessTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = CoreKoinTestRule()
+
     private val scheduler = TestCoroutineScheduler()
     private val dispatcher = StandardTestDispatcher(scheduler)
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -424,6 +429,11 @@ internal class ScreenCaptureAccessTest {
         val failure = assertFailure<ConsentLaunchException>(pending)
         assertTrue(generateSequence<Throwable>(failure) { it.cause }.any { it === cause })
         assertFalse(access.failLaunch(key, cause))
+        assertNull(access.currentRequest.value)
+
+        val successor = request()
+        completeConsent()
+        assertIs<ScreenCaptureAccess.ConsentResult.Granted>(successor.result.getCompleted())
     }
 
     // Cases: CORE-CAP-05, CORE-CAP-07

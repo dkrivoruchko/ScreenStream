@@ -2,14 +2,13 @@
 
 [Core](../README.md) · [Streaming Module Contract and Manager](module-contract-and-manager.md)
 
-Runtime Permissions covers the ordinary Android permissions that streaming modules use. Core defines the permissions and their checks; the app hosts request UI at the Activity root. Screen-sharing consent is separate and belongs to [Screen Capture Access](screen-capture.md).
+Core defines ordinary Android permissions and their checks and provides Activity-root request UI through `RuntimePermissionHost`. Screen-sharing consent is separate and belongs to [Screen Capture Access](screen-capture.md).
 
 ## Participants and relationships
 
-- **Permission definitions.** Each `RuntimePermission` entry names an Android permission and when its runtime grant is required. Its Context-based checks work from module UI, Services and process work.
-- **Activity permission host.** The app implements `RuntimePermissions` at the Activity root and provides it through `LocalRuntimePermissions`. It owns explanation UI, Android launchers, rationale history and permission UI state. Its lifetime follows the Activity root, not module instances.
-- **Module UI.** Reads permission UI state and asks the host for requests. The host keeps an admitted request after the requesting screen leaves.
-- **Module work.** The Controller decides which permissions an operation needs, checks them before protected work and decides what to do after a request.
+- **Permission definitions.** Each `RuntimePermission` names an Android permission and when its grant is required. Context-based checks work from UI, Services and process work.
+- **Activity permission host.** `RuntimePermissionHost` provides `RuntimePermissions` through `LocalRuntimePermissions` and owns explanations, Android launchers and local request state. Its lifetime follows the Activity root.
+- **Modules.** UI requests missing permissions; protected work checks current availability and decides whether an operation can proceed.
 
 ## How they collaborate
 
@@ -35,10 +34,14 @@ The three audio entries differ only in their explanation; they share one grant, 
 
 `isGranted` answers whether a permission is available now. Only this check authorizes protected work, and the module remains responsible if authority is lost after the check.
 
-`PermissionState` is the host's last-known UI hint: `Granted`, `Requestable`, `SettingsSuggested` or `Requesting`. The host updates it around its own requests, not on independent Android settings changes, so a hint can be stale, and a permission can already be granted while an earlier request is still open. `SettingsSuggested` is inferred from app-wide notification settings or from a rationale that Android showed before and no longer recommends; it suggests, but doesn't prove, permanent denial.
+`PermissionState` is the host's last-known UI hint: `Granted`, `Requestable`, `SettingsSuggested` or `Requesting`. The host updates it around its own requests, not on independent Android settings changes, so a hint can be stale, and a permission can already be granted while an earlier request is still open. `SettingsSuggested` is inferred from app-wide notification settings or from Android no longer recommending a rationale after it previously did; it suggests, but doesn't prove, permanent denial.
 
 ## Request lifetime and outcomes
 
-`tryRequest` admits a request only while the Activity is resumed and the host's request slot is free; for a permission that is already available it returns true without UI. Rejected requests aren't queued. An admitted request belongs to the Activity root, can outlive the requesting screen and keeps its slot through Android's dialog or a settings visit, across Activity recreation.
+`tryRequest` requires a resumed Activity. It returns true without UI when the permission is already available; otherwise it admits an explanation only when the single request slot is free. Rejected requests aren't queued. An admitted request belongs to the Activity root, can outlive the requesting screen and keeps its slot through Android's dialog or a settings visit, across Activity recreation.
 
-The host settles the request on a dialog result, a return from settings, dismissal of the explanation or a launch failure, then rechecks availability. The app decides when to explain and offer requests and keeps rationale history; the module decides whether its action proceeds.
+The host settles on a dialog result, settings return, explanation dismissal or a caught launch failure, or when the Activity resumes with an explanation open and the permission now granted. It then rechecks availability. A fresh host offers notifications when unavailable; restored state preserves the prior choice. Modules request the other permissions.
+
+## Host setup
+
+Mount `RuntimePermissionHost` at the Activity root around content that reads `LocalRuntimePermissions`. Supply loaded `initialRationaleHistory`: Android permission names for which a rationale was previously recommended, not grants. This seeds the host's local saveable history. The host updates that history before invoking `onRationaleObserved(permissionName, observed)`: `true` records a rationale recommendation; `false` removes the name after a runtime grant is confirmed. The [host KDoc](../src/main/kotlin/io/screenstream/core/compose/RuntimePermissionHost.kt) defines seed and callback lifetime details.

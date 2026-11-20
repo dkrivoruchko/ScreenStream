@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="rtsp_expanded">বড় করা হয়েছে</string>
+    <string name="rtsp_collapsed">আড়াল করা হয়েছে</string>
+
     <string name="rtsp_error_recover">পুনরুদ্ধার</string>
+    <string name="rtsp_error_try_again">আবার চেষ্টা করুন</string>
     <string name="rtsp_error_open_settings">সেটিংস খুলুন</string>
     <string name="rtsp_error_start_screen_sharing">স্ক্রিন শেয়ারিং শুরু করুন</string>
     <string name="rtsp_error_start_with_audio">অডিওসহ শুরু করুন</string>
@@ -52,6 +56,7 @@
     <string name="rtsp_stream_stop">স্ট্রিম বন্ধ করুন</string>
 
     <string name="rtsp_error_notification_permission_required">স্ট্রিমিং পরিষেবা শুরু করতে এই অ্যাপে বিজ্ঞপ্তি চালু থাকতে হবে।\nঅ্যাপ সেটিংসে বিজ্ঞপ্তি চালু করুন।</string>
+    <string name="rtsp_error_screen_capture_permission_denied_message">আপনার স্ক্রিন শেয়ার করার অনুমতি না দেওয়ায় স্ট্রিমিং শুরু হয়নি। Android অনুমতি স্ক্রিন আবার খুলতে আবার চেষ্টা করুন-এ ট্যাপ করুন।</string>
     <string name="rtsp_error_screen_capture_start_blocked">Android স্ক্রিন শেয়ারিং শুরু করা ব্লক করেছে। ScreenStream খোলা রাখুন এবং আবার শুরু করুন।</string>
     <string name="rtsp_error_projection_acquire_rejected">স্ক্রিন ক্যাপচার অনুমতি আর বৈধ নয়। আবার স্ক্রিন শেয়ারিং শুরু করুন।</string>
     <string name="rtsp_error_audio_permission_required">অডিওসহ স্ট্রিমিং শুরু করতে মাইক্রোফোন অনুমতি প্রয়োজন।</string>

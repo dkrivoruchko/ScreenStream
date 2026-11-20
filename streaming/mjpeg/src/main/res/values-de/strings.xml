@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Ausgeklappt</string>
+    <string name="mjpeg_collapsed">Eingeklappt</string>
+
     <string name="mjpeg_action_close">Schließen</string>
 
     <string name="mjpeg_pref_value_on">An</string>

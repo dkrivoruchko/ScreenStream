@@ -51,6 +51,8 @@ A PIN decides who can open the stream, but it doesn't encrypt anything. It doesn
 
 **Which PIN option?** **New PIN on open** suits occasional sharing with different people, because a PIN you gave out stops working the next time you open MJPEG mode. **Permanent PIN** suits regular viewers, such as a family TV or a meeting-room screen. It keeps the same PIN and lets you type your own. Either way, access links still change each time MJPEG mode opens.
 
+Use **Copy PIN** under Stream addresses to copy the current PIN. The PIN editor blocks copying, cutting and dragging digits out of the field, including when you reveal them.
+
 **What viewers notice when access changes:**
 
 | What you do | What happens to viewers |

@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -44,6 +45,9 @@ import kotlin.time.Duration.Companion.seconds
 // SDK-invariant MJPEG policy for SDK 24–37. This does not prove platform consent reuse,
 // Binder, graphics, or actual callback-thread retirement. The coordinator stores consent only on SDK 24–33.
 internal class MjpegCaptureSessionOwnershipTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-CAP-10, MJPEG-CAP-11
     @Test
     fun exactRegistrationCompletionDoesNotReleaseForegroundBeforeMediaStop() = runTest(StandardTestDispatcher()) {

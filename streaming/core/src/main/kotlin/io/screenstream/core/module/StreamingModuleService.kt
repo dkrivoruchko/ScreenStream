@@ -15,14 +15,14 @@ import android.os.Looper
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.core.app.ServiceCompat
-import io.screenstream.core.logE
-import io.screenstream.core.logW
 import io.screenstream.core.manager.StreamingModuleActionReceiver
 import io.screenstream.core.manager.StreamingModuleManagerImpl
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
+import org.koin.core.parameter.parametersOf
 
 /**
  * Base Android Service that hosts one module instance's controller and foreground notification.
@@ -49,6 +49,7 @@ public abstract class StreamingModuleService : Service() {
      */
     protected abstract fun createController(managerHandle: StreamingModule.Controller.ManagerHandle): StreamingModule.Controller
 
+    private val log: Logger by inject { parametersOf(this) }
     private val manager: StreamingModuleManagerImpl by inject(mode = LazyThreadSafetyMode.NONE)
     private val notifications: StreamingModuleNotifications by inject(mode = LazyThreadSafetyMode.NONE)
     private val gate: Any = Any()
@@ -78,7 +79,7 @@ public abstract class StreamingModuleService : Service() {
                 val op = AppOpsManager.permissionToOp(Manifest.permission.POST_NOTIFICATIONS)
                 if (op != null) getSystemService(AppOpsManager::class.java).startWatchingMode(op, packageName, notificationPermissionListener)
             } catch (failure: RuntimeException) {
-                logW("StreamingModuleService", "Could not watch notification permission", failure)
+                log.w("StreamingModuleService", "Could not watch notification permission", failure)
             }
         }
     }
@@ -193,6 +194,7 @@ public abstract class StreamingModuleService : Service() {
      * failure, and rethrows.
      */
     @MainThread
+    @SuppressLint("InlinedApi")
     private fun tryPromoteForeground(serviceTypes: Int, notification: Notification): Boolean {
         val failure = synchronized(gate) {
             val originalManagerHandle = managerHandle ?: return false
@@ -207,11 +209,17 @@ public abstract class StreamingModuleService : Service() {
                 cause
             }
         }
-        if (failure != null) {
-            reportServiceFailure()
-            throw failure
+        if (failure == null) return true
+        val attempt = foregroundAttempt
+        reportServiceFailure()
+        if (attempt != null && (serviceTypes and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION) != 0) {
+            log.e(
+                "StreamingModuleService",
+                "Android capture foreground promotion failed: module=${attempt.instanceId.moduleId.value}, requestedServiceTypes=$serviceTypes",
+                failure,
+            )
         }
-        return true
+        throw failure
     }
 
     /** Content-only update using the existing foreground type mask. */
@@ -245,7 +253,7 @@ public abstract class StreamingModuleService : Service() {
                 getSystemService(NotificationManager::class.java).notify(original.foregroundSlot.id, notification)
             }
         } catch (failure: RuntimeException) {
-            logW("StreamingModuleService", "Could not refresh foreground notification", failure)
+            log.w("StreamingModuleService", "Could not refresh foreground notification", failure)
         }
     }
 
@@ -267,7 +275,7 @@ public abstract class StreamingModuleService : Service() {
             }
             true
         } catch (cause: Throwable) {
-            logE("StreamingModuleService", "Android Service stop failed", cause)
+            log.e("StreamingModuleService", "Android Service stop failed", cause)
             false
         }
         val expectedStop = destruction.await()
@@ -289,7 +297,7 @@ public abstract class StreamingModuleService : Service() {
                 getSystemService(AppOpsManager::class.java).stopWatchingMode(notificationPermissionListener)
             }
         } catch (failure: RuntimeException) {
-            logW("StreamingModuleService", "Could not stop watching notification permission", failure)
+            log.w("StreamingModuleService", "Could not stop watching notification permission", failure)
         } finally {
             notificationHandler.removeCallbacks(refreshNotification)
             try {
@@ -320,7 +328,7 @@ public abstract class StreamingModuleService : Service() {
         try {
             stopSelf()
         } catch (cause: Throwable) {
-            logE("StreamingModuleService", "Android Service timeout stop failed", cause)
+            log.e("StreamingModuleService", "Android Service timeout stop failed", cause)
         } finally {
             reportServiceFailure()
         }
@@ -331,12 +339,12 @@ public abstract class StreamingModuleService : Service() {
         try {
             original.first?.reportFailed()
         } catch (cause: Throwable) {
-            logE("StreamingModuleService", "Failed to report Service loss", cause)
+            log.e("StreamingModuleService", "Failed to report Service loss", cause)
         } finally {
             try {
                 original.second?.requestModuleShutdown()
             } catch (cause: Throwable) {
-                logE("StreamingModuleService", "Failed to request module shutdown", cause)
+                log.e("StreamingModuleService", "Failed to request module shutdown", cause)
             }
         }
     }

@@ -2,15 +2,20 @@ package io.screenstream.mjpeg.ui
 
 import android.content.ContextWrapper
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -18,6 +23,7 @@ import androidx.compose.ui.test.performClick
 import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
+import io.screenstream.foundation.qr.generateQRBitmap
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
@@ -41,7 +47,7 @@ internal class StreamAddressesUiTest {
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun actionsUseAppliedUrlWhileDisplayingPlainEndpointAndFallBackWhenItIsAbsent() {
+    fun actionsUseAppliedUrlAndCopyMenuClosesWhenItFallsBackToThePlainEndpoint() {
         val row = mutableStateOf(address(accessUrl = SecretValue("$ENDPOINT_URL?token=$ENCODED_TOKEN")))
         val clipboard = RecordingClipboard()
         val intents = mutableListOf<Intent>()
@@ -74,10 +80,55 @@ internal class StreamAddressesUiTest {
         copyMenuLink(R.string.mjpeg_address_copy_mjpeg)
         assertClipboard(clipboard, "http://192.168.1.10:9000/mjpeg?token=$ENCODED_TOKEN")
 
+        val jpegMenuItem = compose.onNodeWithText(text(R.string.mjpeg_address_copy_jpeg))
+        copyOptionsButton().performClick()
+        jpegMenuItem.assertIsDisplayed()
         compose.runOnIdle { row.value = row.value.copy(accessUrl = null) }
+        jpegMenuItem.assertDoesNotExist()
         assertOpenShareAndCopy(ENDPOINT_URL, intents, clipboard)
         copyMenuLink(R.string.mjpeg_address_copy_jpeg)
         assertClipboard(clipboard, "http://192.168.1.10:9000/jpeg")
+    }
+
+    @Test
+    fun qrDialogClosesOnTokenRotationAndReopensWithTheCurrentUrl() {
+        val row = mutableStateOf(address(accessUrl = SecretValue("$ENDPOINT_URL?token=$ENCODED_TOKEN")))
+        compose.setContent {
+            MjpegTestTheme {
+                StreamAddressesContent(
+                    addressServers = listOf(row.value),
+                    appliedPin = null,
+                    hidePinOnCapture = false,
+                    expanded = true,
+                    onExpandedChange = {},
+                    onRetry = {},
+                    onShowMessage = {},
+                )
+            }
+        }
+
+        val qrButton = compose.onNodeWithContentDescription(text(R.string.mjpeg_address_qr_code_description, ENDPOINT_URL))
+        val qrImageMatcher = hasContentDescription(text(R.string.mjpeg_address_qr_image_description))
+        val qrImage = compose.onNode(qrImageMatcher, useUnmergedTree = true)
+        qrButton.performClick()
+        compose.waitUntilExactlyOneExists(qrImageMatcher, timeoutMillis = 5_000, useUnmergedTree = true)
+        qrImage.assertIsDisplayed()
+
+        val currentUrl = "$ENDPOINT_URL?token=rotated%2Btoken"
+        compose.runOnIdle { row.value = row.value.copy(accessUrl = SecretValue(currentUrl)) }
+        compose.onNode(isDialog()).assertDoesNotExist()
+
+        qrButton.performClick()
+        compose.waitUntilExactlyOneExists(qrImageMatcher, timeoutMillis = 5_000, useUnmergedTree = true)
+        val actual = qrImage.captureToImage(timeoutMillis = 5_000).asAndroidBitmap()
+        val expected = currentUrl.generateQRBitmap(actual.width)
+        // Keep the comparison inside the dialog's rounded corners.
+        val inset = actual.width / 8
+        val size = actual.width - 2 * inset
+        assertTrue(
+            Bitmap.createBitmap(expected, inset, inset, size, size).sameAs(Bitmap.createBitmap(actual, inset, inset, size, size)),
+            "The reopened dialog should render the QR code for the current access URL",
+        )
     }
 
     @Test
@@ -193,9 +244,11 @@ internal class StreamAddressesUiTest {
     }
 
     private fun copyMenuLink(labelRes: Int) {
-        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_options_description, ENDPOINT_URL)).performClick()
+        copyOptionsButton().performClick()
         compose.onNodeWithText(text(labelRes)).performClick()
     }
+
+    private fun copyOptionsButton() = compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_options_description, ENDPOINT_URL))
 
     private fun assertClipboard(clipboard: RecordingClipboard, expectedUrl: String) {
         compose.runOnIdle {

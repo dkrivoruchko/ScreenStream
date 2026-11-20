@@ -6,7 +6,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalGridApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.GridTrackSize
@@ -39,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -52,7 +50,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.WebPageSettings
@@ -124,16 +121,12 @@ internal fun BackgroundSettingItem(
 }
 
 @Composable
-@OptIn(ExperimentalGridApi::class)
 private fun BackgroundEditor(
     background: String,
     onWebPageChange: (WebPageSettings.() -> WebPageSettings) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
-    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val labelColumn = if (isRtl) 2 else 1
-    val sliderColumn = if (isRtl) 1 else 2
     val initialRgb = retain { background.substring(1).toInt(16) }
     var previewRgb by retain { mutableIntStateOf(initialRgb) }
     var hexInput by retain { mutableStateOf(TextFieldValue(background.substring(1).uppercase())) }
@@ -199,14 +192,8 @@ private fun BackgroundEditor(
         }
         Grid(
             config = {
-                // Grid 1.12 uses physical column indices, so mirror the tracks for RTL.
-                if (isRtl) {
-                    column(GridTrackSize.MinMax(0.dp, 1.fr))
-                    column(GridTrackSize.MaxContent)
-                } else {
-                    column(GridTrackSize.MaxContent)
-                    column(GridTrackSize.MinMax(0.dp, 1.fr))
-                }
+                column(GridTrackSize.MaxContent)
+                column(GridTrackSize.MinMax(0.dp, 1.fr))
                 repeat(3) { row(GridTrackSize.Auto) }
                 gap(8.dp)
             },
@@ -214,38 +201,38 @@ private fun BackgroundEditor(
         ) {
             Text(
                 stringResource(BackgroundSearch.redLabelRes),
-                Modifier.gridItem(row = 1, column = labelColumn, alignment = Alignment.CenterStart),
+                Modifier.gridItem(row = 1, column = 1, alignment = Alignment.CenterStart),
                 style = MaterialTheme.typography.bodyMedium,
             )
             BackgroundColorSlider(
                 label = stringResource(BackgroundSearch.redLabelRes),
                 value = previewRgb shr 16 and 0xFF,
                 channelColor = Color(0xFFF44336),
-                modifier = Modifier.gridItem(row = 1, column = sliderColumn, alignment = Alignment.CenterStart),
+                modifier = Modifier.gridItem(row = 1, column = 2, alignment = Alignment.CenterStart),
                 onValueChange = { updatePreview((previewRgb and 0x00FFFF) or (it shl 16)) },
             )
             Text(
                 stringResource(BackgroundSearch.greenLabelRes),
-                Modifier.gridItem(row = 2, column = labelColumn, alignment = Alignment.CenterStart),
+                Modifier.gridItem(row = 2, column = 1, alignment = Alignment.CenterStart),
                 style = MaterialTheme.typography.bodyMedium,
             )
             BackgroundColorSlider(
                 label = stringResource(BackgroundSearch.greenLabelRes),
                 value = previewRgb shr 8 and 0xFF,
                 channelColor = Color(0xFF4CAF50),
-                modifier = Modifier.gridItem(row = 2, column = sliderColumn, alignment = Alignment.CenterStart),
+                modifier = Modifier.gridItem(row = 2, column = 2, alignment = Alignment.CenterStart),
                 onValueChange = { updatePreview((previewRgb and 0xFF00FF) or (it shl 8)) },
             )
             Text(
                 stringResource(BackgroundSearch.blueLabelRes),
-                Modifier.gridItem(row = 3, column = labelColumn, alignment = Alignment.CenterStart),
+                Modifier.gridItem(row = 3, column = 1, alignment = Alignment.CenterStart),
                 style = MaterialTheme.typography.bodyMedium,
             )
             BackgroundColorSlider(
                 label = stringResource(BackgroundSearch.blueLabelRes),
                 value = previewRgb and 0xFF,
                 channelColor = Color(0xFF2196F3),
-                modifier = Modifier.gridItem(row = 3, column = sliderColumn, alignment = Alignment.CenterStart),
+                modifier = Modifier.gridItem(row = 3, column = 2, alignment = Alignment.CenterStart),
                 onValueChange = { updatePreview((previewRgb and 0xFFFF00) or it) },
             )
         }

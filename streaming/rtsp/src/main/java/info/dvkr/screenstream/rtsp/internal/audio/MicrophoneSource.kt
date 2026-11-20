@@ -2,9 +2,11 @@ package info.dvkr.screenstream.rtsp.internal.audio
 
 import android.Manifest
 import androidx.annotation.RequiresPermission
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 
 internal class MicrophoneSource(
+    log: Logger,
     audioParams: AudioSource.Params,
     private val audioSource: Int,
     dispatcher: CoroutineDispatcher,
@@ -12,7 +14,7 @@ internal class MicrophoneSource(
     onCaptureError: (Throwable) -> Unit
 ) : AudioSource {
 
-    private val audioCapture = AudioCapture(audioParams, dispatcher, onAudioFrame, onCaptureError)
+    private val audioCapture = AudioCapture(log, audioParams, dispatcher, onAudioFrame, onCaptureError)
 
     override val isRunning: Boolean
         get() = audioCapture.isRunning()

@@ -3,6 +3,7 @@ package io.screenstream.core.module
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Looper
+import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.manager.StreamingModuleActionReceiver
 import kotlinx.coroutines.CoroutineStart
@@ -34,6 +35,9 @@ import kotlin.time.Duration.Companion.seconds
 )
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class StreamingModuleServiceTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = CoreKoinTestRule()
+
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 

@@ -22,10 +22,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import info.dvkr.screenstream.common.ui.ExpandableCard
-import info.dvkr.screenstream.common.ui.conditional
+import info.dvkr.screenstream.webrtc.ui.ExpandableCard
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
+import info.dvkr.screenstream.webrtc.ui.conditional
 
 @Composable
 internal fun AudioCard(

@@ -59,10 +59,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.os.ConfigurationCompat
-import info.dvkr.screenstream.common.ui.ExpandableCard
 import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.http.HttpDelivery
+import io.screenstream.mjpeg.ui.ExpandableCard
 import io.screenstream.mjpeg.ui.UiController
 import io.screenstream.mjpeg.ui.settings.SettingEditor
 import java.text.NumberFormat

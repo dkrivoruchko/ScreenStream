@@ -16,8 +16,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.common.ui.ExpandableCard
-import info.dvkr.screenstream.common.ui.stylePlaceholder
+import info.dvkr.screenstream.webrtc.ui.ExpandableCard
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.ClientId
 import info.dvkr.screenstream.webrtc.ui.WebRtcState

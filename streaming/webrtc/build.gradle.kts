@@ -13,7 +13,11 @@ kotlin {
 
 android {
     namespace = "info.dvkr.screenstream.webrtc"
-    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    compileSdk {
+        version = release(rootProject.extra["compileSdkVersion"] as Int) {
+            minorApiLevel = rootProject.extra["compileSdkMinorVersion"] as Int
+        }
+    }
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
     ndkVersion = rootProject.extra["ndkVersion"] as String
 
@@ -43,23 +47,35 @@ android {
 }
 
 dependencies {
-    implementation(projects.common)
+    implementation(projects.analytics)
+    implementation(projects.foundation)
     implementation(projects.streaming.core)
     implementation(projects.streaming.webrtcRuntime)
 
-    implementation(libs.koin.core)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.window)
+    implementation(libs.androidx.window.core)
+
+    implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.koin.compose)
     implementation(libs.koin.annotations)
 
     implementation(libs.play.services.base)
-    implementation(libs.play.services.tasks)
     implementation(libs.play.integrity)
-
     implementation(libs.socket)
-    implementation(libs.okio)
     implementation(libs.okhttp)
+
+    // OkHttp brings Okio 3.18.1; 3.18.2 fixes Base64 padding compatibility.
+    // Remove this override when the OkHttp dependency includes that fix.
+    implementation(libs.okio)
 }
 
 configurations.all {
-    exclude("androidx.fragment", "fragment")
     exclude("org.json", "json")
 }

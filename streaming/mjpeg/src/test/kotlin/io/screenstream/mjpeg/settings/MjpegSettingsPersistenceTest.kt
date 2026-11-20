@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import io.screenstream.mjpeg.IsolatedSettingsContext
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.readSavedSettingsJson
 import io.screenstream.mjpeg.seedSettings
 import kotlinx.coroutines.CoroutineStart
@@ -50,6 +51,9 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
 internal class MjpegSettingsPersistenceTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = MjpegKoinTestRule()
+
     @get:Rule
     val temporaryFolder: TemporaryFolder = TemporaryFolder()
 

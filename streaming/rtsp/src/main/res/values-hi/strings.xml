@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="rtsp_expanded">बड़ा किया गया</string>
+    <string name="rtsp_collapsed">छोटा किया गया</string>
+
     <string name="rtsp_error_recover">पुनर्प्राप्त करें</string>
+    <string name="rtsp_error_try_again">पुनः प्रयास करें</string>
     <string name="rtsp_error_open_settings">सेटिंग्स खोलें</string>
     <string name="rtsp_error_start_screen_sharing">स्क्रीन शेयरिंग शुरू करें</string>
     <string name="rtsp_error_start_with_audio">ऑडियो के साथ शुरू करें</string>
@@ -52,6 +56,7 @@
     <string name="rtsp_stream_stop">स्ट्रीम बंद करें</string>
 
     <string name="rtsp_error_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप में सूचनाएँ चालू होनी चाहिए।\nऐप सेटिंग में सूचनाएँ चालू करें।</string>
+    <string name="rtsp_error_screen_capture_permission_denied_message">आपकी स्क्रीन शेयर करने की अनुमति नहीं मिलने के कारण स्ट्रीमिंग शुरू नहीं हुई। Android अनुमति स्क्रीन फिर से खोलने के लिए पुनः प्रयास करें पर टैप करें।</string>
     <string name="rtsp_error_screen_capture_start_blocked">Android ने स्क्रीन शेयरिंग शुरू होने से रोक दी। ScreenStream खुला रखें और फिर से शुरू करें।</string>
     <string name="rtsp_error_projection_acquire_rejected">स्क्रीन कैप्चर अनुमति अब मान्य नहीं है। स्क्रीन शेयरिंग फिर से शुरू करें।</string>
     <string name="rtsp_error_audio_permission_required">ऑडियो के साथ स्ट्रीमिंग शुरू करने के लिए माइक्रोफ़ोन अनुमति आवश्यक है।</string>

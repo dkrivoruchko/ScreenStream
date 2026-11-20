@@ -10,10 +10,7 @@ import android.net.TetheringInterface
 import android.net.TetheringManager
 import android.os.Build
 import androidx.annotation.RequiresApi
-import io.screenstream.core.logD
-import io.screenstream.core.logE
-import io.screenstream.core.logV
-import io.screenstream.core.logW
+import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.InterfaceAddresses
 import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.ScanResult
 import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.Snapshot
@@ -37,6 +34,9 @@ import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Factory
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.util.Collections
@@ -52,7 +52,9 @@ internal class AndroidNetworkAddressMonitor(
     context: Context,
     nativeInterfaces: NativeInterfaceAccess = SystemNativeInterfaceAccess,
     observationDispatcher: CoroutineDispatcher = Dispatchers.Default,
-) : NetworkAddressMonitor {
+) : NetworkAddressMonitor, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     // Admission, observer handles and platform metadata share one gate; scan and cleanup work run outside it.
     private val admissionGate = Any()
     private var terminalFailure: Throwable? = null
@@ -94,9 +96,9 @@ internal class AndroidNetworkAddressMonitor(
                 registrations.values.toList().also { registrations.clear() }
             }
         }
-        if (reportFailure && failure != null) logE("beginClose", "Address discovery failed; state=Failed", failure)
+        if (reportFailure && failure != null) log.e("beginClose", "Address discovery failed; state=Failed", failure)
         if (handles == null) return
-        logD("beginClose", "Close requested; observersToClose=${handles.size}")
+        log.d("beginClose", "Close requested; observersToClose=${handles.size}")
         observationJob.start() // Also permits close before discovery starts.
         ownedScope.launch(Dispatchers.IO) {
             unregisterObservers(handles)
@@ -117,7 +119,7 @@ internal class AndroidNetworkAddressMonitor(
             }
             platformChanges.close()
             if (outcome == null) {
-                this@AndroidNetworkAddressMonitor.logD("beginClose", "Address discovery closed")
+                log.d("beginClose", "Address discovery closed")
                 closeCompletion.complete(Unit)
             } else {
                 closeCompletion.completeExceptionally(outcome)
@@ -146,7 +148,7 @@ internal class AndroidNetworkAddressMonitor(
             try {
                 unregister()
             } catch (error: Exception) {
-                logE("unregisterObservers", "Network observer cleanup failed; observer could not be unregistered", error)
+                log.e("unregisterObservers", "Network observer cleanup failed; observer could not be unregistered", error)
                 synchronized(admissionGate) { cleanupFailures.add(error) }
             }
         }
@@ -241,7 +243,7 @@ internal class AndroidNetworkAddressMonitor(
             // One coherent snapshot includes callbacks whose notification has not been consumed yet.
             platformSnapshot = platform.snapshot()
             val isPlatformSnapshotCurrent = result.platformSnapshot.revision == platformSnapshot.revision
-            this@AndroidNetworkAddressMonitor.logV(
+            log.v(
                 "onScanFinished",
                 "Interface scan completed; snapshotRevision=${result.platformSnapshot.revision}, " +
                         "currentSnapshot=$isPlatformSnapshotCurrent, complete=${result.complete}, unreadableInterfaces=${result.failedInterfaces}",
@@ -325,7 +327,9 @@ internal class AndroidNetworkAddressMonitor(
         }
     }
 
-    private inner class PlatformObservation(context: Context) {
+    private inner class PlatformObservation(context: Context) : KoinComponent {
+        private val log: Logger by inject { parametersOf(this) }
+
         private val applicationContext = context.applicationContext
         private val connectivity = applicationContext.getSystemService(ConnectivityManager::class.java)
 
@@ -452,7 +456,7 @@ internal class AndroidNetworkAddressMonitor(
                     }
                 }
             } catch (error: Exception) {
-                logW("registerNetworkObserver", "Network observer registration failed; native interface scans remain available", error)
+                log.w("registerNetworkObserver", "Network observer registration failed; native interface scans remain available", error)
             }
         }
 
@@ -471,7 +475,7 @@ internal class AndroidNetworkAddressMonitor(
                 observer.start()
                 retainRegistration(Observer.Tethering, unregister = observer::close)
             } catch (error: Exception) {
-                logW("registerTetheringObserver", "Tethering observer registration failed; interface scans remain available", error)
+                log.w("registerTetheringObserver", "Tethering observer registration failed; interface scans remain available", error)
             }
         }
 
@@ -501,12 +505,12 @@ internal class AndroidNetworkAddressMonitor(
                             }
                         }
                     } catch (error: Exception) {
-                        logW("refreshFallback", "Network metadata read failed; network=$network", error)
+                        log.w("refreshFallback", "Network metadata read failed; network=$network", error)
                         complete = false
                     }
                 }
             } catch (error: Exception) {
-                logW("refreshFallback", "Network enumeration failed; retaining previous network information", error)
+                log.w("refreshFallback", "Network enumeration failed; retaining previous network information", error)
                 complete = false
             }
             synchronized(admissionGate) {

@@ -11,9 +11,8 @@ import android.media.audiofx.NoiseSuppressor
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.MasterClock
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -26,6 +25,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 internal class AudioCapture(
+    private val log: Logger,
     private val audioParams: AudioSource.Params,
     private val dispatcher: CoroutineDispatcher,
     private val onAudioFrame: (AudioSource.Frame) -> Unit,
@@ -40,6 +40,7 @@ internal class AudioCapture(
 
     private var _isRunning: Boolean = false
     private var _isMuted: Boolean = false
+
     @Volatile
     private var _stopping: Boolean = false
 
@@ -137,7 +138,7 @@ internal class AudioCapture(
             audioRecord = null
             releaseAudioEffects()
 
-            XLog.w(getLog("start", "Failed to start audio capture: ${cause.message}"), cause)
+            log.w("AudioCapture.start", "Audio capture start failed", cause)
             onCaptureError(cause)
         }
     }
@@ -169,7 +170,7 @@ internal class AudioCapture(
             audioRecord = null
             releaseAudioEffects()
 
-            XLog.w(getLog("start", "Failed to start audio capture: ${cause.message}"), cause)
+            log.w("AudioCapture.start", "Audio capture start failed", cause)
             onCaptureError(cause)
         }
     }
@@ -208,7 +209,7 @@ internal class AudioCapture(
             when {
                 size > 0 -> {
                     if (size % 2 != 0) {
-                        XLog.w(getLog("readAudioLoop", "Read size is not even ($size), skipping frame."))
+                        log.w("AudioCapture.readAudioLoop", "Read size is not even ($size), skipping frame.")
                         continue
                     }
 
@@ -243,12 +244,12 @@ internal class AudioCapture(
 
                 size < 0 -> {
                     if (!isRunning() || _stopping || currentRecord.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
-                        XLog.i(getLog("readAudioLoop", "Ignoring read error during teardown (code=$size)."))
+                        log.i("AudioCapture.readAudioLoop", "Ignoring read error during teardown (code=$size).")
                         break
                     }
                     if (size == AudioRecord.ERROR_BAD_VALUE && !retryAttempted) {
                         retryAttempted = true
-                        XLog.w(getLog("readAudioLoop", "ERROR_BAD_VALUE. Recreating AudioRecord and retrying once."))
+                        log.w("AudioCapture.readAudioLoop", "ERROR_BAD_VALUE. Recreating AudioRecord and retrying once.")
 
                         runCatching { currentRecord.stop() }
                         currentRecord.release()
@@ -261,7 +262,7 @@ internal class AudioCapture(
                         shortBuffer = pcmByteBuffer.asShortBuffer()
                         audioRecord = newRecord
 
-                        XLog.i(getLog("readAudioLoop", "AudioRecord recreated. Continuing."))
+                        log.i("AudioCapture.readAudioLoop", "AudioRecord recreated. Continuing.")
                         continue
                     }
                     val error = when (size) {
@@ -271,7 +272,7 @@ internal class AudioCapture(
                         AudioRecord.ERROR -> IllegalStateException("AudioRecord read failed (ERROR).")
                         else -> IllegalStateException("AudioRecord read failed (code=$size).")
                     }
-                    XLog.w(getLog("readAudioLoop", error.message ?: "AudioRecord read error"), error)
+                    log.w("AudioCapture.readAudioLoop", "AudioRecord read failed", error)
                     onCaptureError(error)
                     break
                 }
@@ -279,7 +280,7 @@ internal class AudioCapture(
         }
     }.onFailure { cause ->
         if (cause is CancellationException) throw cause
-        XLog.w(getLog("readAudioLoop", "Failed to read audio: ${cause.message}"), cause)
+        log.w("AudioCapture.readAudioLoop", "Audio read failed", cause)
         onCaptureError(cause)
     }
 

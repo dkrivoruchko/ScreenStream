@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.common.ui.ExpandableCard
+import info.dvkr.screenstream.webrtc.ui.ExpandableCard
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
 import info.dvkr.screenstream.webrtc.ui.main.settings.KeepAwakeRow

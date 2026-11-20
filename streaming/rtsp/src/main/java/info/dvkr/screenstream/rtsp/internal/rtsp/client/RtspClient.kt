@@ -1,8 +1,6 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.client
 
 import androidx.annotation.AnyThread
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.AudioParams
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
@@ -27,6 +25,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import io.ktor.network.selector.SelectorManager
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -62,6 +61,7 @@ import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class RtspClient(
+    private val log: Logger,
     appVersion: String,
     private val generation: Long,
     private val rtspUrl: RtspUrl,
@@ -78,10 +78,10 @@ internal class RtspClient(
         class NewVideoParams(val videoParams: VideoParams, val videoGeneration: Int) : QueuedItem()
     }
 
-    private class MediaFramesBuffer(val capacity: Int = 32) {
+    private class MediaFramesBuffer(private val log: Logger, val capacity: Int = 32) {
         private var itemsChannel = Channel<QueuedItem>(capacity = capacity) { item ->
             if (item is QueuedItem.Frame) {
-                XLog.v(getLog("onUndeliveredElement", "Releasing frame: ${item.frame}"))
+                log.v("RtspClient.onUndeliveredElement", "Releasing undelivered frame")
                 item.frame.release()
             }
         }
@@ -99,7 +99,7 @@ internal class RtspClient(
                 .onFailure { discardFrame(frame) }
 
         fun discardFrame(frame: MediaFrame) {
-            XLog.w(getLog("discardFrame", "Frame discarded"))
+            log.w("RtspClient.discardFrame", "Frame discarded")
             frame.release()
             when (frame) {
                 is MediaFrame.VideoFrame -> droppedVideoFrames.incrementAndGet()
@@ -133,7 +133,7 @@ internal class RtspClient(
             itemsChannel.close()
             itemsChannel = Channel<QueuedItem>(capacity = capacity) { item ->
                 if (item is QueuedItem.Frame) {
-                    XLog.v(getLog("onUndeliveredElement", "Releasing frame: ${item.frame}"))
+                    log.v("RtspClient.onUndeliveredElement", "Releasing undelivered frame")
                     item.frame.release()
                 }
             }
@@ -195,7 +195,7 @@ internal class RtspClient(
         appVersion, rtspUrl.host, rtspUrl.port, rtspUrl.fullPath, rtspUrl.user, rtspUrl.password
     )
     private val selectorManager = SelectorManager(scope.coroutineContext)
-    private val mediaFramesBuffer = MediaFramesBuffer()
+    private val mediaFramesBuffer = MediaFramesBuffer(log)
     private val videoParams = AtomicReference<CompletableDeferred<VideoParams>>(CompletableDeferred())
     private val audioParams = AtomicReference<AudioParams?>(null)
 
@@ -205,7 +205,7 @@ internal class RtspClient(
     private var currentState = State.IDLE
         set(value) {
             field = value
-            XLog.v(getLog("currentState", "State changed to: $value"))
+            log.v("RtspClient.currentState", "State changed to: $value")
         }
 
     private var connectionJob = AtomicReference<Job?>(null)
@@ -216,7 +216,7 @@ internal class RtspClient(
     @Throws
     @AnyThread
     internal fun setVideoData(videoCodec: Codec.Video, sps: ByteArray, pps: ByteArray?, vps: ByteArray?) = synchronized(rtspLock) {
-        XLog.d(getLog("setVideoData", "$videoCodec"))
+        log.d("RtspClient.setVideoData", "$videoCodec")
 
         val params = when (videoCodec) {
             Codec.Video.H264 -> VideoParams(codec = videoCodec, sps = sps, pps = pps, vps = null)
@@ -239,7 +239,7 @@ internal class RtspClient(
             audioParams.set(null)
             return@synchronized
         }
-        XLog.d(getLog("setAudioData", "${params.codec}"))
+        log.d("RtspClient.setAudioData", "${params.codec}")
         if (currentState == State.STREAMING) error("Cannot change audio codec while streaming")
         if (onlyVideo) error("Cannot change audio codec in only video mode")
 
@@ -254,7 +254,7 @@ internal class RtspClient(
         }
 
         val detachedFrame = runCatching { frame.detachedCopy() }
-            .onFailure { XLog.w(getLog("enqueueFrame", "Failed to detach frame. Dropping.")) }
+            .onFailure { log.w("RtspClient.enqueueFrame", "Failed to detach frame. Dropping.") }
             .getOrNull()
 
         frame.release()
@@ -342,13 +342,13 @@ internal class RtspClient(
                     e is CancellationException -> Unit
 
                     e is RtspError.ClientError -> {
-                        XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
+                        log.w("RtspClient.connect", "Connection failed: ${e.javaClass.simpleName}")
                         onEvent(RtspStreamingService.InternalEvent.RtspClient.OnError(generation, e))
                         error = e
                     }
 
                     mappedMessage != null -> {
-                        XLog.w(getLog("connect", "Connection error: $mappedMessage"), e)
+                        log.w("RtspClient.connect", "Connection failed: ${e.javaClass.simpleName}")
                         onEvent(
                             RtspStreamingService.InternalEvent.RtspClient.OnError(
                                 generation, RtspError.ClientError.Failed(mappedMessage)
@@ -358,7 +358,7 @@ internal class RtspClient(
                     }
 
                     else -> {
-                        XLog.w(getLog("connect", "Unknown error: ${e.message}"), e)
+                        log.w("RtspClient.connect", "Unexpected connection failure: ${e.javaClass.simpleName}")
                         onEvent(RtspStreamingService.InternalEvent.Error(RtspError.UnknownError(e)))
                         error = e
                     }
@@ -391,11 +391,11 @@ internal class RtspClient(
     }
 
     internal fun destroy() = runBlocking {
-        XLog.d(this@RtspClient.getLog("destroy"))
+        log.d("RtspClient.destroy")
         connectionJob.getAndSet(null)?.cancelAndJoin()
         runCatching { selectorManager.close() }
         scope.cancel()
-        XLog.d(this@RtspClient.getLog("destroy", "Done"))
+        log.d("RtspClient.destroy", "Done")
     }
 
     @Throws
@@ -425,7 +425,7 @@ internal class RtspClient(
         val announceResp = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.ANNOUNCE)
 
         when (announceResp.status) {
-            200 -> XLog.d(getLog("doRtspHandshake", "ANNOUNCE success"))
+            200 -> log.d("RtspClient.doRtspHandshake", "ANNOUNCE success")
             403 -> throw RtspError.ClientError.AccessDenied()
             401 -> when {
                 rtspUrl.hasAuth().not() -> throw RtspError.ClientError.NoCredentialsError()
@@ -440,7 +440,7 @@ internal class RtspClient(
                     tcpSocket.withWriteLock { writeAndFlush(commandsManager.createAnnounce(videoParams, audioParams)) }
                     val announceWithAuth = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.ANNOUNCE)
                     when (announceWithAuth.status) {
-                        200 -> XLog.d(getLog("doRtspHandshake", "ANNOUNCE with auth success"))
+                        200 -> log.d("RtspClient.doRtspHandshake", "ANNOUNCE with auth success")
                         401 -> throw RtspError.ClientError.AuthError()
                         else -> throw RtspError.ClientError.Failed("ANNOUNCE: [${announceWithAuth.status}] ${announceWithAuth.text}")
                     }
@@ -460,7 +460,7 @@ internal class RtspClient(
         videoResult.interleaved?.let { videoInterleaved = it }
 
         if (protocolPolicy == RtspSettings.Values.ProtocolPolicy.AUTO) {
-            XLog.i(getLog("doRtspHandshake", "AUTO selected transport: ${videoResult.protocol}"))
+            log.i("RtspClient.doRtspHandshake", "AUTO selected transport: ${videoResult.protocol}")
         }
 
         // 4) SETUP for audio
@@ -651,7 +651,7 @@ internal class RtspClient(
         val videoPacket = when (videoParams.codec) {
             Codec.Video.H264 -> H264Packet().apply { setVideoInfo(videoParams.sps, videoParams.pps!!) }
             Codec.Video.H265 -> H265Packet().apply { setVideoInfo(videoParams.sps, videoParams.pps!!, videoParams.vps!!) }
-            Codec.Video.AV1 -> Av1Packet()
+            Codec.Video.AV1 -> Av1Packet(log)
         }.apply { setSSRC(ssrcVideo) }
 
         val audioPacket = audioParams?.run {
@@ -715,7 +715,7 @@ internal class RtspClient(
                             activeVideoGeneration = queuedItem.videoGeneration
                             when {
                                 vParams.codec is Codec.Video.H264 && videoPacket is H264Packet -> {
-                                    XLog.w(getLog("sendingLoop", "Applying new SPS/PPS for H264"))
+                                    log.w("RtspClient.sendingLoop", "Applying new SPS/PPS for H264")
                                     videoPacket.reset()
                                     ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
                                     videoPacket.setSSRC(ssrcVideo)
@@ -724,7 +724,7 @@ internal class RtspClient(
                                 }
 
                                 vParams.codec is Codec.Video.H265 && videoPacket is H265Packet -> {
-                                    XLog.w(getLog("sendingLoop", "Applying new VPS/SPS/PPS for H265"))
+                                    log.w("RtspClient.sendingLoop", "Applying new VPS/SPS/PPS for H265")
                                     videoPacket.reset()
                                     ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
                                     videoPacket.setSSRC(ssrcVideo)
@@ -736,10 +736,10 @@ internal class RtspClient(
                     }
                 } catch (_: CancellationException) {
                 } catch (error: RtpBufferInaccessibleException) {
-                    XLog.w(getLog("sendingLoop", "Dropping frame: ${error.message}"), error)
+                    log.w("RtspClient.sendingLoop", "Frame unavailable; dropping", error)
                 } catch (error: Throwable) {
                     if (currentCoroutineContext().isActive.not()) return
-                    XLog.w(getLog("sendingLoop", "Error sending packet: ${error.message}"), error)
+                    log.w("RtspClient.sendingLoop", "Packet send failed: ${error.javaClass.simpleName}")
                     onEvent(
                         RtspStreamingService.InternalEvent.RtspClient.OnError(
                             generation, RtspError.ClientError.Failed("Error sending packet: ${error.message}")

@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Zabalduta</string>
+    <string name="mjpeg_collapsed">Tolestuta</string>
+
     <string name="mjpeg_action_close">Itxi</string>
 
     <string name="mjpeg_pref_value_on">Aktibatuta</string>

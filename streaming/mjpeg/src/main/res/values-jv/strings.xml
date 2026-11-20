@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">Dibukak</string>
+    <string name="mjpeg_collapsed">Ditutup</string>
+
     <string name="mjpeg_action_close">Tutup</string>
 
     <string name="mjpeg_pref_value_on">Urip</string>

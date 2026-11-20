@@ -9,9 +9,8 @@ import android.os.Build
 import android.os.SystemClock
 import androidx.activity.result.ActivityResult
 import androidx.annotation.MainThread
-import io.screenstream.core.logE
-import io.screenstream.core.logW
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +22,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
 
 /** Owns pending consent correlation and the guard around synchronous Android projection creation. */
@@ -30,7 +32,9 @@ import kotlin.uuid.Uuid
 internal class ScreenCaptureAccessImpl(
     context: Context,
     private val requestObserver: ConsentRequestObserver,
-) : ScreenCaptureAccess {
+) : ScreenCaptureAccess, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     internal class Request(val key: String, val intent: Intent?) {
         val submitted: Boolean get() = intent == null
     }
@@ -149,7 +153,13 @@ internal class ScreenCaptureAccessImpl(
             } catch (cause: SecurityException) {
                 if (!retryAfterRecentForegroundStart || Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE || foregroundDelay == null ||
                     foregroundDelay !in 0L..PROJECTION_ACQUIRE_RETRY_WINDOW_MILLIS
-                ) throw cause
+                ) {
+                    log.w(
+                        "ScreenCaptureAccess",
+                        "Projection acquisition denied: attemptId=${accepted.attempt.uuid}, foregroundToAcquireMs=${foregroundDelay ?: "none"}",
+                    )
+                    throw cause
+                }
                 accepted.job.ensureActive()
                 SystemClock.sleep(PROJECTION_ACQUIRE_RETRY_DELAY_MILLIS)
                 accepted.job.ensureActive()
@@ -258,7 +268,7 @@ internal class ScreenCaptureAccessImpl(
             removePending()
         } ?: return
         completeWithoutGrant(abandoned, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
-        logW("ScreenCaptureAccess", "Submitted consent abandoned because its Activity is finishing")
+        log.w("ScreenCaptureAccess", "Submitted consent abandoned because its Activity is finishing")
     }
 
     /** Successful results immediately prepare the original foreground Service, including while paused. */
@@ -295,7 +305,9 @@ internal class ScreenCaptureAccessImpl(
             failed.job.ensureActive()
             if (!failed.waiter.isActive) throw CancellationException("Consent request is no longer active")
             if (cause is CancellationException) throw cause
-            throw ConsentLaunchException(cause)
+            val failure = ConsentLaunchException(cause)
+            log.w("ScreenCaptureAccess", "Screen capture consent launcher failed: attempt=${failed.attempt}, request=$key", failure)
+            throw failure
         }
         failed.waiter.resumeWith(outcome)
         return true
@@ -338,7 +350,7 @@ internal class ScreenCaptureAccessImpl(
         try {
             callback()
         } catch (cause: Throwable) {
-            logE("ScreenCaptureAccess", "Consent observer failed", cause)
+            log.e("ScreenCaptureAccess", "Consent observer failed", cause)
         }
     }
 

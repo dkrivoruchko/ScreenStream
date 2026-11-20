@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">გაფართოებული</string>
+    <string name="mjpeg_collapsed">ჩაკეცილი</string>
+
     <string name="mjpeg_action_close">დახურვა</string>
 
     <string name="mjpeg_pref_value_on">ჩართულია</string>

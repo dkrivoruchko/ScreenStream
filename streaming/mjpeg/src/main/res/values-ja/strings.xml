@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">開いています</string>
+    <string name="mjpeg_collapsed">閉じています</string>
+
     <string name="mjpeg_action_close">閉じる</string>
 
     <string name="mjpeg_pref_value_on">オン</string>

@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="rtsp_expanded">Genişletildi</string>
+    <string name="rtsp_collapsed">Daraltıldı</string>
+
     <string name="rtsp_error_recover">Kurtar</string>
+    <string name="rtsp_error_try_again">Yeniden dene</string>
     <string name="rtsp_error_open_settings">Ayarları aç</string>
     <string name="rtsp_error_start_screen_sharing">Ekran paylaşımını başlat</string>
     <string name="rtsp_error_start_with_audio">Sesle başlat</string>
@@ -52,6 +56,7 @@
     <string name="rtsp_stream_stop">Yayını durdur</string>
 
     <string name="rtsp_error_notification_permission_required">Bu uygulamanın yayın hizmetini başlatmak için bildirimleri etkinleştirmesi gerekir.\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
+    <string name="rtsp_error_screen_capture_permission_denied_message">Ekran paylaşma izni verilmediği için yayın başlatılamadı. Android izin ekranını tekrar açmak için Yeniden dene\'ye dokunun.</string>
     <string name="rtsp_error_screen_capture_start_blocked">Android ekran paylaşımının başlatılmasını engelledi. ScreenStream’i açık tutun ve tekrar başlatın.</string>
     <string name="rtsp_error_projection_acquire_rejected">Ekran yakalama izni artık geçerli değil. Ekran paylaşımını tekrar başlatın.</string>
     <string name="rtsp_error_audio_permission_required">Sesle yayını başlatmak için mikrofon izni gereklidir.</string>

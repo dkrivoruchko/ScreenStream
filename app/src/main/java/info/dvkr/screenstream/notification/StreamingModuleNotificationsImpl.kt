@@ -15,15 +15,18 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
-import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.SingleActivity
-import info.dvkr.screenstream.common.getLog
 import io.screenstream.core.module.StreamingModuleNotifications
+import io.screenstream.foundation.logging.Logger
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 
 @Singleton(binds = [StreamingModuleNotifications::class])
-internal class StreamingModuleNotificationsImpl(context: Context) : StreamingModuleNotifications {
+internal class StreamingModuleNotificationsImpl(context: Context) : StreamingModuleNotifications, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
     private val appContext = context.applicationContext
     private val notificationManager = appContext.getSystemService(NotificationManager::class.java)
     private val largeIcon by lazy { AppCompatResources.getDrawable(appContext, R.drawable.logo)?.toBitmap() }
@@ -90,7 +93,7 @@ internal class StreamingModuleNotificationsImpl(context: Context) : StreamingMod
                 notificationManager.notify(notificationId, buildError(content))
             }
         } catch (failure: Exception) {
-            XLog.e(getLog("updateError", "Error notification delivery failed: id=$notificationId, cancel=${content == null}"), failure)
+            log.e("updateError", "Error notification delivery failed: id=$notificationId, cancel=${content == null}", failure)
         }
     }
 

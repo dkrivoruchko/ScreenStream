@@ -66,7 +66,7 @@ internal fun CaptureAreaSettingItem(
                         val label = stringResource(CaptureAreaSearch.labelResIds.getValue(option))
                         if (option == ImageSettings.DEFAULT_SOURCE_REGION) stringResource(R.string.mjpeg_pref_default_option, label) else label
                     },
-                    onValueSelected = { selected -> if (selected != region) onImageChange { copy(sourceRegion = selected) } },
+                    onSelectOption = { selected -> if (selected != region) onImageChange { copy(sourceRegion = selected) } },
                     onDismissRequest = {
                         menuExpanded = false
                         openerFocus.markDismissed()

@@ -11,6 +11,7 @@ import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
+import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
@@ -41,8 +42,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
+import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
@@ -71,6 +71,9 @@ import kotlin.uuid.Uuid
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [28])
 internal class StreamingModuleManagerTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = CoreKoinTestRule()
+
     @get:Rule
     val temporaryFolder = TemporaryFolder()
     private val scheduler = TestCoroutineScheduler()
@@ -97,12 +100,10 @@ internal class StreamingModuleManagerTest {
         })
         runBlocking { withTimeout(5.seconds) { settings.initialize() } }
         manager = newManager(listOf(first, second))
-        startKoin {
-            modules(module {
-                single { manager }
-                single<StreamingModuleNotifications> { notifications }
-            })
-        }
+        loadKoinModules(module {
+            single { manager }
+            single<StreamingModuleNotifications> { notifications }
+        })
         ManagerHost.factory = { handle -> FakeController(handle).also { controllers.add(it) } }
     }
 
@@ -116,7 +117,6 @@ internal class StreamingModuleManagerTest {
         scheduler.runCurrent()
         services.reversed().forEach { it.destroy() }
         scheduler.runCurrent()
-        stopKoin()
         ManagerHost.factory = { error("No test factory installed") }
     }
 
@@ -442,6 +442,37 @@ internal class StreamingModuleManagerTest {
         assertTrue(service.isStoppedBySelf)
         assertEquals(1, service.stopSelfResultId)
         assertIs<StreamingModuleManager.State.Failed>(manager.state.value)
+    }
+
+    // Cases: CORE-MGR-07
+    @Test
+    fun deadlineDuringWaitingNotificationPreventsPromotionAndExactRestartSucceeds() {
+        manager.selectModule(first.id)
+        val host = createHost(awaitStartedService())
+        val before = SystemClock.elapsedRealtime()
+        notifications.onForegroundBuilt = { ShadowSystemClock.advanceBy(Duration.ofMillis(3001)) }
+        host.startCommand(0, 1)
+
+        assertEquals(3001L, SystemClock.elapsedRealtime() - before)
+        assertIs<StreamingModuleNotifications.ForegroundAction.Exit>(notifications.foregroundActions.single())
+        val service = shadowOf(host.get())
+        assertNull(service.lastForegroundNotification)
+        assertTrue(service.isStoppedBySelf)
+        assertTrue(controllers.isEmpty())
+
+        scheduler.runCurrent()
+        val failed = assertIs<StreamingModuleManager.State.Failed>(manager.state.value)
+        assertEquals(first.id, failed.instanceId.moduleId)
+        assertNull(failed.messageResource)
+        assertNull(nextStart())
+
+        notifications.onForegroundBuilt = {}
+        manager.restartModule(failed.instanceId)
+        val restarted = deliver(awaitStartedService())
+        assertNotEquals(failed.instanceId, restarted.instanceId)
+        assertEquals(first.id, restarted.instanceId.moduleId)
+        assertEquals(1, restarted.startCalls)
+        assertEquals(StreamingModuleManager.State.Running(restarted.instanceId, IDLE), manager.state.value)
     }
 
     // Cases: CORE-MGR-08, CORE-MGR-09, CORE-MGR-15
@@ -1437,6 +1468,7 @@ internal class StreamingModuleManagerTest {
 
     private class Notifications : StreamingModuleNotifications {
         var onErrorUpdate: (StreamingModuleNotifications.ErrorContent?) -> Unit = {}
+        var onForegroundBuilt: () -> Unit = {}
         var buildFailure: RuntimeException? = null
         val errorUpdates = mutableListOf<Pair<Int, StreamingModuleNotifications.ErrorContent?>>()
         val foregroundActions = mutableListOf<StreamingModuleNotifications.ForegroundAction>()
@@ -1444,7 +1476,7 @@ internal class StreamingModuleManagerTest {
         override fun buildForeground(action: StreamingModuleNotifications.ForegroundAction): Notification {
             buildFailure?.let { throw it }
             foregroundActions.add(action)
-            return Notification.Builder(RuntimeEnvironment.getApplication(), "test").setSmallIcon(1).build()
+            return Notification.Builder(RuntimeEnvironment.getApplication(), "test").setSmallIcon(1).build().also { onForegroundBuilt() }
         }
 
         override fun updateError(notificationId: Int, content: StreamingModuleNotifications.ErrorContent?) {

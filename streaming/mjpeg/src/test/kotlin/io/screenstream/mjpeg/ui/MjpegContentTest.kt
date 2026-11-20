@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.IsolatedSettingsContext
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import org.junit.Rule
@@ -27,6 +28,9 @@ import kotlin.test.assertEquals
 @Config(sdk = [34], qualifiers = "en")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 internal class MjpegContentTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = MjpegKoinTestRule()
+
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 

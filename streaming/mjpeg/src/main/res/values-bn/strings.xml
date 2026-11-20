@@ -20,6 +20,9 @@
     </string-array>
 
     <!-- Shared UI and settings -->
+    <string name="mjpeg_expanded">বড় করা হয়েছে</string>
+    <string name="mjpeg_collapsed">আড়াল করা হয়েছে</string>
+
     <string name="mjpeg_action_close">বন্ধ করুন</string>
 
     <string name="mjpeg_pref_value_on">চালু</string>

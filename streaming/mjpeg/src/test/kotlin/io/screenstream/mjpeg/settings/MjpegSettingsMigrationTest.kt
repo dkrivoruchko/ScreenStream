@@ -16,6 +16,7 @@ import io.screenstream.capture.OutputSize
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.SourceRegion
 import io.screenstream.mjpeg.IsolatedSettingsContext
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.networkaddress.AddressCategory
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
@@ -53,6 +54,9 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
 internal class MjpegSettingsMigrationTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = MjpegKoinTestRule()
+
     @get:Rule
     val temporaryFolder: TemporaryFolder = TemporaryFolder()
 

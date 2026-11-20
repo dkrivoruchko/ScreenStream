@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="rtsp_expanded">موسَّع</string>
+    <string name="rtsp_collapsed">مطويّ</string>
+
     <string name="rtsp_error_recover">استعادة</string>
+    <string name="rtsp_error_try_again">حاول مرة أخرى</string>
     <string name="rtsp_error_open_settings">فتح الإعدادات</string>
     <string name="rtsp_error_start_screen_sharing">ابدأ مشاركة الشاشة</string>
     <string name="rtsp_error_start_with_audio">ابدأ مع الصوت</string>
@@ -52,6 +56,7 @@
     <string name="rtsp_stream_stop">إيقاف البث</string>
 
     <string name="rtsp_error_notification_permission_required">يحتاج هذا التطبيق إلى تفعيل الإشعارات لبدء خدمة البث.\nفعّل الإشعارات من إعدادات التطبيق.</string>
+    <string name="rtsp_error_screen_capture_permission_denied_message">لم يبدأ البث لأن إذن مشاركة شاشتك لم يُمنح. اضغط على حاول مرة أخرى لإعادة فتح شاشة إذن Android.</string>
     <string name="rtsp_error_screen_capture_start_blocked">منع Android بدء مشاركة الشاشة. أبقِ ScreenStream مفتوحًا وحاول مرة أخرى.</string>
     <string name="rtsp_error_projection_acquire_rejected">لم يعد إذن التقاط الشاشة صالحًا. ابدأ مشاركة الشاشة مرة أخرى.</string>
     <string name="rtsp_error_audio_permission_required">إذن الميكروفون مطلوب لبدء البث مع الصوت.</string>

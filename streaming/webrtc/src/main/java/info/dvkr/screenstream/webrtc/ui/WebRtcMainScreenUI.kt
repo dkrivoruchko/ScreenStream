@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.webrtc.ui
 
 import android.content.ActivityNotFoundException
+import android.os.SystemClock
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,10 +39,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
 import androidx.lifecycle.compose.dropUnlessStarted
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.ui.DoubleClickProtection
-import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
@@ -54,13 +52,15 @@ import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
-import info.dvkr.screenstream.common.R as CommonR
+import io.screenstream.core.R as CoreR
 
 @Composable
 internal fun WebRtcMainScreenUI(
@@ -75,6 +75,7 @@ internal fun WebRtcMainScreenUI(
     webRtcSettings: WebRtcSettings = koinInject(),
     notifications: StreamingModuleNotifications = koinInject()
 ) {
+    val log: Logger = koinInject(parametersHolder = remember(instanceId) { parametersOf(instanceId) })
     val webRtcState = webRtcStateFlow.collectAsStateWithLifecycle()
     val webRtcSettingsState = webRtcSettings.data.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -82,11 +83,13 @@ internal fun WebRtcMainScreenUI(
     val state = webRtcState.value
     val settings = webRtcSettingsState.value
     val runtimePermissions = LocalRuntimePermissions.current
+    val currentRequestStart by rememberUpdatedState(requestStart)
+    val currentRequestRecovery by rememberUpdatedState(requestRecovery)
     var pendingPermission by retain(instanceId) { mutableStateOf<PendingPermissionRequest?>(null) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val lifecycleState by lifecycle.currentStateAsState()
     fun recoverCurrentError() {
-        webRtcStateFlow.value.errorToken?.let(requestRecovery)
+        webRtcStateFlow.value.errorToken?.let(currentRequestRecovery)
     }
 
     fun requestPermission(permission: RuntimePermission, action: PendingPermissionAction) {
@@ -172,7 +175,7 @@ internal fun WebRtcMainScreenUI(
                     }
 
                     is PendingPermissionAction.RecoverError -> {
-                        if (action.permission.androidPermission == RuntimePermission.RecordAudio.androidPermission) requestStart()
+                        if (action.permission.androidPermission == RuntimePermission.RecordAudio.androidPermission) currentRequestStart()
                         else recoverCurrentError()
                     }
                 }
@@ -189,11 +192,11 @@ internal fun WebRtcMainScreenUI(
                     TextButton(onClick = {
                         dismissCaptureRetry()
                         requestStart()
-                    }) { Text(stringResource(CommonR.string.common_try_again)) }
+                    }) { Text(stringResource(R.string.webrtc_error_try_again)) }
                 },
                 dismissButton = { TextButton(onClick = dismissCaptureRetry) { Text(stringResource(android.R.string.cancel)) } },
-                title = { Text(stringResource(CommonR.string.common_screen_capture_permission_required_title)) },
-                text = { Text(stringResource(CommonR.string.common_screen_capture_permission_denied_message)) },
+                title = { Text(stringResource(CoreR.string.core_screen_capture_permission_required_title)) },
+                text = { Text(stringResource(R.string.webrtc_error_screen_capture_permission_denied_message)) },
             )
         }
 
@@ -204,12 +207,20 @@ internal fun WebRtcMainScreenUI(
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 4.dp, end = 4.dp, bottom = 64.dp),
         ) {
-            state.error?.let {
+            state.error?.let { error ->
                 item(key = "ERROR") {
+                    val hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio
+                    val permission = when (error) {
+                        is WebRtcError.AudioPermissionRequired -> if (hasEnabledAudioSource) RuntimePermission.RecordAudio else null
+                        is WebRtcError.NotificationPermissionRequired -> RuntimePermission.Notifications
+                        else -> null
+                    }
+                    val errorPermissionState = permission?.let { runtimePermissions.state(it).collectAsStateWithLifecycle().value }
                     ErrorCard(
-                        error = it,
+                        error = error,
                         recoverError = { state.errorToken?.let(requestRecovery) },
-                        hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio,
+                        hasEnabledAudioSource = hasEnabledAudioSource,
+                        permissionState = errorPermissionState,
                         retryStartupPolicyError = { requestStart() },
                         requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio) },
                         requestNotificationPermission = requestNotificationPermission@{
@@ -222,9 +233,9 @@ internal fun WebRtcMainScreenUI(
                                     try {
                                         context.startActivity(settingsIntent)
                                     } catch (failure: ActivityNotFoundException) {
-                                        XLog.w(context.getLog("NotificationSettings", "Settings Activity is unavailable"), failure)
+                                        log.w("NotificationSettings", "Settings Activity is unavailable", failure)
                                     } catch (failure: SecurityException) {
-                                        XLog.w(context.getLog("NotificationSettings", "Settings Activity launch was denied"), failure)
+                                        log.w("NotificationSettings", "Settings Activity launch was denied", failure)
                                     }
                                 }
                             } else {
@@ -232,7 +243,7 @@ internal fun WebRtcMainScreenUI(
                             }
                         },
                         modifier = Modifier.padding(8.dp),
-                        showRecoverAction = !(state.isStreaming && it is WebRtcError.SignalingServerUnavailable)
+                        showRecoverAction = !(state.isStreaming && error is WebRtcError.SignalingServerUnavailable)
                     )
                 }
             }
@@ -278,11 +289,14 @@ internal fun WebRtcMainScreenUI(
             if (state.error != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
         }
 
-        val doubleClickProtection = remember { DoubleClickProtection.get() }
+        var lastClickTimeMs by remember { mutableStateOf<Long?>(null) }
 
         Button(
             onClick = dropUnlessStarted {
-                doubleClickProtection.processClick {
+                val now = SystemClock.elapsedRealtime()
+                val previousClickTimeMs = lastClickTimeMs
+                lastClickTimeMs = now
+                if (previousClickTimeMs == null || now - previousClickTimeMs >= 300L) {
                     if (state.isStreaming) {
                         state.captureAttempt?.let(requestStop)
                     } else {

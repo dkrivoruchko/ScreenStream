@@ -1,0 +1,52 @@
+package io.screenstream.analytics
+
+public interface StreamingAnalytics {
+    /** Nonthrowing, nonblocking acceptance. Delivery is best-effort for this process lifetime. */
+    public fun logEvent(event: StreamingAnalyticsEvent)
+}
+
+public sealed interface StreamingAnalyticsEvent {
+    public data class StreamStartAttempt(
+        public val streamMode: StreamMode,
+        public val entryPoint: EntryPoint,
+        public val usedCachedPermission: Boolean,
+        public val permissionEducationShown: Boolean,
+    ) : StreamingAnalyticsEvent
+
+    public data class StreamStarted(
+        public val streamMode: StreamMode,
+        public val entryPoint: EntryPoint,
+        public val usedCachedPermission: Boolean,
+        public val permissionEducationShown: Boolean,
+    ) : StreamingAnalyticsEvent
+
+    public data class StreamStartFailed(
+        public val streamMode: StreamMode,
+        public val entryPoint: EntryPoint,
+        public val usedCachedPermission: Boolean,
+        public val permissionEducationShown: Boolean,
+        public val startFailGroup: StartFailGroup,
+    ) : StreamingAnalyticsEvent
+
+    public data class StreamStartAborted(
+        public val streamMode: StreamMode,
+        public val entryPoint: EntryPoint,
+        public val usedCachedPermission: Boolean,
+        public val permissionEducationShown: Boolean,
+    ) : StreamingAnalyticsEvent
+
+    public data class FirstConsumerConnected(
+        public val streamMode: StreamMode,
+        public val entryPoint: EntryPoint,
+    ) : StreamingAnalyticsEvent
+
+    public data class StreamEnded(
+        public val streamMode: StreamMode,
+        public val entryPoint: EntryPoint,
+        public val stopReasonGroup: StopReasonGroup,
+        public val durationBucket: DurationBucket,
+        public val maxActiveConsumersBucket: MaxActiveConsumersBucket,
+        public val hadActiveConsumer: Boolean,
+        public val successfulSession: Boolean,
+    ) : StreamingAnalyticsEvent
+}

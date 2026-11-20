@@ -7,6 +7,7 @@ import io.ktor.server.routing.RoutingRoot
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.asByteWriteChannel
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.http.HttpDelivery.ServerFailure
 import io.screenstream.mjpeg.http.HttpDelivery.ServerState
 import io.screenstream.mjpeg.settings.AccessSettings
@@ -22,6 +23,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.io.readByteArray
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -46,6 +48,9 @@ import kotlin.uuid.Uuid
 @Config(sdk = [37])
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class HttpDeliverySocketOwnerTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-SRV-01, MJPEG-SRV-04
     @Test(timeout = 30_000)
     @OptIn(ExperimentalCoroutinesApi::class)

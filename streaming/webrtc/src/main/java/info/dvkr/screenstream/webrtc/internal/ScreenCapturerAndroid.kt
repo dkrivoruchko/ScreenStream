@@ -6,8 +6,7 @@ import android.media.projection.MediaProjection
 import android.os.Build
 import android.os.Handler
 import android.view.Surface
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
+import io.screenstream.foundation.logging.Logger
 import org.webrtc.CapturerObserver
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.ThreadUtils
@@ -16,7 +15,8 @@ internal class ScreenCapturerAndroid(
     private val surfaceTextureHelper: SurfaceTextureHelper,
     private val mediaProjectionCallback: MediaProjection.Callback,
     private val callbackHandler: Handler,
-    private val onCaptureFatal: (Throwable) -> Unit
+    private val onCaptureFatal: (Throwable) -> Unit,
+    private val log: Logger
 ) {
 
     private var mediaProjection: MediaProjection? = null
@@ -42,7 +42,7 @@ internal class ScreenCapturerAndroid(
     ): Boolean {
         checkNotDisposed()
         if (!isStartupStillValid()) {
-            XLog.i(getLog("startCapture", "Startup already invalidated. Ignoring capture start."))
+            log.i("ScreenCapturerAndroid.startCapture", "Startup already invalidated. Ignoring capture start.")
             return false
         }
         this.mediaProjection = mediaProjection
@@ -60,7 +60,7 @@ internal class ScreenCapturerAndroid(
         virtualDisplay = createVirtualDisplay()
         if (virtualDisplay == null || !isStartupStillValid()) {
             val reason = if (virtualDisplay == null) "virtualDisplay is null" else "startup invalidated"
-            XLog.i(getLog("startCapture", "$reason. Capture start failed."))
+            log.i("ScreenCapturerAndroid.startCapture", "$reason. Capture start failed.")
             return false
         }
         observerStartAttempted = true
@@ -76,15 +76,16 @@ internal class ScreenCapturerAndroid(
     internal fun changeCaptureFormat(width: Int, height: Int) {
         checkNotDisposed()
         if (width <= 0 || height <= 0) {
-            XLog.e(
-                getLog("changeCaptureFormat", "Invalid size: $width x $height. Ignoring."),
+            log.e(
+                "ScreenCapturerAndroid.changeCaptureFormat",
+                "Invalid size: $width x $height. Ignoring.",
                 IllegalArgumentException("Invalid capture size: $width x $height")
             )
             return
         }
         val sizeChanged = this.width != width || this.height != height
         if (!sizeChanged) {
-            XLog.v(getLog("changeCaptureFormat", "Same size. Ignoring reconfigure"))
+            log.v("ScreenCapturerAndroid.changeCaptureFormat", "Same size. Ignoring reconfigure")
             return
         }
         this.width = width
@@ -114,7 +115,8 @@ internal class ScreenCapturerAndroid(
                     virtualDisplay = createVirtualDisplay()
                     if (virtualDisplay == null) {
                         val cause = IllegalStateException("changeCaptureFormat: virtualDisplay recreation failed")
-                        XLog.e(getLog("changeCaptureFormat", cause.message), cause)
+                        // A diagnostic failure must not prevent the fatal capture callback.
+                        runCatching { log.e("ScreenCapturerAndroid.changeCaptureFormat", "Virtual display recreation failed", cause) }
                         onCaptureFatal(cause)
                         return@invokeAtFrontUninterruptibly
                     }
@@ -134,6 +136,7 @@ internal class ScreenCapturerAndroid(
             if (firstFailure == null) failure = cause
             else if (firstFailure !== cause) runCatching { firstFailure.addSuppressed(cause) }
         }
+
         fun cleanup(action: () -> Unit) {
             try {
                 action()

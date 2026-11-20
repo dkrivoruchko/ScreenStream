@@ -13,9 +13,8 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
 import android.view.Surface
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.MasterClock
+import io.screenstream.foundation.logging.Logger
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -25,6 +24,7 @@ import kotlin.math.roundToLong
 import kotlin.system.measureTimeMillis
 
 internal class EglRenderer(
+    private val log: Logger,
     private val width: Int,
     private val height: Int,
     private val encoderSurface: Surface,
@@ -115,7 +115,7 @@ internal class EglRenderer(
         get() = surfaceTexture ?: throw IllegalStateException("SurfaceTexture is not initialized.")
 
     init {
-        XLog.v(getLog("init"))
+        log.v("EglRenderer.init")
         val latch = CountDownLatch(1)
         handler.post {
             runSafely {
@@ -125,25 +125,25 @@ internal class EglRenderer(
             latch.countDown()
         }
         latch.await()
-        XLog.v(getLog("init", "Done"))
+        log.v("EglRenderer.init", "Done")
     }
 
     internal fun startAsync() {
-        XLog.v(getLog("startAsync"))
+        log.v("EglRenderer.startAsync")
 
         if (isRendering.compareAndSet(false, true)) {
             handler.post(renderFrameTask)
         } else {
-            XLog.w(getLog("start", "Renderer is already started."))
+            log.w("EglRenderer.start", "Renderer is already started.")
         }
     }
 
     fun stop() {
-        XLog.v(getLog("stop"))
+        log.v("EglRenderer.stop")
 
         val wasRendering = isRendering.getAndSet(false)
         if (!wasRendering) {
-            XLog.w(getLog("stop", "Renderer is not running."))
+            log.w("EglRenderer.stop", "Renderer is not running.")
         }
 
         val isHandlerThread = Thread.currentThread() == handlerThread.looper?.thread
@@ -152,7 +152,7 @@ internal class EglRenderer(
         } else {
             val latch = CountDownLatch(1)
             val posted = handler.post {
-                runCatching { stopOnHandlerThread() }.onFailure { XLog.e(getLog("stop", "Failed to stop on handler thread."), it) }
+                runCatching { stopOnHandlerThread() }.onFailure { log.e("EglRenderer.stop", "Failed to stop on handler thread.", it) }
                 latch.countDown()
             }
             if (posted) {
@@ -160,9 +160,9 @@ internal class EglRenderer(
             }
         }
 
-        runCatching { encoderSurface.release() }.onFailure { XLog.e(getLog("stop", "Failed to release encoder surface."), it) }
+        runCatching { encoderSurface.release() }.onFailure { log.e("EglRenderer.stop", "Failed to release encoder surface.", it) }
 
-        XLog.v(getLog("stop", "Done"))
+        log.v("EglRenderer.stop", "Done")
     }
 
     private fun stopOnHandlerThread() {
@@ -172,13 +172,13 @@ internal class EglRenderer(
         surfaceTextureToRelease?.setOnFrameAvailableListener(null)
         surfaceTexture = null
 
-        runCatching { releaseGL(surfaceTextureToRelease) }.onFailure { XLog.e(getLog("stop", "Failed to release GL resources."), it) }
+        runCatching { releaseGL(surfaceTextureToRelease) }.onFailure { log.e("EglRenderer.stop", "Failed to release GL resources.", it) }
 
         handlerThread.quitSafely()
     }
 
     internal fun setFps(fps: Int) {
-        XLog.v(getLog("setFps", "$fps"))
+        log.v("EglRenderer.setFps", "$fps")
         handler.post {
             this.fps = fps.coerceAtLeast(1)
             if (this.fps <= 0) frameIntervalMs = 0.0 else frameIntervalMs = 1000.0 / this.fps
@@ -191,7 +191,7 @@ internal class EglRenderer(
             block()
         }.onFailure { cause ->
             if (errorOccurred.compareAndSet(false, true)) {
-                XLog.w(getLog("runSafely", cause.message), cause)
+                log.w("EglRenderer.runSafely", "Render operation failed", cause)
                 isRendering.set(false)
                 handler.removeCallbacksAndMessages(null)
                 onError(cause)
@@ -344,18 +344,18 @@ internal class EglRenderer(
     }
 
     private fun releaseGL(surfaceTextureToRelease: SurfaceTexture?) {
-        XLog.v(getLog("releaseGL"))
+        log.v("EglRenderer.releaseGL")
 
         check(Thread.currentThread() == handlerThread.looper?.thread) { "All GL calls must be on EglRenderer HandlerThread!" }
 
         if (eglDisplay == EGL14.EGL_NO_DISPLAY) {
-            XLog.w(getLog("releaseGL", "EGL already released or not initialized."))
+            log.w("EglRenderer.releaseGL", "EGL already released or not initialized.")
             return
         }
 
         if (eglDisplay != EGL14.EGL_NO_DISPLAY && eglContext != EGL14.EGL_NO_CONTEXT) {
             if (!EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)) {
-                XLog.w(getLog("releaseGL", "Failed to make EGL context current during release"))
+                log.w("EglRenderer.releaseGL", "Failed to make EGL context current during release")
             }
 
             if (programId != 0) {
@@ -370,12 +370,12 @@ internal class EglRenderer(
 
         if (eglSurface != EGL14.EGL_NO_SURFACE) {
             runCatching { EGL14.eglDestroySurface(eglDisplay, eglSurface) }
-                .onFailure { XLog.w(getLog("releaseGL", "Failed to destroy EGL surface."), it) }
+                .onFailure { log.w("EglRenderer.releaseGL", "Failed to destroy EGL surface.", it) }
             eglSurface = EGL14.EGL_NO_SURFACE
         }
         if (eglContext != EGL14.EGL_NO_CONTEXT) {
             runCatching { EGL14.eglDestroyContext(eglDisplay, eglContext) }
-                .onFailure { XLog.w(getLog("releaseGL", "Failed to destroy EGL context."), it) }
+                .onFailure { log.w("EglRenderer.releaseGL", "Failed to destroy EGL context.", it) }
             eglContext = EGL14.EGL_NO_CONTEXT
         }
         if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
@@ -387,7 +387,7 @@ internal class EglRenderer(
         surfaceTextureToRelease?.release()
         surfaceTexture = null
 
-        XLog.v(getLog("releaseGL", "Done"))
+        log.v("EglRenderer.releaseGL", "Done")
     }
 
     @Throws(RuntimeException::class)

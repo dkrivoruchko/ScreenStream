@@ -27,8 +27,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
+import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.robolectric.Robolectric
 import org.robolectric.RuntimeEnvironment
@@ -76,12 +75,10 @@ internal class ServiceTestHost(directory: File) : AutoCloseable {
         Dispatchers.setMain(UnconfinedTestDispatcher(scheduler))
         runBlocking { withTimeout(5.seconds) { settings.initialize() } }
         manager = StreamingModuleManagerImpl(listOf(ServiceDescriptor), context, settings, notifications, StandardTestDispatcher(scheduler))
-        startKoin {
-            modules(module {
-                single { manager }
-                single<StreamingModuleNotifications> { notifications }
-            })
-        }
+        loadKoinModules(module {
+            single { manager }
+            single<StreamingModuleNotifications> { notifications }
+        })
         CoreServiceHost.factory = { handle -> ServiceControllerProbe(handle).also { controller = it } }
         manager.selectModule(ServiceDescriptor.id)
         scheduler.runCurrent()
@@ -110,7 +107,6 @@ internal class ServiceTestHost(directory: File) : AutoCloseable {
             destroy()
             scheduler.runCurrent()
         } finally {
-            stopKoin()
             CoreServiceHost.factory = { error("No Service test factory installed") }
             Dispatchers.resetMain()
         }

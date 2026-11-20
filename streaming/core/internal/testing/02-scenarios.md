@@ -152,6 +152,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 - advance the clock past the deadline, then report a status before the scheduler observes the deadline
 - report a status before the deadline, then let the deadline pass before the manager applies it
 - advance past the deadline before the Service start is delivered
+- deliver the Service start in time, advance elapsed realtime past the deadline while building the waiting-foreground notification, then explicitly restart the failed instance
 
 **Expected.**
 
@@ -160,6 +161,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 - **Deep sleep counts.** The startup deadline uses elapsed realtime, so deep sleep alone can expire it.
 - **Late status.** A status reported after the deadline, or reported before it but applied after it, doesn't produce `Running`.
 - **Late delivery.** A fresh start delivered after the deadline neither promotes to foreground nor invokes the factory. The unowned Service stops if it has no newer pending start; the instance stays failed.
+- **Expiry during setup.** If the deadline expires during waiting-foreground notification construction, the Service skips foreground promotion and Controller creation and stops if no newer start is pending. The manager reports `Failed`. Restarting that exact failed instance can open a new instance.
 
 **Evidence boundary.** Robolectric's clock stands in for real deep sleep and scheduling delay. Real ordinary dispatch followed by delayed delivery and Service teardown needs platform qualification; local absence of promotion does not prove process survival on Android.
 
@@ -569,6 +571,17 @@ Supply an observer that throws an ordinary or cancellation exception during subm
 | <a id="core-perm-01"></a>`CORE-PERM-01` | Notifications need a grant from API 33 plus app-wide enablement; local network needs one only when device and target SDK are both 37+; the audio entries share the `RECORD_AUDIO` grant. |
 | <a id="core-perm-02"></a>`CORE-PERM-02` | Rationale is reported only for a required, denied permission. Settings are suggested when an earlier observed rationale disappears, not after a first denial, and for disabled notifications whose grant is held or not required. |
 | <a id="core-perm-03"></a>`CORE-PERM-03` | Notification settings open the app's notification page from API 26 and app details below; other permissions open app details. |
+
+## Runtime permission host
+
+**Owner.** [RuntimePermissionHost](../../src/main/kotlin/io/screenstream/core/compose/RuntimePermissionHost.kt). A supplied Activity result registry and permission grants exercise local request UI; they do not qualify Android permission dialogs or the app's durable persistence adapter.
+
+| ID | Controlled history and observable result |
+| --- | --- |
+| <a id="core-perm-04"></a>`CORE-PERM-04` | A missing permission is admitted only while resumed and with the request slot free. Audio aliases share that slot and UI state; rejected requests are not queued. A fresh root offers unavailable notifications. |
+| <a id="core-perm-05"></a>`CORE-PERM-05` | Dismissing the initial notification offer remains dismissed after Activity recreation. An admitted audio request survives removal of its originating UI and recreation without another system launch; a supplied successful result updates all audio aliases from the current Android grant. |
+| <a id="core-perm-06"></a>`CORE-PERM-06` | Loaded rationale history seeds a saveable snapshot and is not replaced by changed initial arguments. Observations update local history without waiting for persistence and call the latest callback after recomposition; a disappeared observed rationale offers settings. A granted runtime permission reports removal from history. |
+| <a id="core-perm-07"></a>`CORE-PERM-07` | Explanation dismissal, a supplied launcher failure and return from settings settle the slot; later requests can proceed. Returning from settings rechecks the actual grant. |
 
 ## Settings ownership and durability
 

@@ -4,19 +4,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import io.screenstream.core.logE
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings
 import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingsGroupCard
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.launch
+import io.screenstream.mjpeg.ui.settings.rememberMjpegSettingsSave
 
 internal val automationSettingSearchEntries: List<SettingSearchInfo> = listOf(
     StopAfterAddressLossSearch.info,
@@ -36,20 +32,9 @@ internal fun AutomationSettingsGroup(
     onExpandedChange: (Boolean) -> Unit,
 ) {
     val saveErrorText = stringResource(R.string.mjpeg_pref_automation_save_error)
-    val coroutineScope = rememberCoroutineScope()
+    val save = rememberMjpegSettingsSave(mjpegSettings, "Automation.save", "Could not save automation settings") { onSaveError(saveErrorText) }
 
-    fun updateBehavior(transform: StreamBehaviorSettings.() -> StreamBehaviorSettings) {
-        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            try {
-                mjpegSettings.updateData { copy(behavior = behavior.transform()) }
-            } catch (failure: CancellationException) {
-                throw failure
-            } catch (failure: Exception) {
-                mjpegSettings.logE("Automation.save", "Could not save automation settings", failure)
-                onSaveError(saveErrorText)
-            }
-        }
-    }
+    fun updateBehavior(transform: StreamBehaviorSettings.() -> StreamBehaviorSettings) = save { copy(behavior = behavior.transform()) }
 
     SettingsGroupCard(
         expanded = expanded,

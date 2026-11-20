@@ -21,12 +21,15 @@ import info.dvkr.screenstream.R
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
-internal fun AppUpdateHost(updateFlow: StateFlow<((Boolean) -> Unit)?>) {
-    val updateCallbackState = updateFlow.collectAsStateWithLifecycle()
-    if (updateCallbackState.value != null) {
+internal fun AppUpdateHost(
+    restartAvailable: StateFlow<Boolean>,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (restartAvailable.collectAsStateWithLifecycle().value) {
         AppUpdateSheet(
-            onConfirm = { updateCallbackState.value?.invoke(true) },
-            onDismiss = { updateCallbackState.value?.invoke(false) },
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
         )
     }
 }

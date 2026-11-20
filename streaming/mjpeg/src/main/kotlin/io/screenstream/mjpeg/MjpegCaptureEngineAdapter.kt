@@ -5,6 +5,7 @@ import android.media.projection.MediaProjection
 import io.screenstream.capture.EncodedFrame
 import io.screenstream.capture.FrameConsumerRegistration
 import io.screenstream.capture.ScreenCaptureConfig
+import io.screenstream.capture.ScreenCaptureDiagnosticEvent
 import io.screenstream.capture.ScreenCaptureEngine
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureProblem
@@ -14,6 +15,7 @@ import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.ScreenCaptureStopReason
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 
 /** Successful creation transfers projection ownership; a thrown construction step leaves it with the caller. */
@@ -42,6 +44,8 @@ internal interface MjpegEngineSession {
     val currentState: MjpegEngineState
     val states: Flow<MjpegEngineState>
     val stats: StateFlow<ScreenCaptureStats>
+    val diagnosticEvents: Flow<ScreenCaptureDiagnosticEvent>
+        get() = emptyFlow()
 
     suspend fun start(parameters: ScreenCaptureParameters)
     fun updateParameters(parameters: ScreenCaptureParameters)
@@ -81,6 +85,9 @@ private class ForwardingMjpegEngineSession : MjpegEngineSession {
 
     override val stats: StateFlow<ScreenCaptureStats>
         get() = engine.stats
+
+    override val diagnosticEvents: Flow<ScreenCaptureDiagnosticEvent>
+        get() = engine.diagnosticEvents
 
     override suspend fun start(parameters: ScreenCaptureParameters): Unit = engine.start(parameters)
 

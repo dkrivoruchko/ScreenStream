@@ -17,19 +17,17 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
-import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.permission.PermissionState
-import io.screenstream.core.permission.RuntimePermission
 
 @Composable
 internal fun ErrorCard(
     error: WebRtcError,
     recoverError: () -> Unit,
     hasEnabledAudioSource: Boolean,
+    permissionState: PermissionState?,
     retryStartupPolicyError: () -> Unit,
     requestAudioPermission: () -> Unit,
     requestNotificationPermission: () -> Unit,
@@ -38,12 +36,6 @@ internal fun ErrorCard(
 ) {
     val startupPolicyError = error.isStartupPolicyError()
     val isAudioPermissionError = error is WebRtcError.AudioPermissionRequired && hasEnabledAudioSource
-    val permission = when {
-        isAudioPermissionError -> RuntimePermission.RecordAudio
-        error is WebRtcError.NotificationPermissionRequired -> RuntimePermission.Notifications
-        else -> null
-    }
-    val permissionState = permission?.let { LocalRuntimePermissions.current.state(it).collectAsStateWithLifecycle().value }
 
     ElevatedCard(modifier = modifier) {
         Column(

@@ -21,6 +21,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,14 +40,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.common.ui.ExpandableCard
-import info.dvkr.screenstream.common.ui.conditional
+import info.dvkr.screenstream.rtsp.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.AudioCodecInfo
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.getBitRateInKbits
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.main.media.EncoderItem
+import info.dvkr.screenstream.rtsp.ui.conditional
 import kotlin.math.roundToInt
 
 @Composable
@@ -115,7 +116,7 @@ internal fun AudioCard(
             onAutoSelectChange = { updateSettings { copy(audioCodecAutoSelect = audioCodecAutoSelect.not()) } },
             selectedEncoder = selectedAudioEncoder,
             availableEncoders = EncoderUtils.availableAudioEncoders,
-            onCodecSelected = { updateSettings { copy(audioCodec = it ?: "") } },
+            onSelectEncoder = { updateSettings { copy(audioCodec = it ?: "") } },
             enabled = isStreaming.not(),
             modifier = Modifier
                 .padding(top = 4.dp)
@@ -180,14 +181,18 @@ private fun AudioSource(
             verticalAlignment = Alignment.CenterVertically
         ) {
             var sliderPosition by remember(volume, muted) { mutableFloatStateOf(if (muted) 0F else volume.coerceIn(0f, 2f) * 100) }
+            val sliderState = remember { SliderState(trackRange = 0f..200f) }
+            sliderState.value = sliderPosition
 
             Slider(
-                value = sliderPosition,
-                onValueChange = { sliderPosition = it },
+                state = sliderState,
+                onValueChange = { position ->
+                    sliderState.value = position
+                    sliderPosition = position
+                },
                 modifier = Modifier.weight(1f),
                 enabled = active,
-                valueRange = 0f..200f,
-                onValueChangeFinished = { onVolumeChange((sliderPosition / 100).coerceIn(0f, 2f)) }
+                onValueChangeFinished = { onVolumeChange((sliderPosition / 100).coerceIn(0f, 2f)) },
             )
 
             Text(text = "${sliderPosition.roundToInt()}%", modifier = Modifier.padding(start = 16.dp, end = 8.dp))
@@ -216,7 +221,7 @@ private fun AudioEncoder(
     onAutoSelectChange: (Boolean) -> Unit,
     selectedEncoder: AudioCodecInfo?,
     availableEncoders: List<AudioCodecInfo>,
-    onCodecSelected: (String?) -> Unit,
+    onSelectEncoder: (String?) -> Unit,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -289,7 +294,7 @@ private fun AudioEncoder(
                         },
                         onClick = {
                             expanded = false
-                            onCodecSelected(encoder.name)
+                            onSelectEncoder(encoder.name)
                         },
                         contentPadding = PaddingValues()
                     )
@@ -311,6 +316,9 @@ private fun Bitrate(
     Column(modifier = modifier) {
         var isDragging by remember { mutableStateOf(false) }
         var sliderPosition by remember { mutableFloatStateOf((bitrateBits / 1000).coerceIn(bitrateRangeKbits).toFloat()) }
+        val trackRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat()
+        val sliderState = remember(trackRange) { SliderState(trackRange = trackRange) }
+        sliderState.value = sliderPosition
 
         LaunchedEffect(bitrateBits, bitrateRangeKbits) {
             if (!isDragging) {
@@ -319,7 +327,7 @@ private fun Bitrate(
         }
 
         Text(
-            text = stringResource(R.string.rtsp_audio_bitrate, sliderPosition.roundToInt().toKOrMBitString()),
+            text = stringResource(R.string.rtsp_audio_bitrate, sliderState.value.roundToInt().toKOrMBitString()),
             modifier = Modifier
         )
 
@@ -329,21 +337,21 @@ private fun Bitrate(
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
             Slider(
-                value = sliderPosition,
-                onValueChange = {
+                state = sliderState,
+                onValueChange = { position ->
                     isDragging = true
-                    sliderPosition = it
+                    sliderState.value = position
+                    sliderPosition = position
                 },
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
                     .weight(1f)
                     .align(Alignment.CenterVertically),
                 enabled = enabled,
-                valueRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat(),
                 onValueChangeFinished = {
                     isDragging = false
-                    onValueChange.invoke((sliderPosition * 1000).roundToInt())
-                }
+                    onValueChange.invoke((sliderState.value * 1000).roundToInt())
+                },
             )
             Text(
                 text = bitrateRangeKbits.endInclusive.toKOrMBitString(),
