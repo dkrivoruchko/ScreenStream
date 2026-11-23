@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">麦克风访问</string>
     <string name="core_permission_microphone_message">允许访问麦克风，以在串流中包含麦克风的声音。\n\n没有此权限，就无法串流麦克风音频。</string>
     <string name="core_permission_device_audio_title">设备音频访问</string>
-    <string name="core_permission_device_audio_message">Android 要求获得麦克风权限才能串流设备音频。这不会开启您的麦克风。\n\n只能串流 Android 和播放音频的应用允许共享的音频。</string>
+    <string name="core_permission_device_audio_message">Android 要求获得麦克风权限才能串流设备音频。麦克风选项关闭时，串流不会包含麦克风音频。\n\n只有 Android 和播放音频的应用允许共享的音频才能串流。</string>
 
     <string name="core_permission_audio_title">麦克风和设备音频</string>
     <string name="core_permission_audio_message">允许访问麦克风，以串流麦克风和设备音频。\n\n只有在 Android 和播放音频的应用允许共享时，才能串流设备音频。</string>

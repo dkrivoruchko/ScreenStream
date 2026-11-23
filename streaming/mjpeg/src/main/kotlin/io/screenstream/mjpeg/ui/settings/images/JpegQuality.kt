@@ -13,7 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -32,7 +31,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.ImageSettings
-import io.screenstream.mjpeg.ui.LocalMjpegSnackbarHostState
 import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingSliderThumb
@@ -132,7 +130,6 @@ internal fun JpegQualitySettingItem(
                                 .focusRequester(sliderFocusRequester)
                                 .semantics { contentDescription = qualityLabel },
                         )
-                        SnackbarHost(LocalMjpegSnackbarHostState.current)
                     }
                 }
             }

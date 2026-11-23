@@ -65,6 +65,7 @@ internal class AppUpdate(private val activity: ComponentActivity) : DefaultLifec
         when (installState.installStatus()) {
             InstallStatus.DOWNLOADED -> requestCompleteUpdate()
             InstallStatus.FAILED, InstallStatus.CANCELED -> isCompletingUpdate = false
+            else -> Unit
         }
     }
 

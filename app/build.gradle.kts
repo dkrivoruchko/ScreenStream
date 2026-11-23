@@ -133,8 +133,12 @@ dependencies {
     implementation(projects.streaming.rtsp)
 
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material3.adaptive)
 
+    implementation(libs.androidx.activity)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core)
@@ -142,9 +146,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.window.core)
-    implementation(libs.androidx.navigation3.ui)
-    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
-    implementation(libs.androidx.compose.material3.adaptive.navigation3)
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.core)
@@ -167,12 +168,4 @@ dependencies {
     "PlayStoreImplementation"(libs.firebase.analytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics.ndk)
     "PlayStoreImplementation"(libs.kermit.crashlytics)
-
-    constraints {
-        // Navigation 3 UI 1.2.2 requests NavigationEvent Compose 1.1.1. Keep this override
-        // until Navigation 3 pulls in 1.2.0 or newer with the child dispatcher fallback fix.
-        implementation(libs.androidx.navigationevent.compose) {
-            because("NavigationEvent 1.2.0 propagates unhandled Back events to the parent dispatcher fallback (b/531988076)")
-        }
-    }
 }

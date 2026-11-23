@@ -4,8 +4,6 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.window.core.layout.WindowSizeClass
 import io.screenstream.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.module.StreamingModule
@@ -183,8 +181,8 @@ internal class MjpegStreamingModuleController(
     override suspend fun awaitCleanup(): Boolean = cleanupResult.await()
 
     @Composable
-    override fun Content(window: WindowSizeClass, modifier: Modifier) {
-        uiController.Content(modifier = modifier)
+    override fun Content(layout: @Composable (StreamingModule.Ui) -> Unit) {
+        uiController.Content(layout)
     }
 
     override fun onServiceDestroyed() {

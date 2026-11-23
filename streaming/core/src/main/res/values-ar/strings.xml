@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">الوصول إلى الميكروفون</string>
     <string name="core_permission_microphone_message">اسمح بالوصول إلى الميكروفون لتضمين صوته في البث.\n\nبدون ذلك، لا يمكن بث صوت الميكروفون.</string>
     <string name="core_permission_device_audio_title">الوصول إلى صوت الجهاز</string>
-    <string name="core_permission_device_audio_message">يتطلب Android إذن الميكروفون لبث صوت الجهاز. هذا لا يشغّل الميكروفون.\n\nيمكن بث الصوت الذي يسمح Android والتطبيق الذي يشغّله بمشاركته فقط.</string>
+    <string name="core_permission_device_audio_message">يتطلب Android إذن الميكروفون لبث صوت الجهاز. عند إيقاف خيار الميكروفون، لا يتضمن البث صوت الميكروفون.\n\nلا يمكن بث سوى الصوت الذي يسمح Android والتطبيق الذي يشغّله بمشاركته.</string>
 
     <string name="core_permission_audio_title">صوت الميكروفون والجهاز</string>
     <string name="core_permission_audio_message">اسمح بالوصول إلى الميكروفون لبث صوت الميكروفون والجهاز.\n\nلا يمكن بث صوت الجهاز إلا إذا سمح Android والتطبيق الذي يشغّله بمشاركته.</string>

@@ -49,6 +49,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 import java.io.IOException
+import java.net.BindException
 import java.net.SocketException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -493,7 +494,8 @@ internal class KtorHttpDelivery(
                             "attempt=${entry.bindAttempts}, exceptionType=${cause.javaClass.simpleName}",
                 )
             }
-            failure = when (cause) {
+            val listenerFailure = if (cause is CancellationException) cause.cause as? BindException ?: cause else cause
+            failure = when (listenerFailure) {
                 is SecurityException -> ServerFailure.PermissionDenied
                 is SocketException -> ServerFailure.AddressUnavailable
                 is IOException -> ServerFailure.IoFailure

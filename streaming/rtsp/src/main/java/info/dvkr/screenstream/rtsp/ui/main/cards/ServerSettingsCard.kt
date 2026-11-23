@@ -15,11 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.window.core.layout.WindowSizeClass
-import info.dvkr.screenstream.rtsp.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
-import info.dvkr.screenstream.rtsp.ui.main.settings.common.RtspSettingModal
+import info.dvkr.screenstream.rtsp.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.AddressFilterEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.AddressFilterRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.EnableIPv4Row
@@ -31,12 +29,12 @@ import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerPortEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerPortRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerProtocolEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerProtocolRow
+import io.screenstream.core.module.StreamingModule.Ui.ModalHost
 
 @Composable
 internal fun ServerSettingsCard(
     settings: RtspSettings.Data,
     updateSettings: (RtspSettings.Data.() -> RtspSettings.Data) -> Unit,
-    windowSizeClass: WindowSizeClass,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -128,8 +126,7 @@ internal fun ServerSettingsCard(
         }
 
         selectedSheet?.let { sheet ->
-            RtspSettingModal(
-                windowSizeClass = windowSizeClass,
+            ModalHost.current.Modal(
                 title = stringResource(sheet.titleRes),
                 onDismissRequest = { selectedSheet = null }
             ) {

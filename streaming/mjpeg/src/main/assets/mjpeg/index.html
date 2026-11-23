@@ -43,8 +43,9 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 /* The player surfaces stay neutral over any image and browser theme. */
 .caption { max-width: 95%; min-height: 36px; padding: 7px 12px; color: #fff; font-size: 14px; font-weight: 500; line-height: 24px; }
 .caption span { display: block; padding: 3px 12px; border-radius: 9px; color: inherit; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .15); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; row-gap: 6px; width: max-content; padding: 6px; border: 0; border-radius: 30px; color: #fff; background: #24272b; box-shadow: 0 4px 16px rgba(0, 0, 0, .14); }
-.controls > * { margin: 0; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; width: max-content; padding: 3px 6px; border: 0; border-radius: 30px; color: #fff; background: #24272b; box-shadow: 0 4px 16px rgba(0, 0, 0, .14); }
+/* Item margins also separate wrapped rows in browsers without flex gap. */
+.controls > * { margin: 3px 0; }
 .controls > button, .size-modes button + button { margin-left: 6px; }
 .controls button { display: block; position: relative; flex: 0 0 48px; width: 48px; min-width: 48px; max-width: 48px; height: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 8px; color: inherit; background: transparent; box-shadow: none; text-align: center; }
 #view-fit { border-radius: 24px 8px 8px 24px; }
@@ -185,7 +186,9 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 }
 @media (max-height: 400px) {
   .panel { max-height: 90%; }
-  .caption, .controls { padding-top: 2px; padding-bottom: 2px; }
+  .caption { padding-top: 2px; padding-bottom: 2px; }
+  .controls { padding-top: 0; padding-bottom: 0; }
+  .controls > * { margin-top: 2px; margin-bottom: 2px; }
 }
 @media (prefers-color-scheme: dark) {
   html, body { color: #e0e2e8; background: #101418; }
@@ -833,9 +836,21 @@ function createAccessPanel(viewportLayout, callbacks) {
     const fieldError = byId('pin-error');
     const blockCopy = byId('pin-block-copy'), countdown = byId('pin-countdown');
     const logo = byId('pin-logo'), retryButton = byId('pin-retry'), countdownValue = byId('pin-countdown-value');
+    const pinLength = 6;
+    const decimalZeroes = [0x0030, 0x0660, 0x06f0, 0x0966, 0x09e6, 0xff10];
     let current = null, started = false, restoreEntryFocus = false;
 
     function cancelFocusRestore() { restoreEntryFocus = false; }
+
+    function asciiPinDigits(value) {
+        let digits = '';
+        for (let index = 0; index < value.length && digits.length < pinLength; index += 1) {
+            const code = value.charCodeAt(index);
+            const zero = decimalZeroes.find(start => code >= start && code <= start + 9);
+            if (zero !== undefined) digits += String(code - zero);
+        }
+        return digits;
+    }
 
     function showFieldError(value) {
         text(fieldError, value);
@@ -948,12 +963,10 @@ function createAccessPanel(viewportLayout, callbacks) {
         window.addEventListener('blur', cancelFocusRestore);
         input.addEventListener('input', () => {
             const value = input.value, start = input.selectionStart, end = input.selectionEnd;
-            const digits = value.replace(/[^0-9]/g, '').slice(0, 6);
+            const digits = asciiPinDigits(value);
             if (value !== digits) {
                 input.value = digits;
-                input.setSelectionRange(
-                    Math.min(digits.length, value.slice(0, start).replace(/[^0-9]/g, '').length),
-                    Math.min(digits.length, value.slice(0, end).replace(/[^0-9]/g, '').length));
+                input.setSelectionRange(asciiPinDigits(value.slice(0, start)).length, asciiPinDigits(value.slice(0, end)).length);
             }
             showFieldError('');
         });
@@ -961,8 +974,8 @@ function createAccessPanel(viewportLayout, callbacks) {
             if (!event.clipboardData) return;
             event.preventDefault();
             const start = input.selectionStart, end = input.selectionEnd;
-            const digits = event.clipboardData.getData('text').replace(/[^0-9]/g, '');
-            const inserted = digits.slice(0, 6 - input.value.length + end - start);
+            const digits = asciiPinDigits(event.clipboardData.getData('text'));
+            const inserted = digits.slice(0, pinLength - input.value.length + end - start);
             if (!inserted) return;
             input.value = input.value.slice(0, start) + inserted + input.value.slice(end);
             input.setSelectionRange(start + inserted.length, start + inserted.length);

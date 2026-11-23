@@ -2,7 +2,6 @@ package info.dvkr.screenstream.settings
 
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
 import io.screenstream.foundation.logging.Logger
 import io.screenstream.foundation.settings.JsonPreferencesStore
@@ -48,8 +47,7 @@ public class AppSettings(
         public const val DYNAMIC_THEME: Boolean = false
     }
 
-    /** The app-wide settings stored together as one immutable value. */
-    @Immutable
+    /** The app-wide settings stored together as one snapshot. */
     @Serializable
     public data class Data(
         public val nightMode: Int = Default.NIGHT_MODE,

@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.NetworkSettings
@@ -26,14 +25,17 @@ internal fun ConnectionSettingsGroup(
     networkSettings: NetworkSettings,
     mjpegSettings: MjpegSettings,
     editPolicy: MjpegSettings.EditPolicy,
-    onSaveError: (String) -> Unit,
     visibleSettings: Set<SettingSearchInfo>?,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
 ) {
-    val saveErrorText = stringResource(R.string.mjpeg_pref_connection_save_error)
     val currentEditPolicy by rememberUpdatedState(editPolicy)
-    val save = rememberMjpegSettingsSave(mjpegSettings, "Connection.save", "Could not save connection settings") { onSaveError(saveErrorText) }
+    val save = rememberMjpegSettingsSave(
+        settings = mjpegSettings,
+        logTag = "Connection.save",
+        logMessage = "Could not save connection settings",
+        errorMessageRes = R.string.mjpeg_pref_connection_save_error,
+    )
 
     fun updateNetwork(transform: NetworkSettings.() -> NetworkSettings) = save {
         val proposed = copy(network = network.transform())

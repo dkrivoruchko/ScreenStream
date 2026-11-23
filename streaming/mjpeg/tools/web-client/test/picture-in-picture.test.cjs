@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { createViewerTestContext, createDeferred } = require('./viewer-test-support.cjs');
+const { createViewerTestContext, createDeferred, createWebSnapshot } = require('./viewer-test-support.cjs');
 
 function createEventTarget(properties = {}) {
     const listeners = new Map();
@@ -23,11 +23,17 @@ function createPictureInPictureHarness(t) {
     class FakeCanvas {
         constructor() {
             this.paints = 0;
+            this.lastPaint = null;
             this.track = { stops: 0, stop() { this.stops += 1; } };
             this.stream = { getTracks: () => [this.track] };
             canvases.push(this);
         }
-        getContext() { return { drawImage: () => { this.paints += 1; } }; }
+        getContext() {
+            return { drawImage: image => {
+                this.paints += 1;
+                this.lastPaint = image;
+            } };
+        }
         captureStream() { return this.stream; }
     }
     const document = {
@@ -35,7 +41,7 @@ function createPictureInPictureHarness(t) {
         createElement(name) { assert.equal(name, 'canvas'); return new FakeCanvas(); },
         exitPictureInPicture() { const operation = createDeferred(); exits.push(operation); return operation.promise; }
     };
-    const { createPictureInPicture } = createViewerTestContext(t, 'picture-in-picture', {
+    const { createApplication, createPictureInPicture } = createViewerTestContext(t, ['application', 'picture-in-picture'], {
         document, window: { HTMLCanvasElement: FakeCanvas }, HTMLCanvasElement: FakeCanvas,
         setTimeout(callback, delay) {
             const timer = setTimeout(() => { timers.delete(timer); callback(); }, delay);
@@ -48,7 +54,7 @@ function createPictureInPictureHarness(t) {
     owner.start();
     owner.setImage({ naturalWidth: 640, naturalHeight: 360 });
     t.after(() => owner.stop());
-    return { owner, pip, video, document, canvases, plays, entries, exits, notices, timers,
+    return { createApplication, owner, pip, video, document, canvases, plays, entries, exits, notices, timers,
         click: () => pip.emit('click'),
         metadata: () => video.onloadedmetadata(),
         replaceImage: () => owner.setImage({ naturalWidth: 360, naturalHeight: 640 }) };
@@ -111,6 +117,56 @@ test('active PiP outlives preparation, releases on normal leave and ignores an o
     h.video.emit('leavepictureinpicture', { pictureInPictureWindow: replacementWindow });
     assertReleased(h, replacement, 2);
     assert.deepEqual(h.notices, []);
+});
+
+test('an open PiP window keeps showing the live frame until a retained replacement arrives', async t => {
+    const h = createPictureInPictureHarness(t);
+    let mediaRequest;
+    const app = h.createApplication({
+        clock: { now: () => Date.now(), setTimeout, clearTimeout },
+        connection: { retry() {} },
+        media: { apply: value => { mediaRequest = value; } },
+        access: { render() {} },
+        presentation: { configure() {}, render() {}, setFrame: h.owner.setImage, revokeFrame: () => h.owner.setImage(null) }
+    });
+    const live = { naturalWidth: 640, naturalHeight: 360 };
+    const retained = { naturalWidth: 360, naturalHeight: 640 };
+    app.start();
+    app.snapshot(createWebSnapshot());
+    app.frame(live, live.naturalWidth, live.naturalHeight);
+    const entry = await prepareNativeEntry(h);
+    const canvas = h.canvases[0];
+    h.document.pictureInPictureElement = h.video;
+    entry.resolve({});
+    await entry.promise;
+    assert.equal(canvas.lastPaint, live);
+
+    app.snapshot(createWebSnapshot({ imageKind: 'retained', notice: 'stopped' }));
+    assert.equal(mediaRequest.eligible, true);
+    assert.equal(mediaRequest.imageKind, 'retained');
+    const livePaintCount = canvas.paints;
+    t.mock.timers.tick(100);
+    assert.equal(canvas.paints, livePaintCount + 1);
+    assert.equal(canvas.lastPaint, live);
+
+    app.frame(retained, retained.naturalWidth, retained.naturalHeight);
+    t.mock.timers.tick(100);
+    assert.equal(canvas.paints, livePaintCount + 2);
+    assert.equal(canvas.lastPaint, retained);
+    assert.equal(canvas.width, retained.naturalWidth);
+    assert.equal(canvas.height, retained.naturalHeight);
+    assert.equal(canvas.track.stops, 0);
+    assert.equal(h.video.srcObject, canvas.stream);
+    assert.equal(h.canvases.length, 1);
+    assert.equal(h.entries.length, 1);
+    assert.equal(h.exits.length, 0);
+
+    app.snapshot(createWebSnapshot({ imageKind: 'logo', notice: 'stopped' }));
+    assertReleased(h, canvas);
+    assert.equal(h.exits.length, 1);
+    h.document.pictureInPictureElement = null;
+    h.exits[0].resolve();
+    await h.exits[0].promise;
 });
 
 test('NotAllowedError keeps the prepared stream for a second gesture that can enter PiP', async t => {

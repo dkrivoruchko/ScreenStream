@@ -1,7 +1,6 @@
 package io.screenstream.mjpeg.device
 
 import android.content.Context
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -15,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.core.os.ConfigurationCompat
 import io.screenstream.mjpeg.R
 import java.text.NumberFormat
@@ -45,13 +43,13 @@ internal class MjpegStatisticsUi(private val compose: ComposeTestRule, private v
 
     fun expand() {
         val title = context.getString(R.string.mjpeg_stats_title)
-        scrollGridTo(hasText(title, substring = true))
+        scrollSectionsTo(hasText(title, substring = true))
         compose.onNodeWithText(title, substring = true).performClick()
     }
 
     /** The expanded chart distinguishes unavailable from numeric zero; the collapsed header does not. */
     fun readCurrentFps(): Double? {
-        scrollGridTo(fpsChartMatcher)
+        scrollSectionsTo(fpsChartMatcher)
         val title = checkNotNull(compose.onNode(fpsChartMatcher).assertIsDisplayed().fetchSemanticsNode().singleText())
         val unavailable = context.getString(
             R.string.mjpeg_stats_chart_title, frameRateLabel, context.getString(R.string.mjpeg_stats_unavailable),
@@ -67,29 +65,8 @@ internal class MjpegStatisticsUi(private val compose: ComposeTestRule, private v
 
     fun readFrameTotals(): FrameTotals {
         val title = context.getString(R.string.mjpeg_stats_engine_title)
-        scrollGridTo(hasText(title))
-        val grid = compose.onNode(hasScrollToIndexAction())
-        val engine = compose.onNodeWithText(title)
-        val captureButton = compose.onNode(
-            hasText(context.getString(R.string.mjpeg_stream_start_capture)) or
-                    hasText(context.getString(R.string.mjpeg_stream_stop_capture)),
-        )
-        val engineBounds = engine.fetchSemanticsNode().boundsInRoot
-        val buttonBounds = captureButton.fetchSemanticsNode().boundsInRoot
-        // The transparent capture button intentionally floats over the grid. Scroll its target
-        // clear of that sibling overlay; ordinary scroll-to only knows the grid's viewport.
-        if (engineBounds.overlaps(buttonBounds)) {
-            grid.performSemanticsAction(SemanticsActions.ScrollBy) { scroll ->
-                scroll(0f, engineBounds.bottom - buttonBounds.top)
-            }
-        }
-        val tapBounds = engine.assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val viewport = grid.fetchSemanticsNode().boundsInRoot
-        val overlay = captureButton.fetchSemanticsNode().boundsInRoot
-        check(viewport.contains(tapBounds.center) && !overlay.contains(tapBounds.center)) {
-            "Engine statistics tap is obscured: target=$tapBounds; viewport=$viewport; captureButton=$overlay"
-        }
-        engine.performClick()
+        scrollSectionsTo(hasText(title))
+        compose.onNodeWithText(title).assertIsDisplayed().performClick()
         compose.onNodeWithContentDescription(context.getString(R.string.mjpeg_action_close)).assertIsDisplayed()
         val totals = FrameTotals(produced = readCountBesideLabel(R.string.mjpeg_stats_produced), encoded = readCountBesideLabel(R.string.mjpeg_stats_encoded))
         // A failed read retains its original exception; the outer fixture contains failed runs.
@@ -118,7 +95,7 @@ internal class MjpegStatisticsUi(private val compose: ComposeTestRule, private v
         return values.single()
     }
 
-    private fun scrollGridTo(matcher: SemanticsMatcher) {
+    private fun scrollSectionsTo(matcher: SemanticsMatcher) {
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(matcher)
     }
 

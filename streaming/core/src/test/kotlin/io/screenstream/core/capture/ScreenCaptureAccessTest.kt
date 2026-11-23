@@ -103,25 +103,31 @@ internal class ScreenCaptureAccessTest {
         val firstHost = String(charArrayOf('h'))
         val equalHost = String(charArrayOf('h'))
         access.onHostResumed(firstHost)
-        val pending = request()
-        val key = key()
-        assertTrue(access.canSubmit(key, firstHost))
-        assertFalse(access.canSubmit(key, equalHost))
         access.onHostResumed(equalHost)
+        val pending = request()
+        assertFalse(access.canSubmit(key(), firstHost))
+        assertTrue(access.canSubmit(key(), equalHost))
+
+        access.onHostInactive(equalHost)
         scheduler.runCurrent()
         assertReason(pending, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
-        val next = request()
-        assertTrue(access.canSubmit(key(), equalHost))
-        access.onHostInactive(firstHost)
-        assertFalse(next.result.isCompleted)
-        access.onHostInactive(equalHost)
-        scheduler.runCurrent()
-        assertReason(next, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
-        access.onHostResumed(firstHost)
-        access.onHostResumed(equalHost)
-        access.onHostInactive(equalHost)
-        request()
+        val fallback = request()
         assertTrue(access.canSubmit(key(), firstHost))
+
+        access.onHostResumed(equalHost)
+        scheduler.runCurrent()
+        assertReason(fallback, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
+        val reselected = request()
+        access.onHostResumed(firstHost)
+        scheduler.runCurrent()
+        assertReason(reselected, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
+        val successor = request()
+        val successorKey = key()
+        access.onHostInactive(equalHost)
+        assertNotNull(access.submit(successorKey, firstHost, false))
+        access.deliver(successorKey, ActivityResult(Activity.RESULT_CANCELED, null))
+        scheduler.runCurrent()
+        assertReason(successor, ScreenCaptureAccess.NoGrantReason.Declined)
     }
 
     // Cases: CORE-CAP-03
@@ -154,6 +160,7 @@ internal class ScreenCaptureAccessTest {
         access.onHostInactive(host)
         val replacementHost = Any()
         access.onHostResumed(replacementHost)
+        assertNull(access.submit(key, replacementHost, false))
         access.onHostInactive(replacementHost)
         access.deliver("stale", ActivityResult(Activity.RESULT_CANCELED, null))
         assertEquals(0, preparationCount)
@@ -163,27 +170,20 @@ internal class ScreenCaptureAccessTest {
         scheduler.runCurrent()
         assertIs<ScreenCaptureAccess.ConsentResult.Granted>(pending.result.getCompleted())
         assertNull(access.currentRequest.value)
-        assertSame(platform.projection, access.createProjection(grant(pending)))
-        access.deliver(key, success())
-        access.deliver(key, ActivityResult(Activity.RESULT_CANCELED, null))
-        assertEquals(1, preparationCount)
-        assertReason(request(), ScreenCaptureAccess.NoGrantReason.Busy)
-        access.finishProjectionCreation(pending.attempt)
-
-        access.onHostResumed(host)
-        var successorPreparationCount = 0
-        val successor = request(prepare = {
-            successorPreparationCount++
-            true
-        })
-        val successorKey = key()
         access.deliver(key, success())
         scheduler.runCurrent()
-        assertEquals(successorKey, key())
-        assertTrue(access.canSubmit(successorKey, host))
-        assertFalse(successor.result.isCompleted)
         assertEquals(1, preparationCount)
-        assertEquals(0, successorPreparationCount)
+
+        access.onHostResumed(replacementHost)
+        val successor = request { error("A stale result must not prepare the successor") }
+        val successorKey = key()
+        assertNotNull(access.submit(successorKey, replacementHost, false))
+        access.deliver(key, success())
+        scheduler.runCurrent()
+        assertFalse(successor.result.isCompleted)
+        access.deliver(successorKey, ActivityResult(Activity.RESULT_CANCELED, null))
+        scheduler.runCurrent()
+        assertReason(successor, ScreenCaptureAccess.NoGrantReason.Declined)
     }
 
     // Cases: CORE-CAP-12
@@ -653,16 +653,19 @@ internal class ScreenCaptureAccessTest {
 
     // Cases: CORE-CAP-08
     @Test
-    @Config(sdk = [33, 34])
-    fun modernOrOutOfWindowOrDefaultAcquisitionDoesNotRetry() {
+    @Config(sdk = [33])
+    fun legacyAcquisitionDoesNotRetryWithoutOptInOrAfterTheWindow() {
         access.onHostResumed(host)
-        repeat(2) { index ->
+        for (retry in listOf(false, true)) {
             val pending = request()
             completeConsent()
-            if (index == 1) ShadowSystemClock.advanceBy(Duration.ofMillis(1501))
+            if (retry) ShadowSystemClock.simulateDeepSleep(Duration.ofMillis(1501))
             val before = platform.calls
-            platform.acquire = { throw SecurityException("no retry") }
-            assertFailsWith<SecurityException> { access.createProjection(grant(pending), index == 1) }
+            val failure = SecurityException("no retry")
+            platform.acquire = { throw failure }
+            assertSame(failure, assertFailsWith<SecurityException> {
+                access.createProjection(grant(pending), retryAfterRecentForegroundStart = retry)
+            })
             assertEquals(before + 1, platform.calls)
             access.finishProjectionCreation(pending.attempt)
         }

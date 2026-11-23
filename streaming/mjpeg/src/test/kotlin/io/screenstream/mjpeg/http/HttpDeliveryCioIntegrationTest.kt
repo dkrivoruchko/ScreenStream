@@ -329,9 +329,8 @@ internal class HttpDeliveryCioIntegrationTest {
                 }
                 delivery.info.value.servers.single()
             }
-            // Public startListening diagnosis on this CIO version observes an outer
-            // JobCancellationException with BindException as cause; the contract maps
-            // the caught outer exception, so this physical failure is Unknown.
+            // Host coroutine stack-trace recovery adds a second cancellation wrapper around
+            // the BindException. The classifier only unwraps a direct BindException cause.
             assertEquals(ServerState.Failed(ServerFailure.Unknown, 3), failure.state)
             delivery.retryServer(Uuid.random())
             assertEquals(failure, delivery.info.value.servers.single())
@@ -372,7 +371,6 @@ internal class HttpDeliveryCioIntegrationTest {
             val ready = delivery.awaitHttpInfo {
                 it.servers.first().state is ServerState.Failed && it.servers.last().state == ServerState.Listening
             }
-            // This configured CIO wraps its bind error; host failure classification remains qualified.
             assertEquals(ServerFailure.Unknown, assertIs<ServerState.Failed>(ready.servers.first().state).reason)
             RawHttpConnection(port, "/jpeg").use {
                 assertEquals(200, it.status)

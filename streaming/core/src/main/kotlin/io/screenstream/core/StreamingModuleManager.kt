@@ -3,8 +3,6 @@ package io.screenstream.core
 import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.window.core.layout.WindowSizeClass
 import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.uuid.Uuid
@@ -32,15 +30,15 @@ public interface StreamingModuleManager {
     public val state: StateFlow<State>
 
     /**
-     * Renders the installed controller's content while [instanceId] is the current admitted instance;
-     * otherwise renders [fallback].
+     * Composes [layout] with the installed controller's UI only while [instanceId] is the current
+     * admitted instance. Keep the supplied UI within that instance's layout composition.
+     * Composes [fallback] when that instance is unavailable.
      */
     @Composable
     public fun InstanceContent(
         instanceId: StreamingModule.InstanceId,
-        window: WindowSizeClass,
-        modifier: Modifier = Modifier,
-        fallback: @Composable () -> Unit
+        fallback: @Composable () -> Unit,
+        layout: @Composable (StreamingModule.Ui) -> Unit,
     )
 
     /**
@@ -55,7 +53,7 @@ public interface StreamingModuleManager {
      * Opening starts the module's Service with ordinary `Context.startService`; the admitted Service then
      * promotes itself to foreground. Android can reject either step, for example after the app leaves the
      * foreground during preparation. Opening also fails if the same Service component still hosts the
-     * previous controller when the bounded shutdown wait ends. Any startup failure, including a missing
+     * previous controller when the new start is delivered. Any startup failure, including a missing
      * first status, publishes generic [State.Failed] and is not retried; call [restartModule] from
      * foreground UI to retry.
      */

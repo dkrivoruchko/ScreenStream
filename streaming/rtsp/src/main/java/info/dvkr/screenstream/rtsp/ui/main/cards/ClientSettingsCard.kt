@@ -20,20 +20,18 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.window.core.layout.WindowSizeClass
-import info.dvkr.screenstream.rtsp.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import info.dvkr.screenstream.rtsp.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.ui.main.settings.client.ClientProtocolEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.client.ClientProtocolRow
-import info.dvkr.screenstream.rtsp.ui.main.settings.common.RtspSettingModal
+import io.screenstream.core.module.StreamingModule.Ui.ModalHost
 
 @Composable
 internal fun ClientSettingsCard(
     settings: RtspSettings.Data,
     updateSettings: (RtspSettings.Data.() -> RtspSettings.Data) -> Unit,
-    windowSizeClass: WindowSizeClass,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -94,8 +92,7 @@ internal fun ClientSettingsCard(
         ) { selectedSheet.value = ClientSettingSheet.Protocol }
 
         selectedSheet.value?.let { sheet ->
-            RtspSettingModal(
-                windowSizeClass = windowSizeClass,
+            ModalHost.current.Modal(
                 title = stringResource(sheet.titleRes),
                 onDismissRequest = { selectedSheet.value = null }
             ) {

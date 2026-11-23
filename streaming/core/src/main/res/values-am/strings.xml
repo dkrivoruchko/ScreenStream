@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">የማይክሮፎን መዳረሻ</string>
     <string name="core_permission_microphone_message">ከማይክሮፎንዎ የሚመጣውን ድምፅ በስርጭቱ ውስጥ ለማካተት የማይክሮፎን መዳረሻ ይፍቀዱ።\n\nያለዚህ የማይክሮፎን ድምፅ ሊሰራጭ አይችልም።</string>
     <string name="core_permission_device_audio_title">የመሣሪያ ድምፅ መዳረሻ</string>
-    <string name="core_permission_device_audio_message">የመሣሪያ ድምፅን ለማሰራጨት Android የማይክሮፎን ፈቃድ ይፈልጋል። ይህ ማይክሮፎንዎን አያበራም።\n\nAndroid እና ድምፁን የሚያጫውተው መተግበሪያ እንዲጋራ የፈቀዱት ድምፅ ብቻ ሊሰራጭ ይችላል።</string>
+    <string name="core_permission_device_audio_message">የመሣሪያ ድምፅን ለማሰራጨት Android የማይክሮፎን ፈቃድ ይፈልጋል። የማይክሮፎን አማራጩ ሲጠፋ የማይክሮፎኑ ድምፅ በስርጭቱ ውስጥ አይካተትም።\n\nAndroid እና ድምፁን የሚያጫውተው መተግበሪያ እንዲጋራ የፈቀዱት ድምፅ ብቻ ሊሰራጭ ይችላል።</string>
 
     <string name="core_permission_audio_title">የማይክሮፎን እና የመሣሪያ ድምፅ</string>
     <string name="core_permission_audio_message">የማይክሮፎን እና የመሣሪያ ድምፅን ለማሰራጨት የማይክሮፎን መዳረሻ ይፍቀዱ።\n\nየመሣሪያ ድምፅ ሊሰራጭ የሚችለው Android እና ድምፁን የሚያጫውተው መተግበሪያ መጋራቱን ሲፈቅዱ ብቻ ነው።</string>

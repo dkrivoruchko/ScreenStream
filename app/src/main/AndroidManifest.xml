@@ -9,6 +9,12 @@
         android:name="android.hardware.wifi"
         android:required="false" />
 
+    <queries>
+        <intent>
+            <action android:name="android.settings.CHANNEL_NOTIFICATION_SETTINGS" />
+        </intent>
+    </queries>
+
     <application
         android:name=".ScreenStreamApp"
         android:allowBackup="false"

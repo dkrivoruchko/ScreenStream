@@ -25,7 +25,7 @@ internal class CallbackLinkAddressShadow {
     protected fun getAddress(): InetAddress = callbackAddress
 }
 
-/** Captures only the two observer operations used by monitor observation; events use its registered executor. */
+/** Records tethering registration and unregistration so tests can drive the captured callback and executor. */
 @Implements(TetheringManager::class, minSdk = 36)
 internal class ObservationTetheringShadow {
     @Volatile

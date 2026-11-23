@@ -50,6 +50,8 @@ The [MJPEG Koin module](../../src/main/kotlin/io/screenstream/mjpeg/MjpegKoinMod
 
 The host app supplies Core's providers and Activity hosts, as the [Core overview](../../../core/README.md) describes. When changing DI, keep the exact injected parameters and these per-instance scopes.
 
+The controller's UI supplies MJPEG's sections and capture button to the host layout. Keep section IDs stable when settings are filtered or panes change. The host moves each section with its composition, while MJPEG owns editor drafts, permission actions and capture commands. Folded settings and QR dialogs use the pane bounds supplied by the host.
+
 ## Android declarations
 
 The [MJPEG manifest](../../src/main/AndroidManifest.xml) declares the Service as not exported, with foreground service types `specialUse|mediaProjection` and a special-use subtype that explains the local HTTP server. It requests permissions for three needs:

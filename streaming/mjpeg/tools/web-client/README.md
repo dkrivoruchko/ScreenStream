@@ -24,7 +24,7 @@ npm test        # preview and build fixtures, viewer owner tests
 
 ## Preview
 
-`npm start` serves the preview panel at `http://127.0.0.1:8765/`, and **Open viewer** opens the packaged page at `/viewer`. To choose another port and stop watching sources, use `npm start -- --port 8877 --no-watch`.
+`npm start` serves the preview panel at `http://127.0.0.1:8765/`, and **Open viewer** opens a page built in memory from the current sources at `/viewer`. To choose another port and stop watching sources, use `npm start -- --port 8877 --no-watch`.
 
 While watching, source changes rebuild the page in memory, not the Android asset. Reload the viewer to apply a rebuild; a failed rebuild keeps the last good page. Restart the server after editing `build.cjs`.
 
@@ -32,7 +32,13 @@ All tabs share one virtual device, with its settings and credentials. Loading th
 
 ## Browser checks
 
-After changing viewer behavior, check it by hand in a current browser, using the standalone `/viewer`; the panel's frame reloads when access changes. Cover MJPEG and JPEG; PIN entry, a block, and revocation when the panel switches access scenario; and reconnection after restarting the server on the same port. For an access link, select PIN required and open `/viewer?token=…` with `delivery.credentials.token` from `/__preview/api/state`. The page should land on `/viewer` without the token, admitted by its cookie. Also try the sizing modes, keyboard use, and fullscreen or Picture in picture where the browser offers them.
+After changing viewer behavior, use the standalone `/viewer` in a current browser. The panel's embedded viewer reloads when access changes.
+
+1. Try MJPEG, JPEG, the sizing modes, keyboard navigation, and fullscreen where available. Restart the preview server on the same port and check that the viewer reconnects.
+2. In **PIN required**, submit an incomplete PIN and then six wrong digits. Check that the field receives focus and the error is announced with a screen reader. The wrong PIN should be selected. Paste the correct PIN in localized digits, such as `١٢٣٤٥٦`, and check that it replaces the selection and clears the error. Submit it and confirm the viewer opens.
+3. Switch to **Normal stream** and back to **PIN required**. Confirm the viewer asks for the PIN again. Submit wrong PINs by pressing Enter while the field is focused until a block starts. Keep the viewer focused and wait without further interaction. Check that the countdown is visible, the screen reader announces the block once and announces when entry is available again, and focus returns to the field.
+4. For an access link, select **PIN required** and open `/viewer?token=…` with `delivery.credentials.token` from `/__preview/api/state`. Verify that the browser lands on `/viewer` with access through its cookie and the token disappears from the address bar.
+5. In **Normal stream**, set **Inactive stream image** to **Last frame**. Open **Picture in picture** where available, then switch to **Stream stopped**. Check that the same floating window keeps displaying the retained image. Change the image orientation and confirm that the window shows the replacement frame. Select **App logo** and check that the floating window closes.
 
 ## Browser compatibility
 

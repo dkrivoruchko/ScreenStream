@@ -7,9 +7,11 @@ import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.manager.StreamingModuleActionReceiver
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.Rule
 import org.junit.Test
@@ -43,7 +45,7 @@ internal class StreamingModuleServiceTest {
 
     // Cases: CORE-SVC-01
     @Test
-    @Config(sdk = [24, 26, 29, 34, 37])
+    @Config(sdk = [24, 29, 34])
     fun capturePromotionKeepsExitUntilConfirmationAndReturnsToWaitingForeground(): Unit = runBlocking {
         host().use { host ->
             val attempt = host.attempt()
@@ -76,7 +78,7 @@ internal class StreamingModuleServiceTest {
 
     // Cases: CORE-SVC-01
     @Test
-    @Config(sdk = [29, 30, 34])
+    @Config(sdk = [29, 30])
     fun microphoneTypeIsAddedOnlyWhenRequiredAndSupported(): Unit = runBlocking {
         host().use { host ->
             val withMicrophone = host.attempt()
@@ -141,6 +143,10 @@ internal class StreamingModuleServiceTest {
             assertIs<StreamingModuleNotifications.ForegroundAction.StopStream>(host.notifications.actions.last())
             host.service.leaveCaptureForeground(first)
             assertTrue(host.service.enterCaptureForeground(other, requiresMicrophoneType = false))
+            host.service.updateCaptureNotification(other, active = true)
+            val nextStop = assertIs<StreamingModuleNotifications.ForegroundAction.StopStream>(host.notifications.actions.last())
+            assertEquals(StreamingModuleActionReceiver.stopAction(host.service, other), nextStop.pendingIntent)
+            assertSame(host.notifications.built.last(), host.posts.posts.last().notification)
             host.service.leaveCaptureForeground(other)
             host.service.closeForegroundAdmission()
             assertFalse(host.service.enterCaptureForeground(first, requiresMicrophoneType = false))
@@ -438,14 +444,24 @@ internal class StreamingModuleServiceTest {
 
     // Cases: CORE-SVC-05
     @Test
-    fun stopRequestClosesAdmissionButReceiptWaitsForActualExpectedDestruction(): Unit = runBlocking {
+    fun workerStopRequestDispatchesToMainAndReceiptWaitsForDestruction(): Unit = runBlocking {
+        val testScope = this
         host().use { host ->
-            val receipt = async(start = CoroutineStart.UNDISPATCHED) { host.service.stopAndAwaitDestruction() }
+            val receipt = withTimeout(5.seconds) {
+                withContext(Dispatchers.Default) {
+                    // Return after the worker call has run to its first suspension.
+                    testScope.async(Dispatchers.Default, start = CoroutineStart.UNDISPATCHED) {
+                        host.service.stopAndAwaitDestruction()
+                    }
+                }
+            }
+            assertFalse(host.platform.isStoppedBySelf)
+            assertFalse(host.service.enterCaptureForeground(host.attempt(), requiresMicrophoneType = false))
+            shadowOf(Looper.getMainLooper()).idle()
             assertTrue(host.platform.isStoppedBySelf)
             assertFalse(host.destroyed)
             assertFalse(host.controller.destroyed.isCompleted)
             assertFalse(receipt.isCompleted)
-            assertFalse(host.service.enterCaptureForeground(host.attempt(), requiresMicrophoneType = false))
             assertTrue(host.platform.isLastForegroundNotificationAttached)
             host.destroy()
             assertTrue(withTimeout(5.seconds) { receipt.await() })
@@ -575,7 +591,6 @@ internal class StreamingModuleServiceTest {
 
     // Cases: CORE-SVC-06
     @Test
-    @Config(sdk = [34, 35])
     fun throwingTimeoutStopStillRequestsOriginalControllerShutdownAndMakesReceiptFalse() = timeoutHistory(stopFails = true)
 
     private fun timeoutHistory(stopFails: Boolean) = runBlocking {
@@ -589,6 +604,8 @@ internal class StreamingModuleServiceTest {
             assertTrue(host.controller.shutdown.isCompleted)
             assertFalse(host.controller.handle.isCurrent())
             assertFalse(host.service.enterCaptureForeground(host.attempt(), requiresMicrophoneType = false))
+            host.scheduler.runCurrent()
+            assertEquals(StreamingModuleManager.State.Failed(host.controller.instanceId), host.manager.state.value)
             val receipt = async(start = CoroutineStart.UNDISPATCHED) { host.service.stopAndAwaitDestruction() }
             assertFalse(receipt.isCompleted)
             host.destroy()

@@ -28,8 +28,8 @@ import org.koin.core.parameter.parametersOf
  * Base Android Service that hosts one module instance's controller and foreground notification.
  *
  * The manager starts it with ordinary `startService`. For an admitted start, the Service enters waiting
- * foreground (`specialUse`, Exit action) and then calls [createController]; otherwise it stops unless a
- * newer start is pending. Stale and duplicate starts are ignored; a new admitted instance whose
+ * foreground (`specialUse` on API 34+, Exit action) and then calls [createController]; otherwise it stops
+ * unless a newer start is pending. Stale and duplicate starts are ignored; a new admitted instance whose
  * start arrives while this Service still hosts a previous controller fails. The controller owns module
  * work and cleanup, which can outlive this Service, and ends it through [stopAndAwaitDestruction]. A
  * foreground failure or Android Service timeout reports instance failure and requests controller shutdown.
@@ -117,9 +117,10 @@ public abstract class StreamingModuleService : Service() {
         tryPromoteForeground(ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE, buildExitNotification())
 
     /**
-     * Promotes this Service to `mediaProjection` foreground, adding `microphone` on API 30+ when
-     * [requiresMicrophoneType], after consent and before projection acquisition. Call on Main from the
-     * attempt's serialized foreground work after rechecking the attempt, admission, and permissions.
+     * Promotes this Service to `mediaProjection` foreground (type on API 29+), adding `microphone` on
+     * API 30+ when [requiresMicrophoneType], after consent and before projection acquisition. Call on
+     * Main from the attempt's serialized foreground work after rechecking the attempt, admission, and
+     * permissions.
      *
      * Returns false without calling Android when the instance is not current or foreground admission is
      * closed. True means `startForeground` returned; notification visibility follows delivery settings.

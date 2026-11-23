@@ -74,7 +74,7 @@ internal class StreamingModuleNotificationsImpl(context: Context) : StreamingMod
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(getString(R.string.app_notification_waiting_content))
                 .setSmallIcon(R.drawable.ic_notification_small_24dp)
-                .addAction(NotificationCompat.Action(null, getString(R.string.app_tab_exit), action.pendingIntent))
+                .addAction(NotificationCompat.Action(null, getString(R.string.app_action_exit), action.pendingIntent))
 
             is StreamingModuleNotifications.ForegroundAction.StopStream -> builder
                 .setContentTitle(getString(R.string.app_notification_streaming_title))
@@ -130,13 +130,13 @@ internal class StreamingModuleNotificationsImpl(context: Context) : StreamingMod
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setLargeIcon(largeIcon)
             .setSmallIcon(R.drawable.ic_notification_small_24dp)
-            .setContentTitle(getString(R.string.app_error_title))
+            .setContentTitle(getString(R.string.app_notification_error_title))
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setContentIntent(contentIntent())
         if (content is StreamingModuleNotifications.ErrorContent.Text) {
             content.recoveryAction?.let { recoveryAction ->
-                builder.addAction(NotificationCompat.Action(null, getString(R.string.app_error_recover), recoveryAction))
+                builder.addAction(NotificationCompat.Action(null, getString(R.string.app_notification_error_recover), recoveryAction))
             }
         }
         builder.build()

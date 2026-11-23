@@ -6,36 +6,14 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.LocalActivity
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.google.android.libraries.ads.mobile.sdk.MobileAds
 import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
-import com.google.android.libraries.ads.mobile.sdk.banner.AdView
 import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
-import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdEventCallback
-import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRefreshCallback
-import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
-import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
-import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.google.android.libraries.ads.mobile.sdk.common.RequestConfiguration
 import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
 import com.google.android.ump.ConsentDebugSettings
@@ -54,13 +32,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.koin.android.ext.android.get
-import org.koin.compose.koinInject
 import org.koin.core.annotation.Singleton
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /** Ad retention belongs to this Activity and is independent of Play updates. */
@@ -134,12 +110,13 @@ public class AdMob(private val context: Context) : KoinComponent {
     public var isPrivacyOptionsRequired: Boolean by mutableStateOf(consentInformation.privacyOptionsRequirementStatus == REQUIRED)
         private set
 
-    public fun showPrivacyOptionsForm(activity: Activity) {
+    public fun showPrivacyOptionsForm(activity: Activity, onFailure: () -> Unit) {
         UserMessagingPlatform.showPrivacyOptionsForm(activity) { formError ->
             if (formError != null) {
                 log.w("showPrivacyOptionsForm", "Error: ${formError.errorCode} ${formError.message}")
             }
             updatePrivacyOptionsRequirementStatus()
+            if (formError != null) onFailure()
         }
     }
 
@@ -322,159 +299,4 @@ public class AdMob(private val context: Context) : KoinComponent {
         val expiresAtMillis: Long,
         var cleanupJob: Job? = null
     )
-}
-
-@Composable
-public fun AnchoredAdaptiveBanner(modifier: Modifier = Modifier) {
-    AdaptiveBannerContent(
-        logTag = "AnchoredAdaptiveBanner",
-        adUnitIndex = 0,
-        adSizeProvider = AdSize::getLargeAnchoredAdaptiveBannerAdSize,
-        reservedHeightProvider = { it.height },
-        visiblePadding = PaddingValues(bottom = 8.dp),
-        modifier = modifier
-    )
-}
-
-@Composable
-public fun InlineAdaptiveBanner(modifier: Modifier = Modifier) {
-    AdaptiveBannerContent(
-        logTag = "InlineAdaptiveBanner",
-        adUnitIndex = 1,
-        adSizeProvider = { _, width -> AdSize.getInlineAdaptiveBannerAdSize(width, 60) },
-        reservedHeightProvider = { 60 },
-        visiblePadding = PaddingValues(vertical = 16.dp),
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun AdaptiveBannerContent(
-    logTag: String,
-    adUnitIndex: Int,
-    adSizeProvider: (Context, Int) -> AdSize,
-    reservedHeightProvider: (AdSize) -> Int,
-    visiblePadding: PaddingValues,
-    modifier: Modifier = Modifier
-) {
-    val adMob = koinInject<AdMob>()
-
-    BoxWithConstraints(modifier = modifier) {
-        val activity = LocalActivity.current ?: return@BoxWithConstraints
-        val log: Logger = koinInject(parametersHolder = remember(activity) { parametersOf(activity) })
-        val measuredAdWidth = maxWidth.value.toInt()
-        if (measuredAdWidth <= 0) return@BoxWithConstraints
-
-        val adWidth by produceState(initialValue = measuredAdWidth, measuredAdWidth) {
-            if (value != measuredAdWidth) {
-                delay(750.milliseconds)
-                value = measuredAdWidth
-            }
-        }
-        val adUnitId = remember(adMob, adUnitIndex, logTag) { adMob.getAdUnitId(adUnitIndex, logTag) } ?: return@BoxWithConstraints
-        val adSize = remember(activity, adWidth, adSizeProvider) { adSizeProvider(activity, adWidth) }
-        val reservedHeight = remember(adSize, reservedHeightProvider) { reservedHeightProvider(adSize) }
-        var initialLoadFailed by remember(adUnitId, activity, adWidth, adSize) { mutableStateOf(false) }
-        val slotVisible = when (adMob.availability) {
-            AdMob.Availability.PENDING -> true
-            AdMob.Availability.READY -> initialLoadFailed.not()
-            AdMob.Availability.UNAVAILABLE -> false
-        }
-
-        if (slotVisible) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(visiblePadding)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(reservedHeight.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (adMob.availability == AdMob.Availability.READY && measuredAdWidth >= adWidth) {
-                        key(adUnitId, activity, adWidth, adSize) {
-                            val retainedBannerAd = remember(adMob, activity, logTag, adWidth, adSize) {
-                                adMob.takeRetainedBanner(activity, logTag, adWidth, adSize)
-                            }
-                            val scope = rememberCoroutineScope()
-                            val released = remember { AtomicBoolean(false) }
-
-                            AndroidView(
-                                factory = {
-                                    log.d(logTag, "factory: $adUnitId")
-                                    val adView = AdView(activity)
-
-                                    fun bindCallbacks(ad: BannerAd) {
-                                        ad.adEventCallback = object : BannerAdEventCallback {
-                                            override fun onAdImpression() {
-                                                if (released.get()) return
-                                                log.d(logTag, "onAdImpression: $adUnitId")
-                                            }
-
-                                            override fun onAdClicked() {
-                                                if (released.get()) return
-                                                log.d(logTag, "onAdClicked: $adUnitId")
-                                            }
-                                        }
-                                        ad.bannerAdRefreshCallback = object : BannerAdRefreshCallback {
-                                            override fun onAdRefreshed() {
-                                                if (released.get()) return
-                                                log.d(logTag, "onAdRefreshed: $adUnitId")
-                                            }
-
-                                            override fun onAdFailedToRefresh(adError: LoadAdError) {
-                                                if (released.get()) return
-                                                log.w(logTag, "onAdFailedToRefresh: $adUnitId $adError")
-                                            }
-                                        }
-                                    }
-
-                                    if (retainedBannerAd != null) {
-                                        log.d(logTag, "registerRetained: $adUnitId")
-                                        bindCallbacks(retainedBannerAd)
-                                        adView.registerBannerAd(retainedBannerAd, activity)
-                                    } else {
-                                        adView.loadAd(
-                                            BannerAdRequest.Builder(adUnitId, adSize).build(),
-                                            object : AdLoadCallback<BannerAd> {
-                                                override fun onAdLoaded(ad: BannerAd) {
-                                                    if (released.get()) return
-                                                    log.d(logTag, "onAdLoaded: $adUnitId")
-                                                    bindCallbacks(ad)
-                                                }
-
-                                                override fun onAdFailedToLoad(adError: LoadAdError) {
-                                                    if (released.get()) return
-                                                    log.w(logTag, "onAdFailedToLoad: $adUnitId $adError")
-                                                    scope.launch {
-                                                        if (released.get().not() && adView.getBannerAd() == null) {
-                                                            initialLoadFailed = true
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                        )
-                                    }
-
-                                    adView
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                onRelease = { adView ->
-                                    log.d(logTag, "onRelease: $adUnitId, view=${System.identityHashCode(adView)}")
-                                    released.set(true)
-                                    val bannerAd = adView.unregisterBannerAd()
-                                    val retained = bannerAd != null &&
-                                            adMob.retainBanner(activity, logTag, adWidth, adSize, bannerAd)
-                                    adView.destroy()
-                                    if (retained.not()) bannerAd?.destroy()
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

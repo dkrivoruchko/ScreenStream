@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Mikrofon erişimi</string>
     <string name="core_permission_microphone_message">Mikrofonunuzun sesini yayına eklemek için mikrofon erişimine izin verin.\n\nBu izin olmadan mikrofon sesi yayınlanamaz.</string>
     <string name="core_permission_device_audio_title">Cihaz sesi erişimi</string>
-    <string name="core_permission_device_audio_message">Android, cihaz sesini yayınlamak için mikrofon izni gerektirir. Bu, mikrofonunuzu açmaz.\n\nYalnızca Android ve sesi çalan uygulamanın paylaşılmasına izin verdiği ses yayınlanabilir.</string>
+    <string name="core_permission_device_audio_message">Android, cihaz sesini yayınlamak için mikrofon izni gerektirir. Mikrofon seçeneği kapalıyken yayına mikrofon sesi dahil edilmez.\n\nYalnızca Android’in ve sesi çalan uygulamanın paylaşılmasına izin verdiği ses yayınlanabilir.</string>
 
     <string name="core_permission_audio_title">Mikrofon ve cihaz sesi</string>
     <string name="core_permission_audio_message">Mikrofon ve cihaz sesini yayınlamak için mikrofon erişimine izin verin.\n\nCihaz sesi yalnızca Android ve sesi çalan uygulama paylaşılmasına izin verdiğinde yayınlanabilir.</string>

@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Dostęp do mikrofonu</string>
     <string name="core_permission_microphone_message">Zezwól na dostęp do mikrofonu, aby dołączyć jego dźwięk do strumienia.\n\nBez tego nie można przesyłać dźwięku z mikrofonu.</string>
     <string name="core_permission_device_audio_title">Dostęp do dźwięku urządzenia</string>
-    <string name="core_permission_device_audio_message">Android wymaga uprawnienia mikrofonu do przesyłania dźwięku urządzenia. Nie włącza to mikrofonu.\n\nMożna przesyłać tylko dźwięk, na którego udostępnianie zezwalają Android i odtwarzająca go aplikacja.</string>
+    <string name="core_permission_device_audio_message">Android wymaga uprawnienia do mikrofonu, aby przesyłać dźwięk urządzenia. Gdy opcja mikrofonu jest wyłączona, transmisja nie obejmuje dźwięku z mikrofonu.\n\nMożna przesyłać tylko dźwięk, na którego udostępnianie zezwalają Android i odtwarzająca go aplikacja.</string>
 
     <string name="core_permission_audio_title">Dźwięk mikrofonu i urządzenia</string>
     <string name="core_permission_audio_message">Zezwól na dostęp do mikrofonu, aby przesyłać dźwięk mikrofonu i urządzenia.\n\nDźwięk urządzenia można przesyłać tylko wtedy, gdy Android i odtwarzająca go aplikacja zezwalają na jego udostępnianie.</string>

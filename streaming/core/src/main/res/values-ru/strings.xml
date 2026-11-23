@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Доступ к микрофону</string>
     <string name="core_permission_microphone_message">Разрешите доступ к микрофону, чтобы включить его звук в трансляцию.\n\nБез этого звук с микрофона не может транслироваться.</string>
     <string name="core_permission_device_audio_title">Доступ к звуку устройства</string>
-    <string name="core_permission_device_audio_message">Для трансляции звука устройства Android требует разрешение на доступ к микрофону. Это не включает ваш микрофон.\n\nМожно транслировать только звук, которым разрешают делиться Android и воспроизводящее его приложение.</string>
+    <string name="core_permission_device_audio_message">Для трансляции звука устройства Android требует разрешения на доступ к микрофону. Когда настройка «Микрофон» выключена, звук с микрофона не попадает в трансляцию.\n\nМожно транслировать только звук, которым разрешают делиться Android и воспроизводящее его приложение.</string>
 
     <string name="core_permission_audio_title">Звук микрофона и устройства</string>
     <string name="core_permission_audio_message">Разрешите доступ к микрофону для трансляции звука микрофона и устройства.\n\nЗвук устройства может транслироваться только тогда, когда Android и воспроизводящее его приложение разрешают делиться им.</string>

@@ -51,9 +51,14 @@ function createAccessHarness(t) {
     panel.hidden = true;
     const entry = createElement('pin-entry', panel);
     const input = createElement('pin', entry), unlock = createElement('unlock', entry);
-    for (const id of ['pin-title', 'pin-message', 'pin-error', 'pin-block-copy', 'pin-countdown', 'pin-logo', 'pin-retry', 'pin-countdown-value', 'pin-form']) createElement(id, panel);
+    input.select = () => input.setSelectionRange(0, input.value.length);
+    const fieldError = createElement('pin-error', entry);
+    for (const id of ['pin-title', 'pin-message', 'pin-block-copy', 'pin-countdown', 'pin-logo', 'pin-retry', 'pin-countdown-value', 'pin-form']) createElement(id, panel);
     const elsewhere = createElement('elsewhere', document.body), message = elements.get('pin-message');
-    const words = { pinTitle: 'Enter PIN', pinBlockedTitle: 'PIN entry temporarily blocked', pinBlockedAnnouncementSecond: 'Wait 1 second.', pinSending: 'Sending PIN', pinNetwork: 'Connection failed' };
+    const words = {
+        pinTitle: 'Enter PIN', pinBlockedTitle: 'PIN entry temporarily blocked', pinBlockedAnnouncementSecond: 'Wait 1 second.',
+        pinSending: 'Sending PIN', pinNetwork: 'Connection failed', pinInvalid: 'Enter six digits', pinWrong: 'Incorrect PIN'
+    };
     const { createAccessPanel } = createViewerTestContext(t, 'access', {
         document,
         window: { addEventListener: (name, callback) => windowListeners.set(name, callback) },
@@ -67,7 +72,7 @@ function createAccessHarness(t) {
     }, { submit: value => submissions.push(value), retry: () => { retries += 1; } });
     owner.start();
     return {
-        owner, document, panel, entry, input, unlock, elsewhere, message, words, submissions,
+        owner, document, panel, entry, input, unlock, elsewhere, message, fieldError, words, submissions,
         form: elements.get('pin-form'), retryButton: elements.get('pin-retry'), retries: () => retries,
         render: (mode = 'pin_required', seconds = 0) => owner.render({ visible: true, mode, seconds, result: null }),
         hide: () => owner.render({ visible: false, mode: null, seconds: 0, result: null }),
@@ -215,6 +220,60 @@ test('PIN input and selected paste preserve six ASCII digits and the selection',
     assert.equal(h.input.value, '019845');
     assert.equal(h.input.selectionStart, 4);
     assert.equal(h.input.selectionEnd, 4);
+});
+
+test('invalid PIN feedback marks and focuses the field without selecting the draft, and typing clears it', t => {
+    const h = createAccessHarness(t);
+    h.render();
+    h.input.value = '01234';
+    h.input.setSelectionRange(5, 5);
+    h.unlock.focus();
+    h.owner.render({ visible: true, mode: 'pin_required', seconds: 0, result: { key: 'pinInvalid' } });
+
+    assert.equal(h.fieldError.textContent, h.words.pinInvalid);
+    assert.equal(h.fieldError.hidden, false);
+    assert.equal(h.input.attributes['aria-invalid'], 'true');
+    assert.equal(h.document.activeElement, h.input);
+    assert.equal(h.input.selectionStart, 5);
+    assert.equal(h.input.selectionEnd, 5);
+
+    h.input.value = '012345';
+    h.input.emit('input');
+    assert.equal(h.fieldError.textContent, '');
+    assert.equal(h.fieldError.hidden, true);
+    assert.equal(h.input.attributes['aria-invalid'], 'false');
+});
+
+test('wrong PIN feedback selects the rejected digits and localized paste replaces them and clears the error', t => {
+    const h = createAccessHarness(t);
+    h.render();
+    h.input.value = '987654';
+    h.input.setSelectionRange(6, 6);
+    h.unlock.focus();
+    const model = { visible: true, mode: 'pin_required', seconds: 0, result: { key: 'pinWrong' } };
+    h.owner.render(model);
+
+    assert.equal(h.fieldError.textContent, h.words.pinWrong);
+    assert.equal(h.fieldError.hidden, false);
+    assert.equal(h.input.attributes['aria-invalid'], 'true');
+    assert.equal(h.document.activeElement, h.input);
+    assert.equal(h.input.selectionStart, 0);
+    assert.equal(h.input.selectionEnd, 6);
+
+    let prevented = false;
+    h.input.emit('paste', {
+        preventDefault() { prevented = true; },
+        // Arabic-Indic, Extended Arabic-Indic, Devanagari, Bengali, fullwidth and ASCII digits.
+        clipboardData: { getData: () => '٠۱२৩４a56' }
+    });
+    assert.equal(prevented, true);
+    assert.equal(h.input.value, '012345');
+    assert.equal(h.input.selectionStart, 6);
+    assert.equal(h.input.selectionEnd, 6);
+    h.owner.render(model);
+    assert.equal(h.fieldError.textContent, '');
+    assert.equal(h.fieldError.hidden, true);
+    assert.equal(h.input.attributes['aria-invalid'], 'false');
 });
 
 test('PIN form submits only while visible and ready, and retry invokes its action', t => {

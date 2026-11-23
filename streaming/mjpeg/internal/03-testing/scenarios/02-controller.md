@@ -211,7 +211,7 @@ Then let cleanup succeed. In a separate run, let cleanup fail.
 
 **Expected.**
 
-- **New PIN on open.** Opening generates and saves one new PIN before the first observed settings reach HTTP, so the first applied credentials already use it. Capture restarts keep it.
+- **New PIN on open.** Opening saves a PIN different from the preceding saved value. The first HTTP configuration uses the replacement, and capture restarts keep it.
 - **Permanent PIN.** Opening leaves the PIN unchanged.
 - **Protection off at open.** Opening generates no PIN. Enabling protection without a PIN generates one in the same save ([SET-06](01-settings.md#mjpeg-set-06)). An existing PIN is reused.
 - **Never again in the lifetime.** No case generates another PIN at a later Start.
@@ -234,7 +234,7 @@ Then let cleanup succeed. In a separate run, let cleanup fail.
 
 - **Checked inside the transaction.** Each save runs its policy check inside the transaction, against the latest saved data and the latest policy. A forbidden change saves nothing.
 - **Typed PINs.** A typed PIN is saved only with **Permanent PIN** and a valid six-digit value.
-- **Generated PINs.** Generating works with either option whenever setup is editable.
+- **Generated PINs.** Generating works with either option whenever setup is editable and excludes the current saved PIN.
 - **Ordering.** Saves run in the order they were admitted.
 - **Failure and cancellation.** A failed save produces the save-error presentation. Cancelling the caller is not an error and doesn't abort a save that was already admitted.
 - **Busy controller.** While capture is pending, a restricted credential change that lands late stays deferred until successful cleanup ([CTL-05](#mjpeg-ctl-05)).

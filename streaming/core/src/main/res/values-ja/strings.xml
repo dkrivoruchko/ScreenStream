@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">マイクへのアクセス</string>
     <string name="core_permission_microphone_message">マイクへのアクセスを許可して、マイクの音声を配信に含めます。\n\n許可しない場合、マイクの音声は配信できません。</string>
     <string name="core_permission_device_audio_title">デバイスの音声へのアクセス</string>
-    <string name="core_permission_device_audio_message">デバイスの音声を配信するには、Android のマイク権限が必要です。これによってマイクがオンになることはありません。\n\nAndroid と音声を再生するアプリが共有を許可した音声のみ配信できます。</string>
+    <string name="core_permission_device_audio_message">デバイスの音声を配信するには、Android のマイク権限が必要です。マイクの設定がオフの場合、マイクの音声は配信に含まれません。\n\nAndroid と音声を再生するアプリが共有を許可した音声のみ配信できます。</string>
 
     <string name="core_permission_audio_title">マイクとデバイスの音声</string>
     <string name="core_permission_audio_message">マイクへのアクセスを許可して、マイクとデバイスの音声を配信します。\n\nデバイスの音声は、Android と音声を再生するアプリが共有を許可した場合のみ配信できます。</string>

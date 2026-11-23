@@ -28,9 +28,7 @@ import android.widget.Toast
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
-import androidx.window.core.layout.WindowSizeClass
 import androidx.window.layout.WindowMetricsCalculator
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.WebRtcModuleService
@@ -250,7 +248,7 @@ internal class WebRtcStreamingService(
     }
 
     @Composable
-    override fun Content(window: WindowSizeClass, modifier: Modifier) {
+    override fun Content(layout: @Composable (StreamingModule.Ui) -> Unit) {
         WebRtcMainScreenUI(
             instanceId = instanceId,
             webRtcStateFlow = mutableWebRtcStateFlow,
@@ -262,7 +260,7 @@ internal class WebRtcStreamingService(
             },
             requestRecovery = ::requestRecovery,
             dismissCaptureRetry = { sendEvent(InternalEvent.DismissCaptureRetry) },
-            modifier = modifier,
+            layout = layout,
         )
     }
 

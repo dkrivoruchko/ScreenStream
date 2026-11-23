@@ -184,6 +184,8 @@ Keep the defaults derived from Android, such as the device title, apart from pur
 - A cancelled caller's own return says nothing about whether its write committed. Inspect storage instead.
 - A failing transform or a failing write keeps the previous saved snapshot and propagates the failure to the caller.
 
+**Editor write failure.** Block the DataStore temporary path with a nonempty directory, change the stream name and close the editor. The local Compose test checks the localized short Toast through Robolectric and compares the saved snapshot and file bytes with their original values. The Android test also recreates the Activity before closing, checks that the draft remains open without saving, then observes the localized Toast accessibility event after the failed save. [Local UI test](../../../src/test/kotlin/io/screenstream/mjpeg/ui/SettingsSaveFailureUiTest.kt) · [Device test](../../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegModalDeviceTest.kt)
+
 <a id="mjpeg-set-06"></a>
 
 ### Protection preparation

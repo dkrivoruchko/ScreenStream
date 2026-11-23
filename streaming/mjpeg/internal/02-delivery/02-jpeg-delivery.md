@@ -53,12 +53,12 @@ The Engine lends each JPEG as an `EncodedFrame` that is valid only on the callba
 2. **Offer.** Outside the gate, it calls `offerJpeg(generation, byteCount, copyTo)` on HTTP delivery, which passes the offer straight to the store without the control monitor.
 3. **Reserve.** Under the store monitor, the offer is rejected if the store is closed or the generation isn't exactly the current one. Otherwise the store takes the spare buffer, if there is one.
 4. **Copy.** Outside every monitor, the store requires a positive `byteCount`. It reuses the spare buffer when its size is at least `byteCount` and at most twice that, and otherwise allocates an exact-size array. It invokes `copyTo` once. The copier writes exactly `byteCount` bytes from offset zero and must not keep the array. The session checks the count that the Engine's `copyTo` returns.
-5. **Commit.** Under the store monitor, if the same generation is still current, the copy becomes the latest real frame with the next publication version. Otherwise the buffer goes back to the spare slot, and the version doesn't change.
+5. **Commit.** Under the store monitor, if the same generation is still current, the copy becomes the latest real frame with the next publication version. Otherwise the buffer goes back to the spare slot if the store is open and the slot is empty, and the version doesn't change.
 6. **Wake.** The store wakes waiting writers. If the selected image kind changed, for example from logo to live, delivery republishes web state. Ordinary new frames don't change web state.
 
 A delayed callback keeps the generation it read in step 1 for the whole offer, so a copy that finishes after Stop or a suspension is discarded at commit. Because generation identity alone rejects offers from old attempts and earlier periods, offers carry no attempt ID.
 
-If allocation or the copy throws, the store returns the reserved or newly allocated buffer to the spare slot and rethrows. It does the same when an admitted offer has a non-positive `byteCount`. The session records the exception as a capture failure at stage `Output.frame`, and the attempt ends. Disposal of the store prevents a late copy from publishing or from refilling the spare slot.
+If allocation or the copy throws, the store returns the reserved or newly allocated buffer to the spare slot, if that slot is empty, and rethrows. It does the same when an admitted offer has a non-positive `byteCount`. The session records the exception as a capture failure at stage `Output.frame`, and the attempt ends. Disposal of the store prevents a late copy from publishing or from refilling the spare slot.
 
 Neither the borrowed frame nor the copier may be retained or used for asynchronous writing. Responses read only the store's own copy.
 

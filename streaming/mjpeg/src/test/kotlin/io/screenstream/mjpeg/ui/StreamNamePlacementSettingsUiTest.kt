@@ -61,7 +61,6 @@ internal class StreamNamePlacementSettingsUiTest {
                 WebPageSettingsGroup(
                     webPageSettings = data.web,
                     mjpegSettings = settings,
-                    onSaveError = { error(it) },
                     visibleSettings = setOf(StreamNamePlacementSearch.info),
                     expanded = true,
                     onExpandedChange = {},

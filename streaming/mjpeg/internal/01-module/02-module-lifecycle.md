@@ -140,13 +140,13 @@ The session keeps one **desired parameters** value. `updateImageSettings()` repl
 - no Stop has been accepted;
 - the value differs from the last one submitted.
 
-An `IllegalStateException` from `updateParameters()` means the engine closed admission during a race. It is logged and ignored, and the attempt continues. Any other exception ends the attempt as a capture failure. MJPEG never resubmits equal parameters, so it does not use the engine's [equal-parameter retry](../../../../screen-capture-engine/docs/usage.md#retry-suspended-capture). A paused capture resumes when engine conditions change or when a changed setting reaches the engine. The JPEG backend cannot change within an attempt.
+An `IllegalStateException` from `updateParameters()` means the engine closed admission during a race. It is logged and ignored, and the attempt continues. Any other exception ends the attempt as a capture failure. MJPEG never resubmits equal parameters, so it does not use the engine's [equal-parameter retry](../../../../screen-capture-engine/docs/usage.md#retry-suspended-capture). A paused capture can resume when engine conditions change or when a changed setting reaches the engine. The JPEG backend cannot change within an attempt.
 
 Settings map directly to Engine parameters. Only the selected crop and output-size choices are sent. [Settings](04-settings.md#saved-model-and-defaults) owns the dormant values and their validation, and [MJPEG-CAP-05](../03-testing/scenarios/03-capture.md#mjpeg-cap-05) keeps the exact mapping.
 
 ### Observers
 
-Once the engine session exists, three collectors run independently in the attempt's scope:
+Once the engine session exists, several collectors run independently in the attempt's scope, including:
 
 - **Terminal state.** Each engine state change triggers a fresh read under the state gate. `Stopped` or `Failed` accepts the Stop cause and cancels the attempt's scope. If observation itself fails, the failure is kept as `Engine.stateObservation` and the attempt ends.
 - **Parameter submission.** Described above. It runs separately, so a slow submission can never delay terminal handling.

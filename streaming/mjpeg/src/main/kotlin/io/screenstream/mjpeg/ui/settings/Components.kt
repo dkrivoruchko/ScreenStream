@@ -1,6 +1,8 @@
 package io.screenstream.mjpeg.ui.settings
 
+import android.widget.Toast
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.indication
@@ -11,14 +13,10 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -30,24 +28,18 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Label
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SelectableDropdownMenuItem
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -65,10 +57,9 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -83,16 +74,14 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.window.core.layout.WindowSizeClass
+import io.screenstream.core.module.StreamingModule.Ui.ModalHost
 import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.ui.ExpandableCard
-import io.screenstream.mjpeg.ui.LocalMjpegSnackbarHostState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -107,11 +96,12 @@ internal fun rememberMjpegSettingsSave(
     settings: MjpegSettings,
     logTag: String,
     logMessage: String,
-    onError: () -> Unit
+    @StringRes errorMessageRes: Int,
 ): (MjpegSettings.Data.() -> MjpegSettings.Data) -> Unit {
     val log: Logger = koinInject(parametersHolder = remember(settings) { parametersOf(settings) })
     val coroutineScope = rememberCoroutineScope()
-    return remember(settings, log, coroutineScope, logTag, logMessage, onError) {
+    val context = LocalContext.current
+    return remember(settings, log, coroutineScope, context, logTag, logMessage, errorMessageRes) {
         { transform: MjpegSettings.Data.() -> MjpegSettings.Data ->
             // Enter the save transaction before the settings group can leave composition.
             coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
@@ -121,7 +111,7 @@ internal fun rememberMjpegSettingsSave(
                     throw failure
                 } catch (failure: Exception) {
                     log.e(logTag, logMessage, failure)
-                    onError()
+                    if (isActive) Toast.makeText(context, errorMessageRes, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -235,7 +225,6 @@ internal fun SettingsItem(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingEditor(
     title: String,
@@ -244,73 +233,11 @@ internal fun SettingEditor(
     scrollableContent: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val windowWidthDp = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
-    val dialogWidth = if (windowWidthDp >= WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp) 440.dp else null
-    if (dialogWidth == null) {
-        ModalBottomSheet(
-            onDismissRequest = onDismiss,
-            dragHandle = null,
-            sheetMaxWidth = 480.dp,
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-        ) {
-            SettingEditorContent(
-                title = title,
-                description = description,
-                onDismiss = onDismiss,
-                modifier = Modifier.weight(1f, fill = false),
-                scrollableContent = scrollableContent,
-                content = content,
-            )
-        }
-    } else {
-        Dialog(
-            onDismissRequest = onDismiss,
-            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, windowTitle = title),
-        ) {
-            Surface(
-                Modifier
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-                    .padding(16.dp)
-                    .widthIn(max = dialogWidth)
-                    .fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-            ) {
-                SettingEditorContent(title, description, onDismiss, scrollableContent = scrollableContent, content = content)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingEditorContent(
-    title: String,
-    description: String,
-    onDismiss: () -> Unit,
-    scrollableContent: Boolean,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Column(modifier.fillMaxWidth()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                title, Modifier
-                    .weight(1f)
-                    .semantics { heading() }, style = MaterialTheme.typography.titleLarge
-            )
-            IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
-                Icon(painterResource(R.drawable.mjpeg_icon_close), stringResource(R.string.mjpeg_action_close))
-            }
-        }
-        val scrollModifier = if (scrollableContent) Modifier.verticalScroll(rememberScrollState()) else Modifier
+    val scroll = if (scrollableContent) rememberScrollState() else null
+    ModalHost.current.Modal(title = title, onDismissRequest = onDismiss) {
+        val scrollModifier = if (scroll == null) Modifier else Modifier.verticalScroll(scroll)
         Column(
             Modifier
-                .weight(1f, fill = false)
                 .fillMaxWidth()
                 .then(scrollModifier)
                 .padding(16.dp),
@@ -321,7 +248,6 @@ private fun SettingEditorContent(
             }
             content()
         }
-        SnackbarHost(LocalMjpegSnackbarHostState.current)
     }
 }
 

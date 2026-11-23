@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Ошибка</string>
-    <string name="app_error_recover">Восстановить</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Назад</string>
+    <string name="app_action_close">Закрыть</string>
+    <string name="app_action_exit">Выход</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Подготовка…</string>
     <string name="app_module_error_title">Что-то пошло не так</string>
     <string name="app_module_error_restart">Перезапустить режим</string>
 
-    <string name="app_activity_update_dialog_title">Доступно обновление</string>
-    <string name="app_activity_update_dialog_message">Обновление готово. Перезапустить приложение сейчас?</string>
-    <string name="app_activity_update_dialog_restart">Перезапустить</string>
+    <string name="app_exit_dialog_title">Выйти из ScreenStream?</string>
+    <string name="app_exit_dialog_message">Если идёт трансляция, она остановится.</string>
 
-    <string name="app_tab_stream">Трансляция</string>
-    <string name="app_tab_settings">Настройки</string>
-    <string name="app_tab_about">Инфо</string>
-    <string name="app_tab_exit">Выход</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Способ трансляции</string>
+    <string name="app_method_choose">Выберите способ трансляции</string>
+    <string name="app_method_details">Подробнее</string>
+    <string name="app_method_details_description">Подробности: %1$s</string>
+    <string name="app_method_benefits">Преимущества</string>
+    <string name="app_method_things_to_know">Что нужно знать</string>
 
-    <string name="app_tab_stream_select_mode">Выберите режим трансляции:</string>
-    <string name="app_tab_stream_switching_modules">Переключение режимов…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">Настройки приложения</string>
 
-    <string name="app_mode_selected_method">Активный способ трансляции</string>
-    <string name="app_mode_choose_method">Выберите способ трансляции</string>
-    <string name="app_mode_choose_another_method">Выберите другой способ</string>
-    <string name="app_mode_change">Изменить</string>
-    <string name="app_mode_chooser_title">Выберите, как поделиться экраном</string>
-    <string name="app_mode_close_chooser">Закрыть</string>
-    <string name="app_mode_details">Подробнее</string>
-    <string name="app_mode_details_description">Подробности: %1$s</string>
-    <string name="app_mode_benefits">Преимущества</string>
-    <string name="app_mode_things_to_know">Что нужно знать</string>
+    <string name="app_pref_language">Язык приложения</string>
+    <string name="app_pref_language_summary">Выбрать язык приложения</string>
+    <string name="app_pref_language_system_default">Как в системе</string>
 
+    <string name="app_pref_dark_theme">Тёмная тема</string>
+    <string name="app_pref_dark_theme_summary">Когда использовать тёмную тему</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>Всегда</item>
+        <item>По режиму энергосбережения</item>
+        <item>Никогда</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>Всегда</item>
+        <item>Как в системе</item>
+        <item>Никогда</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">Динамический цвет</string>
+    <string name="app_pref_dynamic_color_summary">Использовать цвета системы</string>
+
+    <string name="app_pref_notifications">Уведомления приложения</string>
+    <string name="app_pref_notifications_summary">Управлять уведомлениями в настройках системы</string>
+    <string name="app_pref_notifications_open_error">Не удалось открыть настройки уведомлений</string>
+
+    <string name="app_pref_add_tile">Добавить плитку быстрых настроек</string>
+    <string name="app_pref_add_tile_summary">Открыть приложение или остановить активную трансляцию</string>
+    <string name="app_pref_tile_already_added">Плитка быстрых настроек уже добавлена</string>
+    <string name="app_pref_add_tile_error">Не удалось добавить плитку быстрых настроек</string>
+
+    <string name="app_pref_save_error">Не удалось сохранить настройку</string>
+
+    <!-- About -->
+    <string name="app_about_title">О приложении</string>
+    <string name="app_about_version">Версия: %1$s</string>
+    <string name="app_about_developer">Разработчик: Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">Оценить приложение</string>
+    <string name="app_about_source_code">Исходный код</string>
+    <string name="app_about_terms_and_conditions">Условия использования</string>
+    <string name="app_about_privacy_policy">Политика конфиденциальности</string>
+    <string name="app_about_privacy_options">Параметры конфиденциальности</string>
+    <string name="app_about_license">Лицензия</string>
+    <string name="app_about_open_link_error">Не удалось открыть ссылку</string>
+    <string name="app_about_privacy_options_open_error">Не удалось открыть параметры конфиденциальности</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Обновление загружено</string>
+    <string name="app_update_message">Перезапустите приложение, чтобы установить обновление. Если идёт трансляция, она остановится.</string>
+    <string name="app_update_restart">Перезапустить</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">Уведомления о трансляции</string>
     <string name="app_notification_channel_error">Уведомления об ошибках</string>
+
     <string name="app_notification_waiting_content">Нажмите, чтобы открыть приложение</string>
     <string name="app_notification_streaming_title">Идёт трансляция…</string>
     <string name="app_notification_streaming_content">Нажмите «Остановить», чтобы завершить трансляцию</string>
     <string name="app_notification_stop">Остановить</string>
 
+    <string name="app_notification_error_title">Ошибка</string>
+    <string name="app_notification_error_recover">Восстановить</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">Открыть ScreenStream</string>
-    <string name="app_tile_stop">Остановить</string>
-
-    <string name="app_pref_back">Назад</string>
-    <string name="app_pref_settings">Настройки</string>
-    <string name="app_pref_locale">Язык приложения</string>
-    <string name="app_pref_locale_summary">Открыть настройки языка приложения</string>
-    <string name="app_pref_locale_default">Как в системе</string>
-    <string name="app_pref_night_mode">Тёмная тема</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>Всегда</item>
-        <item>По режиму энергосбережения</item>
-        <item>Никогда</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>Всегда</item>
-        <item>Как в системе</item>
-        <item>Никогда</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">Динамический цвет</string>
-    <string name="app_pref_dynamic_theme_summary">Настроить внешний вид на основе цветов обоев</string>
-    <string name="app_pref_notification">Уведомления приложения</string>
-    <string name="app_pref_notification_summary">Управлять уведомлениями в настройках системы</string>
-    <string name="app_pref_tile">Добавить плитку быстрых настроек</string>
-    <string name="app_pref_tile_summary">Добавить ScreenStream в быстрые настройки</string>
-
-    <string name="app_tab_about_app_version">Версия: %1$s</string>
-    <string name="app_tab_about_developer_name">Разработчик: Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">Оценить приложение</string>
-    <string name="app_tab_about_app_sources">Исходный код</string>
-    <string name="app_tab_about_terms_conditions">Условия использования</string>
-    <string name="app_tab_about_privacy_policy">Политика конфиденциальности</string>
-    <string name="app_tab_about_privacy_options">Опции конфиденциальности</string>
-    <string name="app_tab_about_license">Лицензия</string>
+    <string name="app_tile_stop">Остановить трансляцию</string>
 </resources>

@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">错误</string>
-    <string name="app_error_recover">恢复</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">返回</string>
+    <string name="app_action_close">关闭</string>
+    <string name="app_action_exit">退出</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">正在准备…</string>
     <string name="app_module_error_title">出了点问题</string>
     <string name="app_module_error_restart">重启模式</string>
 
-    <string name="app_activity_update_dialog_title">有新版本</string>
-    <string name="app_activity_update_dialog_message">更新已就绪。现在重启应用？</string>
-    <string name="app_activity_update_dialog_restart">重启应用</string>
+    <string name="app_exit_dialog_title">退出 ScreenStream？</string>
+    <string name="app_exit_dialog_message">任何进行中的串流都将停止。</string>
 
-    <string name="app_tab_stream">串流</string>
-    <string name="app_tab_settings">设置</string>
-    <string name="app_tab_about">关于</string>
-    <string name="app_tab_exit">退出</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">串流方式</string>
+    <string name="app_method_choose">选择串流方式</string>
+    <string name="app_method_details">详情</string>
+    <string name="app_method_details_description">%1$s 详情</string>
+    <string name="app_method_benefits">优点</string>
+    <string name="app_method_things_to_know">注意事项</string>
 
-    <string name="app_tab_stream_select_mode">选择串流模式：</string>
-    <string name="app_tab_stream_switching_modules">正在切换模式…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">应用设置</string>
 
-    <string name="app_mode_selected_method">当前串流方式</string>
-    <string name="app_mode_choose_method">选择串流方式</string>
-    <string name="app_mode_choose_another_method">选择其他方式</string>
-    <string name="app_mode_change">更改</string>
-    <string name="app_mode_chooser_title">选择共享屏幕的方式</string>
-    <string name="app_mode_close_chooser">关闭</string>
-    <string name="app_mode_details">详情</string>
-    <string name="app_mode_details_description">%1$s 详情</string>
-    <string name="app_mode_benefits">优点</string>
-    <string name="app_mode_things_to_know">注意事项</string>
+    <string name="app_pref_language">应用语言</string>
+    <string name="app_pref_language_summary">选择此应用的语言</string>
+    <string name="app_pref_language_system_default">系统默认</string>
 
+    <string name="app_pref_dark_theme">深色主题</string>
+    <string name="app_pref_dark_theme_summary">何时使用深色主题</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>始终</item>
+        <item>根据省电模式设置</item>
+        <item>从不</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>始终</item>
+        <item>跟随系统</item>
+        <item>从不</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">动态颜色</string>
+    <string name="app_pref_dynamic_color_summary">使用系统颜色</string>
+
+    <string name="app_pref_notifications">应用通知</string>
+    <string name="app_pref_notifications_summary">在系统设置中管理通知</string>
+    <string name="app_pref_notifications_open_error">无法打开通知设置</string>
+
+    <string name="app_pref_add_tile">添加快捷设置图块</string>
+    <string name="app_pref_add_tile_summary">打开应用或停止进行中的串流</string>
+    <string name="app_pref_tile_already_added">已添加快捷设置图块</string>
+    <string name="app_pref_add_tile_error">无法添加快捷设置图块</string>
+
+    <string name="app_pref_save_error">无法保存设置</string>
+
+    <!-- About -->
+    <string name="app_about_title">关于</string>
+    <string name="app_about_version">版本：%1$s</string>
+    <string name="app_about_developer">开发者：Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">评价应用</string>
+    <string name="app_about_source_code">源代码</string>
+    <string name="app_about_terms_and_conditions">条款和条件</string>
+    <string name="app_about_privacy_policy">隐私政策</string>
+    <string name="app_about_privacy_options">隐私选项</string>
+    <string name="app_about_license">许可</string>
+    <string name="app_about_open_link_error">无法打开链接</string>
+    <string name="app_about_privacy_options_open_error">无法打开隐私选项</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">更新已下载</string>
+    <string name="app_update_message">重启应用以安装更新。任何进行中的串流都将停止。</string>
+    <string name="app_update_restart">重启应用</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">错误通知</string>
+
     <string name="app_notification_waiting_content">点按以打开应用</string>
     <string name="app_notification_streaming_title">串流中…</string>
     <string name="app_notification_streaming_content">点按“停止”以结束串流</string>
     <string name="app_notification_stop">停止</string>
 
+    <string name="app_notification_error_title">错误</string>
+    <string name="app_notification_error_recover">恢复</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">打开 ScreenStream</string>
-    <string name="app_tile_stop">停止</string>
-
-    <string name="app_pref_back">返回</string>
-    <string name="app_pref_settings">设置</string>
-    <string name="app_pref_locale">应用语言</string>
-    <string name="app_pref_locale_summary">打开应用语言设置</string>
-    <string name="app_pref_locale_default">系统默认</string>
-    <string name="app_pref_night_mode">深色主题</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>始终</item>
-        <item>根据省电模式设置</item>
-        <item>从不</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>始终</item>
-        <item>跟随系统</item>
-        <item>从不</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">动态颜色</string>
-    <string name="app_pref_dynamic_theme_summary">根据您的壁纸颜色调整外观</string>
-    <string name="app_pref_notification">应用通知</string>
-    <string name="app_pref_notification_summary">在系统设置中管理通知</string>
-    <string name="app_pref_tile">添加快捷设置图块</string>
-    <string name="app_pref_tile_summary">将 ScreenStream 添加到快捷设置</string>
-
-    <string name="app_tab_about_app_version">版本：%1$s</string>
-    <string name="app_tab_about_developer_name">开发者：Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">评价应用</string>
-    <string name="app_tab_about_app_sources">源代码</string>
-    <string name="app_tab_about_terms_conditions">条款和条件</string>
-    <string name="app_tab_about_privacy_policy">隐私政策</string>
-    <string name="app_tab_about_privacy_options">隐私选项</string>
-    <string name="app_tab_about_license">许可</string>
+    <string name="app_tile_stop">停止串流</string>
 </resources>

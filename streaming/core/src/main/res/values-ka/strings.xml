@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">მიკროფონზე წვდომა</string>
     <string name="core_permission_microphone_message">დაუშვით მიკროფონზე წვდომა, რათა სტრიმში თქვენი მიკროფონის ხმაც ჩაირთოს.\n\nამის გარეშე მიკროფონის აუდიო ვერ გადაიცემა.</string>
     <string name="core_permission_device_audio_title">მოწყობილობის აუდიოზე წვდომა</string>
-    <string name="core_permission_device_audio_message">მოწყობილობის აუდიოს გადასაცემად Android-ს მიკროფონის ნებართვა სჭირდება. ეს თქვენს მიკროფონს არ რთავს.\n\nგადაიცემა მხოლოდ ის აუდიო, რომლის გაზიარებაც დაშვებულია Android-ისა და მისი დამკვრელი აპის მიერ.</string>
+    <string name="core_permission_device_audio_message">Android-ში მოწყობილობის აუდიოს გადასაცემად საჭიროა მიკროფონის ნებართვა. თუ მიკროფონის პარამეტრი გამორთულია, მიკროფონის ხმა არ გადაიცემა.\n\nგადაიცემა მხოლოდ ის აუდიო, რომლის გაზიარებაც დაშვებულია Android-ისა და მისი დამკვრელი აპის მიერ.</string>
 
     <string name="core_permission_audio_title">მიკროფონისა და მოწყობილობის აუდიო</string>
     <string name="core_permission_audio_message">დაუშვით მიკროფონზე წვდომა მიკროფონისა და მოწყობილობის აუდიოს გადასაცემად.\n\nმოწყობილობის აუდიო გადაიცემა მხოლოდ მაშინ, თუ Android და მისი დამკვრელი აპი გაზიარებას დაუშვებენ.</string>

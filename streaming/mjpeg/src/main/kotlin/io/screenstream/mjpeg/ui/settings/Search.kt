@@ -100,6 +100,7 @@ internal fun SearchSettingsField(query: TextFieldState, modifier: Modifier = Mod
         state = query,
         modifier = modifier
             .padding(horizontal = 16.dp)
+            .fillMaxWidth()
             .wrapContentWidth(Alignment.CenterHorizontally)
             .widthIn(max = 560.dp)
             .fillMaxWidth()

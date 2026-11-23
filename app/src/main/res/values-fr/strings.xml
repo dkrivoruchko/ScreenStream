@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Erreur</string>
-    <string name="app_error_recover">Rétablir</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Retour</string>
+    <string name="app_action_close">Fermer</string>
+    <string name="app_action_exit">Quitter</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Préparation…</string>
     <string name="app_module_error_title">Un problème est survenu</string>
     <string name="app_module_error_restart">Redémarrer le mode</string>
 
-    <string name="app_activity_update_dialog_title">Mise à jour disponible</string>
-    <string name="app_activity_update_dialog_message">Une mise à jour est prête. Redémarrer l’application maintenant ?</string>
-    <string name="app_activity_update_dialog_restart">Redémarrer</string>
+    <string name="app_exit_dialog_title">Quitter ScreenStream ?</string>
+    <string name="app_exit_dialog_message">Toute diffusion en cours sera arrêtée.</string>
 
-    <string name="app_tab_stream">Diffusion</string>
-    <string name="app_tab_settings">Paramètres</string>
-    <string name="app_tab_about">À propos</string>
-    <string name="app_tab_exit">Quitter</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Méthode de diffusion</string>
+    <string name="app_method_choose">Choisissez une méthode de diffusion</string>
+    <string name="app_method_details">Détails</string>
+    <string name="app_method_details_description">Détails sur %1$s</string>
+    <string name="app_method_benefits">Avantages</string>
+    <string name="app_method_things_to_know">À savoir</string>
 
-    <string name="app_tab_stream_select_mode">Sélectionnez le mode de diffusion :</string>
-    <string name="app_tab_stream_switching_modules">Changement de mode…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">Paramètres de l\'application</string>
 
-    <string name="app_mode_selected_method">Méthode de diffusion active</string>
-    <string name="app_mode_choose_method">Choisissez une méthode de diffusion</string>
-    <string name="app_mode_choose_another_method">Choisissez une autre méthode</string>
-    <string name="app_mode_change">Modifier</string>
-    <string name="app_mode_chooser_title">Choisissez une méthode pour partager votre écran</string>
-    <string name="app_mode_close_chooser">Fermer</string>
-    <string name="app_mode_details">Détails</string>
-    <string name="app_mode_details_description">Détails sur %1$s</string>
-    <string name="app_mode_benefits">Avantages</string>
-    <string name="app_mode_things_to_know">À savoir</string>
+    <string name="app_pref_language">Langue de l\'application</string>
+    <string name="app_pref_language_summary">Choisir la langue de l’application</string>
+    <string name="app_pref_language_system_default">Valeur par défaut du système</string>
 
+    <string name="app_pref_dark_theme">Thème sombre</string>
+    <string name="app_pref_dark_theme_summary">Quand utiliser le thème sombre</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>Toujours</item>
+        <item>Selon l’économiseur de batterie</item>
+        <item>Jamais</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>Toujours</item>
+        <item>Selon le système</item>
+        <item>Jamais</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">Couleur dynamique</string>
+    <string name="app_pref_dynamic_color_summary">Utiliser les couleurs du système</string>
+
+    <string name="app_pref_notifications">Notifications de l’application</string>
+    <string name="app_pref_notifications_summary">Gérer les notifications dans les paramètres système</string>
+    <string name="app_pref_notifications_open_error">Impossible d’ouvrir les paramètres de notification</string>
+
+    <string name="app_pref_add_tile">Ajouter une tuile aux Réglages rapides</string>
+    <string name="app_pref_add_tile_summary">Ouvrir l’application ou arrêter une diffusion en cours</string>
+    <string name="app_pref_tile_already_added">Tuile déjà ajoutée aux Réglages rapides</string>
+    <string name="app_pref_add_tile_error">Impossible d’ajouter la tuile aux Réglages rapides</string>
+
+    <string name="app_pref_save_error">Impossible d’enregistrer le paramètre</string>
+
+    <!-- About -->
+    <string name="app_about_title">À propos</string>
+    <string name="app_about_version">Version : %1$s</string>
+    <string name="app_about_developer">Développé par Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">Évaluer l\'application</string>
+    <string name="app_about_source_code">Code source</string>
+    <string name="app_about_terms_and_conditions">Conditions générales</string>
+    <string name="app_about_privacy_policy">Politique de confidentialité</string>
+    <string name="app_about_privacy_options">Options de confidentialité</string>
+    <string name="app_about_license">Licence</string>
+    <string name="app_about_open_link_error">Impossible d’ouvrir le lien</string>
+    <string name="app_about_privacy_options_open_error">Impossible d’ouvrir les options de confidentialité</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Mise à jour téléchargée</string>
+    <string name="app_update_message">Redémarrez l’application pour installer la mise à jour. Toute diffusion en cours sera arrêtée.</string>
+    <string name="app_update_restart">Redémarrer</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">Notifications de diffusion</string>
     <string name="app_notification_channel_error">Notifications d\'erreur</string>
+
     <string name="app_notification_waiting_content">Appuyez pour ouvrir l\'application</string>
     <string name="app_notification_streaming_title">Diffusion…</string>
     <string name="app_notification_streaming_content">Appuyez sur Arrêter pour terminer la diffusion</string>
     <string name="app_notification_stop">Arrêter</string>
 
+    <string name="app_notification_error_title">Erreur</string>
+    <string name="app_notification_error_recover">Rétablir</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">Ouvrir ScreenStream</string>
-    <string name="app_tile_stop">Arrêter</string>
-
-    <string name="app_pref_back">Retour</string>
-    <string name="app_pref_settings">Paramètres</string>
-    <string name="app_pref_locale">Langue de l\'application</string>
-    <string name="app_pref_locale_summary">Ouvrir les paramètres de langue de l\'application</string>
-    <string name="app_pref_locale_default">Valeur par défaut du système</string>
-    <string name="app_pref_night_mode">Thème sombre</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>Toujours</item>
-        <item>Selon l’économiseur de batterie</item>
-        <item>Jamais</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>Toujours</item>
-        <item>Selon le système</item>
-        <item>Jamais</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">Couleur dynamique</string>
-    <string name="app_pref_dynamic_theme_summary">Adapter l\'apparence aux couleurs de votre fond d\'écran</string>
-    <string name="app_pref_notification">Notifications de l’application</string>
-    <string name="app_pref_notification_summary">Gérer les notifications dans les paramètres système</string>
-    <string name="app_pref_tile">Ajouter une tuile aux Réglages rapides</string>
-    <string name="app_pref_tile_summary">Ajouter ScreenStream aux Réglages rapides</string>
-
-    <string name="app_tab_about_app_version">Version : %1$s</string>
-    <string name="app_tab_about_developer_name">Développé par Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">Évaluer l\'application</string>
-    <string name="app_tab_about_app_sources">Code source</string>
-    <string name="app_tab_about_terms_conditions">Conditions générales</string>
-    <string name="app_tab_about_privacy_policy">Politique de confidentialité</string>
-    <string name="app_tab_about_privacy_options">Options de confidentialité</string>
-    <string name="app_tab_about_license">Licence</string>
+    <string name="app_tile_stop">Arrêter la diffusion</string>
 </resources>

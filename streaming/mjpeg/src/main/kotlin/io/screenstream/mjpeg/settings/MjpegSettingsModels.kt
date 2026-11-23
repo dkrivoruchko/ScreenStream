@@ -226,8 +226,15 @@ internal data class AccessSettings(
         require(pin == null || isValidPin(pin.value)) { "PIN must have six digits" }
     }
 
-    fun withGeneratedPin(): AccessSettings =
-        copy(pin = SecretValue(SecureRandom().nextInt(PIN_RANGE).toString().padStart(PIN_DIGITS, '0')))
+    /** Draws six ASCII digits and repeats the draw if it matches the current PIN. */
+    fun withGeneratedPin(): AccessSettings {
+        val random = SecureRandom()
+        var generated: String
+        do {
+            generated = random.nextInt(PIN_RANGE).toString().padStart(PIN_DIGITS, '0')
+        } while (generated == pin?.value)
+        return copy(pin = SecretValue(generated))
+    }
 
     @Serializable
     enum class PinPolicy {

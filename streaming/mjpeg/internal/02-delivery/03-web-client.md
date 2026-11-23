@@ -188,6 +188,8 @@ The connection opens `/ws` on the page's own host. Every message passes a strict
 - `429` shows a block for the integer `Retry-After` seconds, or one second if the header is missing or invalid.
 - Any other status, an error or the timeout reports a network failure, and the panel offers a retry.
 
+The access panel converts supported localized digits to ASCII on input or paste. A locally invalid PIN or a rejected PIN marks the field invalid and focuses it. A rejected PIN is also selected for replacement. Editing clears the field error. The block uses a live status region for the initial announcement and another announcement when PIN entry is available again. The visual countdown updates separately.
+
 When the request finishes and access is still denied, probing resumes. Pausing the page aborts the pending request, and late callbacks check the request's identity before acting.
 
 ### Media replacement and polling

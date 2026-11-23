@@ -131,7 +131,6 @@ internal class BackgroundSettingsUiTest {
                 WebPageSettingsGroup(
                     webPageSettings = data.web,
                     mjpegSettings = settings,
-                    onSaveError = { error(it) },
                     visibleSettings = setOf(BackgroundSearch.info),
                     expanded = true,
                     onExpandedChange = {},

@@ -95,6 +95,8 @@ The saved PIN is the six-digit code that viewers type. HTTP delivery creates its
 
 **Missing PIN.** Every save transaction ends with one rule: if protection is enabled and no PIN is saved, a PIN is generated in the same transaction. Generation uses `SecureRandom` and pads the result to six digits, so leading zeros are kept. Turning protection on can therefore never save an enabled state without a PIN. Turning protection off keeps the saved PIN.
 
+Generation redraws if the result matches the current PIN. Earlier PINs remain eligible.
+
 **New PIN on open.** When a module instance starts observing settings, it first runs one save transaction, before any snapshot reaches the Controller. If protection is on and the policy is New PIN on open, that transaction replaces the PIN. The Controller's first effective settings, and so the first HTTP access configuration, already contain the new PIN. The previous PIN is never applied in this instance.
 
 With protection off, this transaction changes nothing and writes nothing. Enabling protection later only fills a missing PIN. Start, Stop, leaving the screen and coming back never generate a new PIN. If the opening transaction fails, the settings observation fails and the module instance shuts down with a failure.
@@ -138,7 +140,7 @@ Under LiveOnly, the Controller keeps some values from its previous effective set
 
 Two independent checks enforce the policy:
 
-1. **The save transaction.** Each settings group applies its transform inside the transaction. It then calls `allows()` against the latest saved snapshot, using the policy the screen last received. A forbidden edit leaves the snapshot unchanged and shows no error, because the control should already have been disabled. This check only advises: the screen's policy can be one turn behind.
+1. **The save transaction.** Each settings group applies its transform inside the transaction. Groups with setup fields then call `allows()` against the latest saved snapshot, using the policy the screen last received. A forbidden edit leaves the snapshot unchanged and shows no error, because the control should already have been disabled. This check only advises: the screen's policy can be one turn behind.
 2. **The Controller.** It applies the LiveOnly mapping when it observes the save. This is the check that protects a running attempt.
 
 The two checks can disagree. A setup edit admitted by the screen just before Start can be saved after the Controller has admitted the attempt. The attempt keeps its effective setup, and the saved value waits. When cleanup succeeds, the Controller applies the latest observed snapshot again, now under All. The waiting value then takes effect without another save.
@@ -162,9 +164,9 @@ A completed save never means the value is in use; [Effective settings and saves]
 
 The whole call runs in `NonCancellable`, including the wait for the mutex, so a save that has started continues after its screen leaves composition. The departed screen does not report the outcome. Failures from the transform or from storage propagate to the caller. Process death and storage failures keep their ordinary effects.
 
-Save failures are logged and shown as a Snackbar on the current settings screen, with one message per group, separately from inline validation errors. Cancellation is not reported as a failure. The Snackbar host belongs to the screen, so a newly opened screen starts with no pending messages.
+Save failures are logged. While the originating settings group is still composed, the UI shows a short Android Toast with that group's error message. Field validation stays inline, and cancellation does not show a failure message.
 
-Editor drafts and editor visibility use Compose `retain`, so they survive supported UI recreation such as configuration changes. The screen also keeps the last saved snapshot so it can draw retained editors in its first frame, and removes the PIN from that copy. The PIN draft, its reveal state and the PIN editor's visibility use ordinary `remember`, so recreation discards them. Process death ends all retention, and only the saved values remain in DataStore.
+Editor drafts and editor visibility stay with each settings section as it moves between panes. They use Compose `retain` to also survive supported UI recreation such as configuration changes. The screen keeps the last saved snapshot so it can draw retained editors in its first frame, and removes the PIN from that copy. The PIN draft, its reveal state and the PIN editor's visibility use ordinary `remember`, so recreation discards them. Process death ends all retention, and only the saved values remain in DataStore.
 
 ## Storage, serialization and recovery
 

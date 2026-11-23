@@ -42,7 +42,8 @@ import org.koin.core.parameter.parametersOf
  *
  * Education is shown until accepted once. Acceptance is saved independently of consent or capture
  * success, and a failed save can show it again. When the host's Activity owns the result registry,
- * disposing the submitting launcher while that Activity is finishing ends the request as HostUnavailable.
+ * disposing the submitting launcher, including one restored after recreation, while that Activity is
+ * finishing ends the request as HostUnavailable.
  * Other terminal losses, such as before the launcher mounts, are not detected; with a different registry,
  * a warning is logged and this hook is disabled. Runtime permission requests use [RuntimePermissionHost].
  */

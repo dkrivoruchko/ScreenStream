@@ -8,9 +8,8 @@ import android.os.SystemClock
 import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.key
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.window.core.layout.WindowSizeClass
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
@@ -375,13 +374,15 @@ internal class StreamingModuleManagerImpl internal constructor(
     @Composable
     override fun InstanceContent(
         instanceId: StreamingModule.InstanceId,
-        window: WindowSizeClass,
-        modifier: Modifier,
         fallback: @Composable () -> Unit,
+        layout: @Composable (StreamingModule.Ui) -> Unit,
     ) {
-        val owner = currentInstance?.takeIf { it.instanceId == instanceId }
-        val installed = owner?.controllerState?.collectAsStateWithLifecycle()?.value
-        if (installed != null && owner.isAdmitted()) installed.Content(window, modifier) else fallback()
+        // The collected controller and its composition belong to this launch.
+        key(instanceId) {
+            val owner = currentInstance?.takeIf { it.instanceId == instanceId }
+            val installed = owner?.controllerState?.collectAsStateWithLifecycle()?.value
+            if (installed != null && owner.isAdmitted()) installed.Content(layout) else fallback()
+        }
     }
 
     /**

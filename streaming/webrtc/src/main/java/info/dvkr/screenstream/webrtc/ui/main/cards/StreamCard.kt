@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -58,6 +57,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.dismiss
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -68,6 +69,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
+import io.screenstream.core.module.StreamingModule.Ui.ModalHost
 import io.screenstream.foundation.qr.generateQRBitmap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -299,16 +301,19 @@ private fun ShowQRCodeButton(
 
     if (showQRDialog.value) {
         var qrCodeSizePx by remember { mutableIntStateOf(0) }
-        BasicAlertDialog(
-            onDismissRequest = { showQRDialog.value = false },
-            modifier = Modifier
-                .sizeIn(maxWidth = 208.dp, maxHeight = 208.dp)
-                .aspectRatio(1f)
-                .clip(MaterialTheme.shapes.large)
-                .background(Color.White)
-        ) {
+        ModalHost.current.Modal(title = null, onDismissRequest = { showQRDialog.value = false }) {
             Box(
                 modifier = Modifier
+                    .sizeIn(maxWidth = 208.dp, maxHeight = 208.dp)
+                    .aspectRatio(1f)
+                    .clip(MaterialTheme.shapes.large)
+                    .background(Color.White)
+                    .semantics(mergeDescendants = true) {
+                        dismiss {
+                            showQRDialog.value = false
+                            true
+                        }
+                    }
                     .onSizeChanged { qrCodeSizePx = it.width },
                 contentAlignment = Alignment.Center,
             ) {

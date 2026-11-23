@@ -142,7 +142,7 @@ The server's own origin is `http://` plus the host and port from the `Host` head
 
 ### Access and credentials
 
-A stream is either **open**, with no PIN, or **protected**, with PIN protection on in the app. On an open stream, every image and state request is allowed, and `POST /pin` returns `204` without setting a cookie.
+A stream is either **open**, with no PIN, or **protected**, with PIN protection on in the app. On an open stream, image and state requests need no credential, and [`POST /pin`](#pin-verification) returns `204` without setting a cookie.
 
 A protected stream accepts three kinds of credential:
 
@@ -172,7 +172,7 @@ The token and the cookie change together. They stay valid until one of these eve
 | --- | --- | --- |
 | Start or Stop capture | Unchanged | Continue |
 | Change appearance, inactive image or PIN-attempt settings | Unchanged | Continue |
-| Change the PIN, or turn protection on | Replaced | Image streams end after the image being sent. State connections end. |
+| Change the PIN, or turn protection on | Replaced | Image streams end. An image already being sent may finish. State connections end. |
 | Turn protection off | Removed, so access is open | Same as above. Reconnecting clients need no credentials. |
 | Close and reopen the mode, or restart it | Newly generated, even with the same PIN | The old server shuts down with all its connections. |
 
@@ -195,7 +195,7 @@ Other form fields are allowed. Keep the encoded body within 256 bytes. On a prot
 
 | Status | Meaning |
 | --- | --- |
-| `204` | The PIN is correct and the response sets the viewing cookie. On an open stream, any submission returns `204` without a cookie. |
+| `204` | The PIN is correct and the response sets the viewing cookie. On an open stream, a submission that reaches PIN verification returns `204` without a cookie. |
 | `403` | The PIN is wrong, or the `Origin`/`Referer` check failed. |
 | `429` with `Retry-After` | PIN entry from this device must wait. `Retry-After` gives the remaining wait in whole seconds, rounded up. |
 
@@ -232,14 +232,14 @@ Read the boundary from the response `Content-Type`, and read each payload using 
 
 #### What clients receive
 
-- **Latest image.** Each new part carries the image that is selected at that moment. A reader that falls behind skips to the newest image.
+- **Latest image.** The first part carries the image selected when the request was admitted, and each later part the image selected when that part begins. A reader that falls behind skips to the newest image.
 - **Repeats.** While the selected image doesn't change, for example when the stream is stopped or the screen is still, the stream sends the same image again about once a second.
 - **Across Stop and Start.** An open stream survives a capture Stop and the next Start. Its content switches between `live`, `retained` and `logo` images as the selection changes. Image clients receive the logo as an ordinary JPEG.
-- **When a stream ends.** A stream ends when the client disconnects, when credentials change (after the image being sent), when its address stops being served, or when the mode closes. A response can also end partway through an image, including a `/jpeg` response that ends before its announced `Content-Length`. Start a new request to get a complete image.
+- **When a stream ends.** A stream ends when the client disconnects, when credentials change, when its address stops being served, or when the mode closes. A response can also end partway through an image, including a `/jpeg` response that ends before its announced `Content-Length`. Start a new request to get a complete image.
 
 #### Availability
 
-The server checks access before it checks image availability. If a request lacks the required credentials, it receives `403` even when no image is available. If an authorized request arrives while the server can't serve an image, for example while the mode is closing, it receives `503` with `Retry-After: 1`. [Inactive stream image](usage.md#automation) chooses between the logo and the last frame when no live image exists.
+The server checks access before it checks image availability. If a request lacks the required credentials, it receives `403` even when no image is available. If the mode starts closing or the request's address stops being served during admission, an authorized request may receive `503` with `Retry-After: 1`. Later requests may receive `403` or no response. [Inactive stream image](usage.md#automation) chooses between the logo and the last frame when no live image exists.
 
 ### External media clients and CORS
 
@@ -253,7 +253,7 @@ Cross-Origin Resource Sharing (CORS) decides whether a script on another website
 | `Access-Control-Allow-Headers` | — | `Content-Type, Range` |
 | `Allow` | — | `GET, OPTIONS` |
 
-`GET` responses carry these headers on `403` and `503` as well, so a script can read the status and `Retry-After`. `OPTIONS` always returns the same `204` and headers, whatever the preflight asks for. The server doesn't send `Access-Control-Allow-Credentials`.
+After the [Host](#host-and-origin-checks) and current-listener checks, the image routes include these headers on `GET` `403` and `503` responses, so a script can read the status and `Retry-After`. `OPTIONS` returns `204` regardless of the requested preflight method or headers. The server doesn't send `Access-Control-Allow-Credentials`.
 
 On a protected stream, the server ignores the viewing cookie on any image request that looks cross-origin. A request counts as cross-origin when any of these is true:
 
@@ -370,7 +370,7 @@ The viewer page is one self-contained HTML document with its styles, script and 
 | Response | Typical cause | What a client should do |
 | --- | --- | --- |
 | `400` | Missing, repeated or malformed `Host` | Use the address exactly as the app shows it. |
-| `403` on any path | `Host` doesn't name this listener (DNS name, proxy, other port) | Connect directly to the listed numeric address and port. |
+| `403` on any path | `Host` doesn't name this listener (DNS name, proxy, other port), or the address is no longer served | Connect directly to a numeric address and port that the app currently lists. |
 | `403` on `/jpeg` or `/mjpeg` | Missing or outdated token or cookie | Get a fresh link, or authorize with the PIN. |
 | `403` on `/pin` | Wrong PIN, or `Origin`/`Referer` check failed | Check the PIN and the `Origin` header. |
 | `404` | Unknown path | Use a route from [Routes](#routes). |

@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Mikrofonga kirish</string>
     <string name="core_permission_microphone_message">Mikrofoningiz ovozini translatsiyaga qo‘shish uchun mikrofonga kirishga ruxsat bering.\n\nBu ruxsatsiz mikrofon audiosini translatsiya qilib bo‘lmaydi.</string>
     <string name="core_permission_device_audio_title">Qurilma audiosiga kirish</string>
-    <string name="core_permission_device_audio_message">Qurilma audiosini translatsiya qilish uchun Android mikrofon ruxsatini talab qiladi. Bu mikrofoningizni yoqmaydi.\n\nFaqat Android va audioni ijro etayotgan ilova ulashishga ruxsat bergan audio translatsiya qilinishi mumkin.</string>
+    <string name="core_permission_device_audio_message">Qurilma audiosini translatsiya qilish uchun Android mikrofon ruxsatini talab qiladi. Mikrofon opsiyasi o‘chirilgan bo‘lsa, mikrofon audiosi translatsiyaga kiritilmaydi.\n\nFaqat Android va audioni ijro etayotgan ilova ulashishga ruxsat bergan audio translatsiya qilinishi mumkin.</string>
 
     <string name="core_permission_audio_title">Mikrofon va qurilma audiosi</string>
     <string name="core_permission_audio_message">Mikrofon va qurilma audiosini translatsiya qilish uchun mikrofonga kirishga ruxsat bering.\n\nQurilma audiosi faqat Android va audioni ijro etayotgan ilova uni ulashishga ruxsat berganda translatsiya qilinishi mumkin.</string>

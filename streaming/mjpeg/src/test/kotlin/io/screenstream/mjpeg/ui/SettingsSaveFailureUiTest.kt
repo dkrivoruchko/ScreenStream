@@ -1,13 +1,12 @@
 package io.screenstream.mjpeg.ui
 
+import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -29,6 +28,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowToast
 import java.io.File
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -48,7 +48,7 @@ internal class SettingsSaveFailureUiTest {
     val temporaryFolder = TemporaryFolder()
 
     @Test
-    fun failedEditorSaveShowsTheScreenSnackbarAndPreservesSavedBytesAndData() {
+    fun failedEditorSaveShowsAShortToastAndPreservesSavedBytesAndData() {
         val context = IsolatedSettingsContext(compose.activity, temporaryFolder.newFolder())
         runBlocking {
             withTimeout(5.seconds) { seedSettings(context, """{"web":{"title":"Before failure"}}""") }
@@ -64,7 +64,7 @@ internal class SettingsSaveFailureUiTest {
         val controller = RecordingUiController()
         controller.state.value = controller.state.value.copy(editPolicy = MjpegSettings.EditPolicy.All)
         compose.setContent {
-            MjpegTestTheme { MjpegContent(controller, settings) }
+            MjpegTestTheme { MjpegContent(controller, settings, layout = ::MjpegTestLayout) }
         }
 
         val searchDescription = text(R.string.mjpeg_pref_search_placeholder)
@@ -77,10 +77,10 @@ internal class SettingsSaveFailureUiTest {
         compose.onNodeWithContentDescription(text(R.string.mjpeg_action_close)).performClick()
 
         val saveErrorText = text(R.string.mjpeg_pref_web_save_error)
-        compose.waitUntil(5_000) {
-            compose.onAllNodesWithText(saveErrorText).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithText(saveErrorText).assertIsDisplayed()
+        compose.waitUntil(5_000) { ShadowToast.shownToastCount() > 0 }
+        assertEquals(1, ShadowToast.shownToastCount())
+        assertEquals(saveErrorText, ShadowToast.getTextOfLatestToast())
+        assertEquals(Toast.LENGTH_SHORT, ShadowToast.getLatestToast().duration)
         val savedSettings = compose.awaitSavedMjpegSettings(settings)
         assertEquals(initial, savedSettings)
         assertContentEquals(savedBytes, preferencesFile.readBytes())

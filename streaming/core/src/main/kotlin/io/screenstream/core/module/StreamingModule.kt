@@ -7,9 +7,10 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.window.core.layout.WindowSizeClass
 import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
 
@@ -92,7 +93,7 @@ public interface StreamingModule {
      * @property hasConsumer Whether a consumer is present, independently of capture.
      * @property captureAttempt Current accepted attempt, kept until its cleanup settles; null when none.
      * @property error Current operation error that leaves the instance usable; null when none. A non-null
-     * value shows the manager's generic warning notification.
+     * value starts the manager's best-effort generic warning notification.
      */
     public data class Status(
         public val isStreaming: Boolean,
@@ -105,6 +106,58 @@ public interface StreamingModule {
          * The module owns the error episode and any recovery token.
          */
         public data class Error(public val message: String? = null)
+    }
+
+    /** Sections and capture button that the app places within the streaming screen. */
+    public interface Ui {
+        /** Current sections in display order. The module owns their content and state. */
+        public val sections: List<Section>
+
+        /** Renders the module's capture button with the placement supplied by the app. */
+        @Composable
+        public fun CaptureActionButton(modifier: Modifier = Modifier)
+
+        /** Presents section-owned content using the app's current modal placement. */
+        public interface ModalHost {
+            /**
+             * The caller controls visibility. A null [title] omits the header. [content] receives
+             * bounded height and handles its own padding and scrolling. Keep state that must survive
+             * a sheet and dialog transition in the caller. [onDismissRequest] signals a user request.
+             * Removing the content does not invoke it.
+             */
+            @Composable
+            public fun Modal(title: String?, onDismissRequest: () -> Unit, content: @Composable () -> Unit)
+
+            public companion object {
+                private val Local = compositionLocalOf<ModalHost> { error("ModalHost is not provided") }
+
+                /** The host for the current pane. Reading outside [Provide] fails. */
+                public val current: ModalHost
+                    @Composable get() = Local.current
+
+                /** Binds [host] to the module content rendered in this pane. */
+                @Composable
+                public fun Provide(host: ModalHost, content: @Composable () -> Unit) {
+                    CompositionLocalProvider(Local provides host, content = content)
+                }
+            }
+        }
+
+        /**
+         * One section of a streaming module's UI.
+         *
+         * @property id Unique within the module instance and stable for the same section across UI
+         *     updates and pane changes.
+         * @property role Placement hint for the app.
+         * @property content Module content composed at one placement with access to [ModalHost.current].
+         */
+        public data class Section(
+            public val id: String,
+            public val role: Role,
+            public val content: @Composable () -> Unit,
+        ) {
+            public enum class Role { Overview, SettingsSearch, Settings, }
+        }
     }
 
     /**
@@ -160,9 +213,9 @@ public interface StreamingModule {
          */
         public suspend fun awaitCleanup(): Boolean
 
-        /** Renders this instance's screen; the manager calls it only while the instance is admitted. */
+        /** Invokes [layout] with this instance's UI in the module-owned composition. */
         @Composable
-        public fun Content(window: WindowSizeClass, modifier: Modifier = Modifier)
+        public fun Content(layout: @Composable (Ui) -> Unit)
 
         /**
          * Called by the original Service from `onDestroy`, whether or not this controller requested the
@@ -213,7 +266,6 @@ public interface StreamingModule {
              */
             @AnyThread
             public fun reportFailed(@StringRes messageResource: Int? = null)
-
         }
     }
 }

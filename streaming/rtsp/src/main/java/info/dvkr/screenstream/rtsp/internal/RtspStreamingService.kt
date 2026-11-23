@@ -21,10 +21,8 @@ import android.widget.Toast
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.util.toClosedRange
-import androidx.window.core.layout.WindowSizeClass
 import androidx.window.layout.WindowMetricsCalculator
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.RtspModuleService
@@ -205,16 +203,15 @@ internal class RtspStreamingService(
     }
 
     @Composable
-    override fun Content(window: WindowSizeClass, modifier: Modifier) {
+    override fun Content(layout: @Composable (StreamingModule.Ui) -> Unit) {
         RtspMainScreenUI(
             instanceId = instanceId,
             rtspStateFlow = rtspStateFlow,
             sendEvent = ::sendUiEvent,
-            windowSizeClass = window,
             claimInitialLocalNetworkRequest = { request ->
                 if (!initialLocalNetworkRequestClaimed && !closing) initialLocalNetworkRequestClaimed = request()
             },
-            modifier = modifier,
+            layout = layout,
         )
     }
 

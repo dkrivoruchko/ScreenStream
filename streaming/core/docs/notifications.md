@@ -30,8 +30,8 @@ flowchart LR
 
 Each module definition declares a foreground slot for its Service component. The manager rejects a catalog in which a slot isn't positive or equals the module error slot, one Service component has two slots, or two components share one; it passes the validated slot to the instance through its handle. The Service uses that one slot in every phase:
 
-1. **Waiting.** An admitted Service enters `specialUse` foreground with Exit content before its Controller factory runs. A start that isn't admitted never promotes.
-2. **Capture preparation.** After consent and before projection acquisition, `enterCaptureForeground` promotes the same Service to `mediaProjection` foreground, adding `microphone` when required. The content still offers Exit.
+1. **Waiting.** An admitted Service enters foreground, typed `specialUse` on API 34+, with Exit content before its Controller factory runs. A start that isn't admitted never promotes.
+2. **Capture preparation.** After consent and before projection acquisition, `enterCaptureForeground` promotes the same Service to `mediaProjection` foreground (type applied on API 29+), adding `microphone` on API 30+ when required. The content still offers Exit.
 3. **Confirmed capture.** `updateCaptureNotification(attempt, true)` switches the content to Stop for that attempt. Content updates post under the same ID and keep the foreground types.
 4. **Stopping capture.** The module can restore Exit content while cleanup continues. After the attempt's cleanup or rollback settles, `leaveCaptureForeground` restores waiting foreground while the instance is still admitted.
 5. **Shutdown.** After capture cleanup, the Controller calls `stopAndAwaitDestruction`, which closes foreground updates and stops the Service. Android removes the foreground notification when the Service stops. Any destruction, expected or not, ends capture ownership before the Controller is notified, so later capture foreground calls do nothing. This ownership covers only the presentation; the Controller still owns media cleanup, which can outlive the Service.

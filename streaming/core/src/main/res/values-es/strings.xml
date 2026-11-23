@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Acceso al micrófono</string>
     <string name="core_permission_microphone_message">Permite el acceso al micrófono para incluir su sonido en la transmisión.\n\nSin este permiso, no se puede transmitir el audio del micrófono.</string>
     <string name="core_permission_device_audio_title">Acceso al audio del dispositivo</string>
-    <string name="core_permission_device_audio_message">Android requiere permiso de micrófono para transmitir el audio del dispositivo. Esto no enciende el micrófono.\n\nSolo se puede transmitir el audio que Android y la app que lo reproduce permiten compartir.</string>
+    <string name="core_permission_device_audio_message">Android requiere permiso de micrófono para transmitir el audio del dispositivo. Si la opción de micrófono está desactivada, la transmisión no incluye el audio del micrófono.\n\nSolo se puede transmitir el audio que Android y la app que lo reproduce permiten compartir.</string>
 
     <string name="core_permission_audio_title">Audio del micrófono y del dispositivo</string>
     <string name="core_permission_audio_message">Permite el acceso al micrófono para transmitir el audio del micrófono y del dispositivo.\n\nEl audio del dispositivo solo se puede transmitir si Android y la app que lo reproduce permiten compartirlo.</string>

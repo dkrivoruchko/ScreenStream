@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Errorea</string>
-    <string name="app_error_recover">Leheneratu</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Atzera</string>
+    <string name="app_action_close">Itxi</string>
+    <string name="app_action_exit">Irten</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Prestatzen…</string>
     <string name="app_module_error_title">Zerbait gaizki joan da</string>
     <string name="app_module_error_restart">Berrabiarazi modua</string>
 
-    <string name="app_activity_update_dialog_title">Bertsio-berritze bat eskuragai</string>
-    <string name="app_activity_update_dialog_message">Eguneratzea prest dago. Berrabiarazi aplikazioa orain?</string>
-    <string name="app_activity_update_dialog_restart">Berrabiarazi</string>
+    <string name="app_exit_dialog_title">ScreenStream-etik irten nahi duzu?</string>
+    <string name="app_exit_dialog_message">Transmisio aktiboa badago, geldituko da.</string>
 
-    <string name="app_tab_stream">Transmisioa</string>
-    <string name="app_tab_settings">Ezarpenak</string>
-    <string name="app_tab_about">Honi buruz</string>
-    <string name="app_tab_exit">Irten</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Transmisio-metodoa</string>
+    <string name="app_method_choose">Aukeratu transmisio-metodo bat</string>
+    <string name="app_method_details">Xehetasunak</string>
+    <string name="app_method_details_description">Xehetasunak: %1$s</string>
+    <string name="app_method_benefits">Abantailak</string>
+    <string name="app_method_things_to_know">Jakin beharrekoak</string>
 
-    <string name="app_tab_stream_select_mode">Hautatu transmisio-modua:</string>
-    <string name="app_tab_stream_switching_modules">Moduak aldatzen…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">Aplikazioaren ezarpenak</string>
 
-    <string name="app_mode_selected_method">Transmisio-metodo aktiboa</string>
-    <string name="app_mode_choose_method">Aukeratu transmisio-metodo bat</string>
-    <string name="app_mode_choose_another_method">Aukeratu beste metodo bat</string>
-    <string name="app_mode_change">Aldatu</string>
-    <string name="app_mode_chooser_title">Aukeratu pantaila partekatzeko metodo bat</string>
-    <string name="app_mode_close_chooser">Itxi</string>
-    <string name="app_mode_details">Xehetasunak</string>
-    <string name="app_mode_details_description">Xehetasunak: %1$s</string>
-    <string name="app_mode_benefits">Abantailak</string>
-    <string name="app_mode_things_to_know">Jakin beharrekoak</string>
+    <string name="app_pref_language">Aplikazioaren hizkuntza</string>
+    <string name="app_pref_language_summary">Aukeratu aplikazio honen hizkuntza</string>
+    <string name="app_pref_language_system_default">Sistemaren lehenetsia</string>
 
+    <string name="app_pref_dark_theme">Gai iluna</string>
+    <string name="app_pref_dark_theme_summary">Noiz erabili gai iluna</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>Beti</item>
+        <item>Bateria-aurrezlearen arabera</item>
+        <item>Inoiz ez</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>Beti</item>
+        <item>Sistemaren arabera</item>
+        <item>Inoiz ez</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">Kolore dinamikoa</string>
+    <string name="app_pref_dynamic_color_summary">Erabili sistemaren koloreak</string>
+
+    <string name="app_pref_notifications">Aplikazioaren jakinarazpenak</string>
+    <string name="app_pref_notifications_summary">Kudeatu jakinarazpenak sistemaren ezarpenetan</string>
+    <string name="app_pref_notifications_open_error">Ezin izan dira jakinarazpen-ezarpenak ireki</string>
+
+    <string name="app_pref_add_tile">Gehitu Ezarpen bizkorren lauza</string>
+    <string name="app_pref_add_tile_summary">Ireki aplikazioa edo gelditu transmisio aktiboa</string>
+    <string name="app_pref_tile_already_added">Ezarpen bizkorren lauza gehituta dago jada</string>
+    <string name="app_pref_add_tile_error">Ezin izan da Ezarpen bizkorren lauza gehitu</string>
+
+    <string name="app_pref_save_error">Ezin izan da ezarpena gorde</string>
+
+    <!-- About -->
+    <string name="app_about_title">Honi buruz</string>
+    <string name="app_about_version">Bertsioa: %1$s</string>
+    <string name="app_about_developer">Dmytro Kryvoruchko-k garatua</string>
+
+    <string name="app_about_rate_app">Baloratu aplikazioa</string>
+    <string name="app_about_source_code">Iturburu-kodea</string>
+    <string name="app_about_terms_and_conditions">Baldintzak</string>
+    <string name="app_about_privacy_policy">Pribatutasun-politika</string>
+    <string name="app_about_privacy_options">Pribatutasun-aukerak</string>
+    <string name="app_about_license">Lizentzia</string>
+    <string name="app_about_open_link_error">Ezin izan da esteka ireki</string>
+    <string name="app_about_privacy_options_open_error">Ezin izan dira pribatutasun-aukerak ireki</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Eguneratzea deskargatu da</string>
+    <string name="app_update_message">Berrabiarazi aplikazioa eguneratzea instalatzeko. Transmisio aktiboa badago, geldituko da.</string>
+    <string name="app_update_restart">Berrabiarazi</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">Transmisio-jakinarazpenak</string>
     <string name="app_notification_channel_error">Errore-jakinarazpenak</string>
+
     <string name="app_notification_waiting_content">Sakatu aplikazioa irekitzeko</string>
     <string name="app_notification_streaming_title">Transmititzen…</string>
     <string name="app_notification_streaming_content">Sakatu Gelditu transmisioa amaitzeko</string>
     <string name="app_notification_stop">Gelditu</string>
 
+    <string name="app_notification_error_title">Errorea</string>
+    <string name="app_notification_error_recover">Berreskuratu</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">Ireki ScreenStream</string>
-    <string name="app_tile_stop">Gelditu</string>
-
-    <string name="app_pref_back">Atzera</string>
-    <string name="app_pref_settings">Ezarpenak</string>
-    <string name="app_pref_locale">Aplikazioaren hizkuntza</string>
-    <string name="app_pref_locale_summary">Ireki aplikazioaren hizkuntza-ezarpenak</string>
-    <string name="app_pref_locale_default">Sistemaren lehenetsia</string>
-    <string name="app_pref_night_mode">Gai iluna</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>Beti</item>
-        <item>Bateria-aurrezlearen arabera</item>
-        <item>Inoiz ez</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>Beti</item>
-        <item>Sistemaren arabera</item>
-        <item>Inoiz ez</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">Kolore dinamikoa</string>
-    <string name="app_pref_dynamic_theme_summary">Doitu itxura zure horma-paperen koloreen arabera</string>
-    <string name="app_pref_notification">Aplikazioaren jakinarazpenak</string>
-    <string name="app_pref_notification_summary">Kudeatu jakinarazpenak sistemaren ezarpenetan</string>
-    <string name="app_pref_tile">Gehitu Ezarpen bizkorren lauza</string>
-    <string name="app_pref_tile_summary">Gehitu ScreenStream Ezarpen bizkorretan</string>
-
-    <string name="app_tab_about_app_version">Bertsioa: %1$s</string>
-    <string name="app_tab_about_developer_name">Dmytro Kryvoruchko-k garatua</string>
-    <string name="app_tab_about_rate_app">Baloratu aplikazioa</string>
-    <string name="app_tab_about_app_sources">Iturburu-kodea</string>
-    <string name="app_tab_about_terms_conditions">Baldintzak</string>
-    <string name="app_tab_about_privacy_policy">Pribatutasun-politika</string>
-    <string name="app_tab_about_privacy_options">Pribatutasun-aukerak</string>
-    <string name="app_tab_about_license">Lizentzia</string>
+    <string name="app_tile_stop">Gelditu transmisioa</string>
 </resources>

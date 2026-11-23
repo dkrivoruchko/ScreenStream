@@ -13,6 +13,5 @@ import org.koin.core.annotation.Module
     "info.dvkr.screenstream.review",
     "info.dvkr.screenstream.settings",
     "info.dvkr.screenstream.notification",
-    "info.dvkr.screenstream.ui",
 )
 public class AppKoinModule

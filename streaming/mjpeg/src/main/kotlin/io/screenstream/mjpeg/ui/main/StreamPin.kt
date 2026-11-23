@@ -3,6 +3,7 @@ package io.screenstream.mjpeg.ui.main
 import android.content.ClipData
 import android.os.Build
 import android.os.PersistableBundle
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -39,13 +41,12 @@ import kotlinx.coroutines.launch
 internal fun StreamPinContent(
     pin: SecretValue,
     hidePinOnCapture: Boolean,
-    onShowMessage: (String) -> Unit,
 ) {
     var pinRevealed by remember(pin, hidePinOnCapture) { mutableStateOf(false) }
     val clipboard = LocalClipboard.current
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val copyLabel = stringResource(R.string.mjpeg_stream_pin_copy)
-    val copiedMessage = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) stringResource(R.string.mjpeg_stream_pin_copied) else null
     val hiddenPinDescription = stringResource(R.string.mjpeg_stream_pin_hidden)
     val revealActionDescription = stringResource(if (pinRevealed) R.string.mjpeg_pin_hide_description else R.string.mjpeg_pin_show_description)
     val onCopyPin: () -> Unit = {
@@ -55,7 +56,9 @@ internal fun StreamPinContent(
                 putBoolean("android.content.extra.IS_SENSITIVE", true)
             }
             clipboard.setClipEntry(ClipEntry(clip))
-            copiedMessage?.let(onShowMessage)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                Toast.makeText(context, R.string.mjpeg_stream_pin_copied, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

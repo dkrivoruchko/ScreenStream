@@ -30,8 +30,8 @@ flowchart LR
 ## How they collaborate
 
 1. **Opening.** The app selects a module. The manager resolves the choice, creates the instance identity and handle, and starts the Service with ordinary `Context.startService`.
-2. **Waiting foreground.** For an admitted start, the Service enters **waiting foreground** (`specialUse`, with an Exit action), then calls the Controller factory. If the instance is still admitted, the manager installs and starts the Controller. The first accepted status completes startup and publishes `Running`, or `Unresponsive` if its heartbeat is already stale.
-3. **Capture.** An accepted Start begins a **capture attempt**. The module checks [runtime permissions](runtime-permissions.md) and obtains [screen-sharing consent](screen-capture.md). After consent and before acquiring the `MediaProjection`, the same Service switches to `mediaProjection` foreground, adding `microphone` when the module requires it. The module then prepares its media work and starts capture.
+2. **Waiting foreground.** For an admitted start, the Service enters **waiting foreground** ([foreground presentation](notifications.md#foreground-presentation)), with an Exit action, then calls the Controller factory. If the instance is still admitted, the manager installs and starts the Controller. The first accepted status completes startup and publishes `Running`, or `Unresponsive` if its heartbeat is already stale.
+3. **Capture.** An accepted Start begins a **capture attempt**. The module checks [runtime permissions](runtime-permissions.md) and obtains [screen-sharing consent](screen-capture.md). After consent and before acquiring the `MediaProjection`, the same Service switches to capture foreground, with microphone use when the module requires it ([foreground presentation](notifications.md#foreground-presentation)). The module then prepares its media work and starts capture.
 4. **Stop or closure.** A normal Stop cleans up the attempt and returns the Service to waiting foreground for another Start. Replacement, restart, Exit and terminal failure close the instance to new work and request Controller shutdown.
 
 A start delivered after Exit, or after startup admission expired, neither promotes the Service nor creates a Controller. The unowned Service stops unless a newer start for it is pending. Because the manager uses `startService` rather than `startForegroundService`, a rejected delivery leaves no pending obligation to call `startForeground`.
@@ -108,7 +108,7 @@ While Exit's bounded wait is pending, selection, restart and commands are droppe
 | `Switching` | An opening is in progress: the settings load, the previous instance's bounded wait, or the new instance's first status. |
 | `Running` | The current Controller reports fresh progress. |
 | `Unresponsive` | Progress is stale; the last accepted status is retained. |
-| `Failed` | Terminal failure. Admission is closed and cleanup proceeds. Remains until another selection, a restart or Exit. |
+| `Failed` | Terminal failure. Admission is closed and cleanup proceeds. Remains until another module is selected, a restart or Exit. |
 | `Exiting` | Exit has closed admission. Remains after the bounded wait. |
 
 Health shows whether Controller work is progressing, not whether capture or the network is ready; an idle Controller is healthy while it keeps reporting. `Running` and `Unresponsive` refer to the same instance, commands reach both, and a fresh report restores `Running`.
@@ -117,6 +117,12 @@ Each report carries a `StreamingModule.Status`: whether capture is streaming, wh
 
 ## Module UI and notifications
 
-The Controller owns its module UI. `InstanceContent` renders it only while that instance is admitted and otherwise shows the app's fallback; rendering changes don't affect the Controller's work or cleanup.
+The Controller owns its module UI. `InstanceContent` supplies that UI, its sections and separate capture button, to the app's layout inside the current admitted Controller's composition. When the requested instance is unavailable, the manager composes the app's fallback. Rendering changes are independent of the Controller's work and cleanup.
+
+Modules supply `Ui.sections` in display order and give each section a stable ID within its module instance. `Overview` covers connection details, operating mode, errors and statistics. `SettingsSearch` and `Settings` identify the search field and configuration sections. The app uses these roles to place sections; in its side-by-side layout, the current app keeps the leading `Overview` sections and the capture button in the main pane, shows the remaining sections in the side pane and pins a `SettingsSearch` section that comes first there.
+
+The app binds a host for each pane with `Ui.ModalHost.Provide`, and section content reads that host through `Ui.ModalHost.current`. The app supplies the modal window and any title chrome. The module owns the content, visibility and actions, including what to do when the user requests dismissal. Modal content receives bounded height and owns its own padding and scrolling. A null title gives untitled content such as a QR preview. Removing a section does not request dismissal.
+
+Keep drafts and scroll positions that must survive a switch between sheet and dialog in the modal caller.
 
 [Streaming Module Notifications](notifications.md) describes how the Service, the manager and the Controller each present their notifications through the app's provider.

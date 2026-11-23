@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">ስህተት</string>
-    <string name="app_error_recover">ወደነበረበት መልስ</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">ተመለስ</string>
+    <string name="app_action_close">ዝጋ</string>
+    <string name="app_action_exit">ውጣ</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">በማዘጋጀት ላይ…</string>
     <string name="app_module_error_title">የሆነ ችግር ተፈጥሯል</string>
     <string name="app_module_error_restart">ሁነታውን ዳግም አስጀምር</string>
 
-    <string name="app_activity_update_dialog_title">ዝማኔ አለ</string>
-    <string name="app_activity_update_dialog_message">ዝማኔ ዝግጁ ነው። መተግበሪያውን አሁን ዳግም ይጀምሩ?</string>
-    <string name="app_activity_update_dialog_restart">እንደገና ጀምር</string>
+    <string name="app_exit_dialog_title">ከScreenStream መውጣት ይፈልጋሉ?</string>
+    <string name="app_exit_dialog_message">ንቁ ስርጭት ካለ ይቆማል።</string>
 
-    <string name="app_tab_stream">ዥረት</string>
-    <string name="app_tab_settings">ቅንብሮች</string>
-    <string name="app_tab_about">ስለ</string>
-    <string name="app_tab_exit">ውጣ</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">የስርጭት ዘዴ</string>
+    <string name="app_method_choose">የስርጭት ዘዴ ይምረጡ</string>
+    <string name="app_method_details">ዝርዝሮች</string>
+    <string name="app_method_details_description">የ%1$s ዝርዝሮች</string>
+    <string name="app_method_benefits">ጥቅሞች</string>
+    <string name="app_method_things_to_know">ማወቅ ያለብዎት</string>
 
-    <string name="app_tab_stream_select_mode">የዥረት ሁነታን ይምረጡ፡</string>
-    <string name="app_tab_stream_switching_modules">ሁነታዎችን በመቀየር ላይ…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">የመተግበሪያ ቅንብሮች</string>
 
-    <string name="app_mode_selected_method">ንቁ የስርጭት ዘዴ</string>
-    <string name="app_mode_choose_method">የስርጭት ዘዴ ይምረጡ</string>
-    <string name="app_mode_choose_another_method">ሌላ ዘዴ ይምረጡ</string>
-    <string name="app_mode_change">ቀይር</string>
-    <string name="app_mode_chooser_title">ማያ ገጽዎን ለማጋራት ዘዴ ይምረጡ</string>
-    <string name="app_mode_close_chooser">ዝጋ</string>
-    <string name="app_mode_details">ዝርዝሮች</string>
-    <string name="app_mode_details_description">የ%1$s ዝርዝሮች</string>
-    <string name="app_mode_benefits">ጥቅሞች</string>
-    <string name="app_mode_things_to_know">ማወቅ ያለብዎት</string>
+    <string name="app_pref_language">የመተግበሪያ ቋንቋ</string>
+    <string name="app_pref_language_summary">ለዚህ መተግበሪያ ቋንቋ ይምረጡ</string>
+    <string name="app_pref_language_system_default">የሥርዓት ነባሪ</string>
 
-    <string name="app_notification_channel_streaming">የዥረት ማሳወቂያዎች</string>
-    <string name="app_notification_channel_error">የስህተት ማሳወቂያዎች</string>
-    <string name="app_notification_waiting_content">መተግበሪያውን ለመክፈት ይንኩ</string>
-    <string name="app_notification_streaming_title">በማሰራጨት ላይ…</string>
-    <string name="app_notification_streaming_content">ዥረቱን ለማጠናቀቅ «አቁም»ን ይንኩ</string>
-    <string name="app_notification_stop">አቁም</string>
-
-    <!-- When idle, the tile opens the app; it does not start capture. -->
-    <string name="app_tile_open">ScreenStreamን ክፈት</string>
-    <string name="app_tile_stop">አቁም</string>
-
-    <string name="app_pref_back">ተመለስ</string>
-    <string name="app_pref_settings">ቅንብሮች</string>
-    <string name="app_pref_locale">የመተግበሪያ ቋንቋ</string>
-    <string name="app_pref_locale_summary">የመተግበሪያ ቋንቋ ቅንብሮችን ይክፈቱ</string>
-    <string name="app_pref_locale_default">የሥርዓት ነባሪ</string>
-    <string name="app_pref_night_mode">ጨለማ ገጽታ</string>
+    <string name="app_pref_dark_theme">ጨለማ ገጽታ</string>
+    <string name="app_pref_dark_theme_summary">ጨለማ ገጽታ መቼ ጥቅም ላይ እንደሚውል</string>
     <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
+    <string-array name="app_pref_dark_theme_options_battery_saver">
         <item>ሁልጊዜ</item>
         <item>በባትሪ ቆጣቢ መሠረት</item>
         <item>በጭራሽ</item>
     </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
+    <string-array name="app_pref_dark_theme_options_follow_system">
         <item>ሁልጊዜ</item>
         <item>ሥርዓቱን ተከተል</item>
         <item>በጭራሽ</item>
     </string-array>
-    <string name="app_pref_dynamic_theme">ተለዋዋጭ ቀለም</string>
-    <string name="app_pref_dynamic_theme_summary">በግድግዳ ወረቀትዎ ቀለሞች ላይ በመመስረት መልኩን ያስተካክሉ</string>
-    <string name="app_pref_notification">የመተግበሪያ ማሳወቂያዎች</string>
-    <string name="app_pref_notification_summary">ማሳወቂያዎችን በሥርዓት ቅንብሮች ውስጥ ያስተዳድሩ</string>
-    <string name="app_pref_tile">የፈጣን ቅንብሮች ንጣፍ ያክሉ</string>
-    <string name="app_pref_tile_summary">ScreenStreamን ወደ ፈጣን ቅንብሮች ያክሉ</string>
 
-    <string name="app_tab_about_app_version">ስሪት፡ %1$s</string>
-    <string name="app_tab_about_developer_name">በDmytro Kryvoruchko የተሠራ</string>
-    <string name="app_tab_about_rate_app">መተግበሪያ ደረጃ ይስጡ</string>
-    <string name="app_tab_about_app_sources">ምንጭ ኮድ</string>
-    <string name="app_tab_about_terms_conditions">ውሎች እና ሁኔታዎች</string>
-    <string name="app_tab_about_privacy_policy">የግላዊነት ፖሊሲ</string>
-    <string name="app_tab_about_privacy_options">የግላዊነት አማራጮች</string>
-    <string name="app_tab_about_license">ፈቃድ</string>
+    <string name="app_pref_dynamic_color">ተለዋዋጭ ቀለም</string>
+    <string name="app_pref_dynamic_color_summary">የሥርዓት ቀለሞችን ይጠቀሙ</string>
+
+    <string name="app_pref_notifications">የመተግበሪያ ማሳወቂያዎች</string>
+    <string name="app_pref_notifications_summary">ማሳወቂያዎችን በሥርዓት ቅንብሮች ውስጥ ያስተዳድሩ</string>
+    <string name="app_pref_notifications_open_error">የማሳወቂያ ቅንብሮችን መክፈት አልተቻለም</string>
+
+    <string name="app_pref_add_tile">የፈጣን ቅንብሮች ንጣፍ ያክሉ</string>
+    <string name="app_pref_add_tile_summary">መተግበሪያውን ይክፈቱ ወይም ንቁ ስርጭትን ያቁሙ</string>
+    <string name="app_pref_tile_already_added">የፈጣን ቅንብሮች ንጣፍ አስቀድሞ ታክሏል</string>
+    <string name="app_pref_add_tile_error">የፈጣን ቅንብሮች ንጣፍን ማከል አልተቻለም</string>
+
+    <string name="app_pref_save_error">ቅንብሩን ማስቀመጥ አልተቻለም</string>
+
+    <!-- About -->
+    <string name="app_about_title">ስለ</string>
+    <string name="app_about_version">ስሪት፡ %1$s</string>
+    <string name="app_about_developer">በDmytro Kryvoruchko የተሠራ</string>
+
+    <string name="app_about_rate_app">መተግበሪያ ደረጃ ይስጡ</string>
+    <string name="app_about_source_code">ምንጭ ኮድ</string>
+    <string name="app_about_terms_and_conditions">ውሎች እና ሁኔታዎች</string>
+    <string name="app_about_privacy_policy">የግላዊነት ፖሊሲ</string>
+    <string name="app_about_privacy_options">የግላዊነት አማራጮች</string>
+    <string name="app_about_license">ፈቃድ</string>
+    <string name="app_about_open_link_error">አገናኙን መክፈት አልተቻለም</string>
+    <string name="app_about_privacy_options_open_error">የግላዊነት አማራጮችን መክፈት አልተቻለም</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">ዝማኔ ወርዷል</string>
+    <string name="app_update_message">ዝማኔውን ለመጫን መተግበሪያውን ዳግም ያስጀምሩ። ንቁ ስርጭት ካለ ይቆማል።</string>
+    <string name="app_update_restart">ዳግም አስጀምር</string>
+
+    <!-- Notifications -->
+    <string name="app_notification_channel_streaming">የስርጭት ማሳወቂያዎች</string>
+    <string name="app_notification_channel_error">የስህተት ማሳወቂያዎች</string>
+
+    <string name="app_notification_waiting_content">መተግበሪያውን ለመክፈት ይንኩ</string>
+    <string name="app_notification_streaming_title">በማሰራጨት ላይ…</string>
+    <string name="app_notification_streaming_content">ስርጭቱን ለማጠናቀቅ «አቁም»ን ይንኩ</string>
+    <string name="app_notification_stop">አቁም</string>
+
+    <string name="app_notification_error_title">ስህተት</string>
+    <string name="app_notification_error_recover">ወደነበረበት መልስ</string>
+
+    <!-- Quick Settings tile -->
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStreamን ክፈት</string>
+    <string name="app_tile_stop">ስርጭት አቁም</string>
 </resources>

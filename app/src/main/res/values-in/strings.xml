@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Kesalahan</string>
-    <string name="app_error_recover">Pulihkan</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Kembali</string>
+    <string name="app_action_close">Tutup</string>
+    <string name="app_action_exit">Keluar</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Menyiapkan…</string>
     <string name="app_module_error_title">Terjadi kesalahan</string>
     <string name="app_module_error_restart">Mulai ulang mode</string>
 
-    <string name="app_activity_update_dialog_title">Pembaruan tersedia</string>
-    <string name="app_activity_update_dialog_message">Pembaruan siap. Mulai ulang aplikasi sekarang?</string>
-    <string name="app_activity_update_dialog_restart">Mulai ulang</string>
+    <string name="app_exit_dialog_title">Keluar dari ScreenStream?</string>
+    <string name="app_exit_dialog_message">Streaming yang aktif akan dihentikan.</string>
 
-    <string name="app_tab_stream">Streaming</string>
-    <string name="app_tab_settings">Setelan</string>
-    <string name="app_tab_about">Tentang</string>
-    <string name="app_tab_exit">Keluar</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Metode streaming</string>
+    <string name="app_method_choose">Pilih metode streaming</string>
+    <string name="app_method_details">Detail</string>
+    <string name="app_method_details_description">Detail untuk %1$s</string>
+    <string name="app_method_benefits">Kelebihan</string>
+    <string name="app_method_things_to_know">Yang perlu diketahui</string>
 
-    <string name="app_tab_stream_select_mode">Pilih mode streaming:</string>
-    <string name="app_tab_stream_switching_modules">Beralih mode…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">Setelan aplikasi</string>
 
-    <string name="app_mode_selected_method">Metode streaming aktif</string>
-    <string name="app_mode_choose_method">Pilih metode streaming</string>
-    <string name="app_mode_choose_another_method">Pilih metode lain</string>
-    <string name="app_mode_change">Ubah</string>
-    <string name="app_mode_chooser_title">Pilih metode untuk berbagi layar Anda</string>
-    <string name="app_mode_close_chooser">Tutup</string>
-    <string name="app_mode_details">Detail</string>
-    <string name="app_mode_details_description">Detail untuk %1$s</string>
-    <string name="app_mode_benefits">Kelebihan</string>
-    <string name="app_mode_things_to_know">Yang perlu diketahui</string>
+    <string name="app_pref_language">Bahasa aplikasi</string>
+    <string name="app_pref_language_summary">Pilih bahasa untuk aplikasi ini</string>
+    <string name="app_pref_language_system_default">Default sistem</string>
 
-    <string name="app_notification_channel_streaming">Notifikasi streaming</string>
-    <string name="app_notification_channel_error">Notifikasi kesalahan</string>
-    <string name="app_notification_waiting_content">Ketuk untuk membuka aplikasi</string>
-    <string name="app_notification_streaming_title">Streaming…</string>
-    <string name="app_notification_streaming_content">Ketuk Berhenti untuk mengakhiri streaming</string>
-    <string name="app_notification_stop">Berhenti</string>
-
-    <!-- When idle, the tile opens the app; it does not start capture. -->
-    <string name="app_tile_open">Buka ScreenStream</string>
-    <string name="app_tile_stop">Berhenti</string>
-
-    <string name="app_pref_back">Kembali</string>
-    <string name="app_pref_settings">Setelan</string>
-    <string name="app_pref_locale">Bahasa aplikasi</string>
-    <string name="app_pref_locale_summary">Buka setelan bahasa aplikasi</string>
-    <string name="app_pref_locale_default">Default sistem</string>
-    <string name="app_pref_night_mode">Tema gelap</string>
+    <string name="app_pref_dark_theme">Tema gelap</string>
+    <string name="app_pref_dark_theme_summary">Kapan menggunakan tema gelap</string>
     <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
+    <string-array name="app_pref_dark_theme_options_battery_saver">
         <item>Selalu</item>
         <item>Diatur oleh Penghemat Baterai</item>
         <item>Tidak pernah</item>
     </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
+    <string-array name="app_pref_dark_theme_options_follow_system">
         <item>Selalu</item>
         <item>Ikuti sistem</item>
         <item>Tidak pernah</item>
     </string-array>
-    <string name="app_pref_dynamic_theme">Warna dinamis</string>
-    <string name="app_pref_dynamic_theme_summary">Sesuaikan tampilan berdasarkan warna wallpaper Anda</string>
-    <string name="app_pref_notification">Notifikasi aplikasi</string>
-    <string name="app_pref_notification_summary">Kelola notifikasi di setelan sistem</string>
-    <string name="app_pref_tile">Tambahkan ubin Setelan Cepat</string>
-    <string name="app_pref_tile_summary">Tambahkan ScreenStream ke Setelan Cepat</string>
 
-    <string name="app_tab_about_app_version">Versi: %1$s</string>
-    <string name="app_tab_about_developer_name">Dikembangkan oleh Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">Nilai aplikasi</string>
-    <string name="app_tab_about_app_sources">Kode sumber</string>
-    <string name="app_tab_about_terms_conditions">Syarat dan Ketentuan</string>
-    <string name="app_tab_about_privacy_policy">Kebijakan privasi</string>
-    <string name="app_tab_about_privacy_options">Opsi privasi</string>
-    <string name="app_tab_about_license">Lisensi</string>
+    <string name="app_pref_dynamic_color">Warna dinamis</string>
+    <string name="app_pref_dynamic_color_summary">Gunakan warna sistem</string>
+
+    <string name="app_pref_notifications">Notifikasi aplikasi</string>
+    <string name="app_pref_notifications_summary">Kelola notifikasi di setelan sistem</string>
+    <string name="app_pref_notifications_open_error">Tidak dapat membuka setelan notifikasi</string>
+
+    <string name="app_pref_add_tile">Tambahkan ubin Setelan Cepat</string>
+    <string name="app_pref_add_tile_summary">Buka aplikasi atau hentikan streaming yang aktif</string>
+    <string name="app_pref_tile_already_added">Ubin Setelan Cepat sudah ditambahkan</string>
+    <string name="app_pref_add_tile_error">Tidak dapat menambahkan ubin Setelan Cepat</string>
+
+    <string name="app_pref_save_error">Tidak dapat menyimpan setelan</string>
+
+    <!-- About -->
+    <string name="app_about_title">Tentang</string>
+    <string name="app_about_version">Versi: %1$s</string>
+    <string name="app_about_developer">Dikembangkan oleh Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">Nilai aplikasi</string>
+    <string name="app_about_source_code">Kode sumber</string>
+    <string name="app_about_terms_and_conditions">Syarat dan Ketentuan</string>
+    <string name="app_about_privacy_policy">Kebijakan privasi</string>
+    <string name="app_about_privacy_options">Opsi privasi</string>
+    <string name="app_about_license">Lisensi</string>
+    <string name="app_about_open_link_error">Tidak dapat membuka link</string>
+    <string name="app_about_privacy_options_open_error">Tidak dapat membuka opsi privasi</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Pembaruan didownload</string>
+    <string name="app_update_message">Mulai ulang aplikasi untuk menginstal pembaruan. Streaming yang aktif akan dihentikan.</string>
+    <string name="app_update_restart">Mulai ulang</string>
+
+    <!-- Notifications -->
+    <string name="app_notification_channel_streaming">Notifikasi streaming</string>
+    <string name="app_notification_channel_error">Notifikasi kesalahan</string>
+
+    <string name="app_notification_waiting_content">Ketuk untuk membuka aplikasi</string>
+    <string name="app_notification_streaming_title">Streaming…</string>
+    <string name="app_notification_streaming_content">Ketuk Hentikan untuk mengakhiri streaming</string>
+    <string name="app_notification_stop">Hentikan</string>
+
+    <string name="app_notification_error_title">Kesalahan</string>
+    <string name="app_notification_error_recover">Pulihkan</string>
+
+    <!-- Quick Settings tile -->
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Buka ScreenStream</string>
+    <string name="app_tile_stop">Hentikan streaming</string>
 </resources>

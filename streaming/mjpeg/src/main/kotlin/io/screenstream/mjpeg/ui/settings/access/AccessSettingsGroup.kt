@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.MjpegSettings
@@ -28,14 +27,17 @@ internal fun AccessSettingsGroup(
     accessSettings: AccessSettings,
     mjpegSettings: MjpegSettings,
     editPolicy: MjpegSettings.EditPolicy,
-    onSaveError: (String) -> Unit,
     visibleSettings: Set<SettingSearchInfo>?,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
 ) {
-    val saveErrorText = stringResource(R.string.mjpeg_pref_access_save_error)
     val currentEditPolicy by rememberUpdatedState(editPolicy)
-    val save = rememberMjpegSettingsSave(mjpegSettings, "Access.save", "Could not save access settings") { onSaveError(saveErrorText) }
+    val save = rememberMjpegSettingsSave(
+        settings = mjpegSettings,
+        logTag = "Access.save",
+        logMessage = "Could not save access settings",
+        errorMessageRes = R.string.mjpeg_pref_access_save_error,
+    )
 
     fun updateAccess(transform: AccessSettings.() -> AccessSettings) = save {
         val proposed = copy(access = access.transform())

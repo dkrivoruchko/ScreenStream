@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.ImageSettings
 import io.screenstream.mjpeg.settings.MjpegSettings
@@ -33,14 +32,17 @@ internal fun ImageSettingsGroup(
     imageSettings: ImageSettings,
     mjpegSettings: MjpegSettings,
     editPolicy: MjpegSettings.EditPolicy,
-    onSaveError: (String) -> Unit,
     visibleSettings: Set<SettingSearchInfo>?,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
 ) {
-    val saveErrorText = stringResource(R.string.mjpeg_pref_image_save_error)
     val currentEditPolicy by rememberUpdatedState(editPolicy)
-    val save = rememberMjpegSettingsSave(mjpegSettings, "Image.save", "Could not save image settings") { onSaveError(saveErrorText) }
+    val save = rememberMjpegSettingsSave(
+        settings = mjpegSettings,
+        logTag = "Image.save",
+        logMessage = "Could not save image settings",
+        errorMessageRes = R.string.mjpeg_pref_image_save_error,
+    )
 
     fun updateImage(transform: ImageSettings.() -> ImageSettings) = save {
         val proposed = copy(image = image.transform())

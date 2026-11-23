@@ -23,6 +23,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -86,19 +87,23 @@ internal class MjpegControllerSettingsTest {
 
     // Cases: MJPEG-CTL-06
     @Test
-    fun openingModuleAppliesValidPinAndPermanentPolicyPreservesSavedValue(): Unit = runBlocking {
+    fun openingModuleAppliesPreparedPinInTheFirstHttpConfiguration(): Unit = runBlocking {
+        val savedPin = SecretValue("000007")
         for (policy in AccessSettings.PinPolicy.entries) {
             val saved = MjpegSettings.Data(
-                access = AccessSettings(true, policy, SecretValue("000007")), web = WebPageSettings(title = "Protected"),
+                access = AccessSettings(true, policy, savedPin), web = WebPageSettings(title = "Protected"),
             )
             val settings = inputs.createSettings(saved)
             val host = MjpegServiceTestHost(settings)
             try {
                 inputs.startModuleWithReadyListener(host)
-                val applied = assertNotNull(host.http.configuration.value).access
+                val applied = withTimeout(5.seconds) { host.http.initialConfiguration.await() }.access
                 val appliedPin = assertNotNull(applied.pin)
                 assertEquals(settings.data.first().access, applied)
-                if (policy == AccessSettings.PinPolicy.Permanent) assertEquals("000007", appliedPin.value)
+                when (policy) {
+                    AccessSettings.PinPolicy.Permanent -> assertEquals(savedPin, appliedPin)
+                    AccessSettings.PinPolicy.NewOnModuleStart -> assertNotEquals(savedPin, appliedPin)
+                }
                 host.controller.requestStreamStart()
                 val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
                 host.controller.requestStreamStop(attempt, fromNotification = false)

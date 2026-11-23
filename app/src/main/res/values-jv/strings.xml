@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Kesalahan</string>
-    <string name="app_error_recover">Pulihake</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Mbalik</string>
+    <string name="app_action_close">Tutup</string>
+    <string name="app_action_exit">Metu</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Nyiapake…</string>
     <string name="app_module_error_title">Ana kesalahan</string>
     <string name="app_module_error_restart">Wiwiti maneh mode</string>
 
-    <string name="app_activity_update_dialog_title">Nganyari kasedhiya</string>
-    <string name="app_activity_update_dialog_message">Nganyari wis siyap. Wiwiti maneh aplikasi saiki?</string>
-    <string name="app_activity_update_dialog_restart">Wiwiti maneh</string>
+    <string name="app_exit_dialog_title">Metu saka ScreenStream?</string>
+    <string name="app_exit_dialog_message">Streaming sing aktif bakal mandheg.</string>
 
-    <string name="app_tab_stream">Streaming</string>
-    <string name="app_tab_settings">Setelan</string>
-    <string name="app_tab_about">Babagan</string>
-    <string name="app_tab_exit">Metu</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Cara streaming</string>
+    <string name="app_method_choose">Pilih cara streaming</string>
+    <string name="app_method_details">Rincian</string>
+    <string name="app_method_details_description">Rincian kanggo %1$s</string>
+    <string name="app_method_benefits">Kaluwihan</string>
+    <string name="app_method_things_to_know">Prelu dingerteni</string>
 
-    <string name="app_tab_stream_select_mode">Pilih mode stream:</string>
-    <string name="app_tab_stream_switching_modules">Ngalih mode…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">Setelan aplikasi</string>
 
-    <string name="app_mode_selected_method">Cara streaming aktif</string>
-    <string name="app_mode_choose_method">Pilih cara streaming</string>
-    <string name="app_mode_choose_another_method">Pilih cara liyane</string>
-    <string name="app_mode_change">Ganti</string>
-    <string name="app_mode_chooser_title">Pilih cara kanggo enggo bareng layar sampeyan</string>
-    <string name="app_mode_close_chooser">Tutup</string>
-    <string name="app_mode_details">Rincian</string>
-    <string name="app_mode_details_description">Rincian kanggo %1$s</string>
-    <string name="app_mode_benefits">Kaluwihan</string>
-    <string name="app_mode_things_to_know">Prelu dingerteni</string>
+    <string name="app_pref_language">Basa aplikasi</string>
+    <string name="app_pref_language_summary">Pilih basa kanggo aplikasi iki</string>
+    <string name="app_pref_language_system_default">Standar sistem</string>
 
+    <string name="app_pref_dark_theme">Tema peteng</string>
+    <string name="app_pref_dark_theme_summary">Kapan nggunakake tema peteng</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>Tansah</item>
+        <item>Diatur déning Pangirit Baterei</item>
+        <item>Ora tau</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>Tansah</item>
+        <item>Melu sistem</item>
+        <item>Ora tau</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">Warna dinamis</string>
+    <string name="app_pref_dynamic_color_summary">Gunakake warna sistem</string>
+
+    <string name="app_pref_notifications">Kabar aplikasi</string>
+    <string name="app_pref_notifications_summary">Atur kabar ing setelan sistem</string>
+    <string name="app_pref_notifications_open_error">Setelan kabar ora bisa dibukak</string>
+
+    <string name="app_pref_add_tile">Tambah kothak Setelan cepet</string>
+    <string name="app_pref_add_tile_summary">Bukak aplikasi utawa mungkasi streaming sing aktif</string>
+    <string name="app_pref_tile_already_added">Kothak Setelan cepet wis ditambahake</string>
+    <string name="app_pref_add_tile_error">Kothak Setelan cepet ora bisa ditambahake</string>
+
+    <string name="app_pref_save_error">Setelan ora bisa disimpen</string>
+
+    <!-- About -->
+    <string name="app_about_title">Babagan</string>
+    <string name="app_about_version">Versi: %1$s</string>
+    <string name="app_about_developer">Dikembangake dening Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">Wenehi rating aplikasi</string>
+    <string name="app_about_source_code">Kode sumber</string>
+    <string name="app_about_terms_and_conditions">Syarat lan katemtuan</string>
+    <string name="app_about_privacy_policy">Kebijakan privasi</string>
+    <string name="app_about_privacy_options">Pilihan privasi</string>
+    <string name="app_about_license">Lisensi</string>
+    <string name="app_about_open_link_error">Pranala ora bisa dibukak</string>
+    <string name="app_about_privacy_options_open_error">Pilihan privasi ora bisa dibukak</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Nganyari wis diundhuh</string>
+    <string name="app_update_message">Wiwiti maneh aplikasi kanggo nginstal nganyari. Streaming sing aktif bakal mandheg.</string>
+    <string name="app_update_restart">Wiwiti maneh</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">Kabar streaming</string>
     <string name="app_notification_channel_error">Kabar kesalahan</string>
+
     <string name="app_notification_waiting_content">Tutul kanggo mbukak aplikasi</string>
     <string name="app_notification_streaming_title">Streaming…</string>
     <string name="app_notification_streaming_content">Tutul Mandheg kanggo mungkasi streaming</string>
     <string name="app_notification_stop">Mandheg</string>
 
+    <string name="app_notification_error_title">Kesalahan</string>
+    <string name="app_notification_error_recover">Mulihake</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">Bukak ScreenStream</string>
-    <string name="app_tile_stop">Mandheg</string>
-
-    <string name="app_pref_back">Mbalik</string>
-    <string name="app_pref_settings">Setelan</string>
-    <string name="app_pref_locale">Basa aplikasi</string>
-    <string name="app_pref_locale_summary">Bukak setelan basa aplikasi</string>
-    <string name="app_pref_locale_default">Standar sistem</string>
-    <string name="app_pref_night_mode">Tema peteng</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>Tansah</item>
-        <item>Diatur déning Pangirit Baterei</item>
-        <item>Ora tau</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>Tansah</item>
-        <item>Melu sistem</item>
-        <item>Ora tau</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">Warna dinamis</string>
-    <string name="app_pref_dynamic_theme_summary">Setel tampilan adhedhasar warna wallpaper sampeyan</string>
-    <string name="app_pref_notification">Kabar aplikasi</string>
-    <string name="app_pref_notification_summary">Atur kabar ing setelan sistem</string>
-    <string name="app_pref_tile">Tambah kothak Setelan cepet</string>
-    <string name="app_pref_tile_summary">Tambah ScreenStream menyang Setelan cepet</string>
-
-    <string name="app_tab_about_app_version">Versi: %1$s</string>
-    <string name="app_tab_about_developer_name">Dikembangake dening Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">Wenehi rating aplikasi</string>
-    <string name="app_tab_about_app_sources">Kode sumber</string>
-    <string name="app_tab_about_terms_conditions">Syarat-syarat lan kahanan</string>
-    <string name="app_tab_about_privacy_policy">Kebijakan privasi</string>
-    <string name="app_tab_about_privacy_options">Pilihan privasi</string>
-    <string name="app_tab_about_license">Lisensi</string>
+    <string name="app_tile_stop">Mungkasi streaming</string>
 </resources>

@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">মাইক্রোফোন অ্যাক্সেস</string>
     <string name="core_permission_microphone_message">স্ট্রিমে আপনার মাইক্রোফোনের শব্দ অন্তর্ভুক্ত করতে মাইক্রোফোন অ্যাক্সেসের অনুমতি দিন।\n\nএটি ছাড়া মাইক্রোফোনের অডিও স্ট্রিম করা যাবে না।</string>
     <string name="core_permission_device_audio_title">ডিভাইসের অডিও অ্যাক্সেস</string>
-    <string name="core_permission_device_audio_message">ডিভাইসের অডিও স্ট্রিম করতে Android-এর মাইক্রোফোনের অনুমতি প্রয়োজন। এটি আপনার মাইক্রোফোন চালু করে না।\n\nশুধু Android এবং অডিও চালানো অ্যাপ যে অডিও শেয়ার করার অনুমতি দেয়, তা স্ট্রিম করা যাবে।</string>
+    <string name="core_permission_device_audio_message">Android-এ ডিভাইসের অডিও স্ট্রিম করতে মাইক্রোফোনের অনুমতি প্রয়োজন। মাইক্রোফোন বিকল্পটি বন্ধ থাকলে স্ট্রিমে মাইক্রোফোনের অডিও থাকে না।\n\nশুধু Android এবং অডিও চালানো অ্যাপ যে অডিও শেয়ার করার অনুমতি দেয়, তা স্ট্রিম করা যাবে।</string>
 
     <string name="core_permission_audio_title">মাইক্রোফোন ও ডিভাইসের অডিও</string>
     <string name="core_permission_audio_message">মাইক্রোফোন ও ডিভাইসের অডিও স্ট্রিম করতে মাইক্রোফোন অ্যাক্সেসের অনুমতি দিন।\n\nAndroid এবং অডিও চালানো অ্যাপ শেয়ার করার অনুমতি দিলেই ডিভাইসের অডিও স্ট্রিম করা যাবে।</string>

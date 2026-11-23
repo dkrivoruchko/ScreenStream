@@ -14,24 +14,36 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.core.app.NotificationCompat
 import androidx.datastore.preferences.core.PreferencesFileSerializer
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.window.core.layout.WindowSizeClass
-import androidx.window.core.layout.computeWindowSizeClass
 import io.screenstream.analytics.EntryPoint
 import io.screenstream.analytics.SessionKey
 import io.screenstream.analytics.StartFailGroup
@@ -52,6 +64,7 @@ import io.screenstream.core.permission.RuntimePermission
 import io.screenstream.core.permission.RuntimePermissions
 import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.MjpegKoinModule
+import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.http.KtorHttpDelivery
 import io.screenstream.mjpeg.networkaddress.AddressCategory
@@ -124,9 +137,19 @@ class MjpegCaptureTestActivity : ComponentActivity() {
                             if (instance != null) {
                                 manager.InstanceContent(
                                     instanceId = instance,
-                                    window = WindowSizeClass.BREAKPOINTS_V1.computeWindowSizeClass(widthDp = 400f, heightDp = 800f),
                                     fallback = {},
-                                )
+                                ) { ui ->
+                                    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        StreamingModule.Ui.ModalHost.Provide(DeviceModalHost) {
+                                            LazyColumn(Modifier.weight(1f)) {
+                                                items(ui.sections, key = { it.id }, contentType = { it.id }) { section ->
+                                                    section.content()
+                                                }
+                                            }
+                                        }
+                                        ui.CaptureActionButton(Modifier.padding(8.dp))
+                                    }
+                                }
                             }
                         }
                         // Large asymmetric blocks let decoded network frames identify the visible target.
@@ -141,6 +164,30 @@ class MjpegCaptureTestActivity : ComponentActivity() {
                         }
                     }
                     ScreenCaptureConsentHost()
+                }
+            }
+        }
+    }
+}
+
+private object DeviceModalHost : StreamingModule.Ui.ModalHost {
+    @Composable
+    override fun Modal(title: String?, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+        Dialog(onDismissRequest = onDismissRequest) {
+            if (title == null) {
+                content()
+            } else {
+                Surface(shape = MaterialTheme.shapes.large) {
+                    Column(Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                            val close = stringResource(R.string.mjpeg_action_close)
+                            TextButton(onClick = onDismissRequest, modifier = Modifier.semantics { contentDescription = close }) {
+                                Text(close)
+                            }
+                        }
+                        Box(Modifier.weight(1f, fill = false)) { content() }
+                    }
                 }
             }
         }
@@ -184,6 +231,7 @@ internal class MjpegCaptureTestHost(
         override fun getApplicationContext(): Context = this
         override fun getFilesDir(): File = settingsDirectory
     }
+    val preferencesFile: File = settingsContext.preferencesDataStoreFile("mjpeg")
     lateinit var manager: StreamingModuleManager
         private set
     lateinit var settings: MjpegSettings
@@ -213,10 +261,9 @@ internal class MjpegCaptureTestHost(
                 stopOnScreenOff = false,
             ),
         )
-        val preferences = settingsContext.preferencesDataStoreFile("mjpeg")
-        check(preferences.parentFile!!.mkdirs() || preferences.parentFile!!.isDirectory)
+        check(preferencesFile.parentFile!!.mkdirs() || preferencesFile.parentFile!!.isDirectory)
         runBlocking {
-            preferences.outputStream().use {
+            preferencesFile.outputStream().use {
                 PreferencesFileSerializer.writeTo(preferencesOf(stringPreferencesKey("DATA") to Json.encodeToString(seed)), it)
             }
         }

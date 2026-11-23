@@ -13,6 +13,7 @@ import androidx.activity.result.ActivityResultRegistryOwner
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +40,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotSame
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
@@ -92,7 +95,7 @@ internal class RuntimePermissionHostTest {
         compose.onNodeWithText(text(R.string.core_permission_notifications_title)).assertExists()
     }
 
-    // Cases: CORE-PERM-04
+    // Cases: CORE-PERM-04, CORE-PERM-07
     @Test
     fun pausedAndOccupiedRequestsAreRejectedWithoutQueueing() {
         launchHost()
@@ -113,27 +116,34 @@ internal class RuntimePermissionHostTest {
 
     // Cases: CORE-PERM-05, CORE-PERM-06
     @Test
-    fun submittedRequestOutlivesOriginAndRecreationAndUsesLatestCallback() {
-        launchHost()
-        request(RuntimePermission.Microphone)
-        compose.runOnIdle {
-            showOrigin.value = false
-            callbackVersion.value = 2
-        }
+    fun submittedRequestOutlivesOriginAndRecreationAndUpdatesAllAudioAliases() {
+        launchHost(useActivityRegistry = true)
+        compose.onNodeWithText("Request microphone").performClick()
         compose.onNodeWithText(text(R.string.core_continue)).performClick()
-        assertEquals(listOf(listOf(Manifest.permission.RECORD_AUDIO)), registry.launches.map { it.permissions })
+        val activityScenario = checkNotNull(scenario)
+        lateinit var originalRegistry: ActivityResultRegistry
+        var requestCode = 0
+        activityScenario.onActivity {
+            originalRegistry = it.activityResultRegistry
+            val launched = checkNotNull(shadowOf(it).lastRequestedPermission)
+            assertEquals(listOf(Manifest.permission.RECORD_AUDIO), launched.requestedPermissions.toList())
+            requestCode = launched.requestCode
+        }
+        compose.runOnIdle { showOrigin.value = false }
+        compose.onNodeWithText("Request microphone").assertDoesNotExist()
 
-        checkNotNull(scenario).recreate()
+        activityScenario.recreate()
         compose.waitForIdle()
-        assertEquals(1, registry.launches.size)
-        compose.onNodeWithText("origin").assertDoesNotExist()
-        compose.runOnIdle {
+        compose.runOnIdle { assertEquals(PermissionState.Requesting, permissions.state(RuntimePermission.DeviceAudio).value) }
+        activityScenario.onActivity {
+            assertNotSame(originalRegistry, it.activityResultRegistry)
+            assertNull(shadowOf(it).lastRequestedPermission)
             shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO)
-            registry.reply(granted = true)
+            assertTrue(it.activityResultRegistry.dispatchResult(requestCode, mapOf(Manifest.permission.RECORD_AUDIO to true)))
         }
         compose.waitForIdle()
 
-        assertEquals(listOf(Triple(2, Manifest.permission.RECORD_AUDIO, false)), observations)
+        assertEquals(listOf(Triple(1, Manifest.permission.RECORD_AUDIO, false)), observations)
         compose.runOnIdle {
             listOf(RuntimePermission.Microphone, RuntimePermission.DeviceAudio, RuntimePermission.RecordAudio).forEach {
                 assertEquals(PermissionState.Granted, permissions.state(it).value)
@@ -165,12 +175,16 @@ internal class RuntimePermissionHostTest {
 
         assertEquals(listOf(Triple(1, Manifest.permission.RECORD_AUDIO, false)), observations)
         compose.runOnIdle { assertEquals(PermissionState.Granted, permissions.state(RuntimePermission.DeviceAudio).value) }
+        shadowOf(application).denyPermissions(Manifest.permission.RECORD_AUDIO)
+        request(RuntimePermission.DeviceAudio)
+        compose.onNodeWithText(text(R.string.core_continue)).assertExists()
     }
 
-    // Cases: CORE-PERM-06
+    // Cases: CORE-PERM-06, CORE-PERM-07
     @Test
     fun observedRationaleUpdatesLocalHistoryBeforeAnyPersistenceAndRefreshesCallback() {
         launchHost()
+        val audioState = compose.runOnIdle { permissions.state(RuntimePermission.RecordAudio) }
         checkNotNull(scenario).onActivity { it.rationale = true }
         request(RuntimePermission.Microphone)
         compose.runOnIdle { callbackVersion.value = 2 }
@@ -178,11 +192,36 @@ internal class RuntimePermissionHostTest {
         compose.runOnIdle { registry.reply(granted = false) }
         compose.waitForIdle()
 
-        assertEquals(List(2) { Triple(2, Manifest.permission.RECORD_AUDIO, true) }, observations)
+        assertEquals(setOf(Triple(2, Manifest.permission.RECORD_AUDIO, true)), observations.toSet())
         assertTrue(history.value.isEmpty()) // The callback records events but does not feed storage back.
+        assertEquals(PermissionState.Requestable, audioState.value)
         checkNotNull(scenario).onActivity { it.rationale = false }
         request(RuntimePermission.DeviceAudio)
         compose.onNodeWithText(text(R.string.core_permission_open_settings)).assertExists()
+        compose.onNodeWithText(text(R.string.core_permission_not_now)).performClick()
+        compose.runOnIdle { assertEquals(PermissionState.SettingsSuggested, audioState.value) }
+        request(RuntimePermission.DeviceAudio)
+        compose.onNodeWithText(text(R.string.core_permission_open_settings)).assertExists()
+    }
+
+    // Cases: CORE-PERM-07
+    @Test
+    fun resumingWithNewGrantDismissesTheExplanationAndFreesTheSlot() {
+        launchHost()
+        request(RuntimePermission.Microphone)
+        compose.onNodeWithText(text(R.string.core_permission_microphone_title)).assertExists()
+        compose.runOnIdle { assertEquals(PermissionState.Requesting, permissions.state(RuntimePermission.DeviceAudio).value) }
+        val activityScenario = checkNotNull(scenario)
+        activityScenario.moveToState(Lifecycle.State.STARTED)
+        shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO)
+        activityScenario.moveToState(Lifecycle.State.RESUMED)
+
+        compose.onNodeWithText(text(R.string.core_permission_microphone_title)).assertDoesNotExist()
+        compose.runOnIdle { assertEquals(PermissionState.Granted, permissions.state(RuntimePermission.DeviceAudio).value) }
+        assertTrue(registry.launches.isEmpty())
+        shadowOf(application).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        request(RuntimePermission.Notifications)
+        compose.onNodeWithText(text(R.string.core_permission_notifications_title)).assertExists()
     }
 
     // Cases: CORE-PERM-07
@@ -210,21 +249,27 @@ internal class RuntimePermissionHostTest {
         compose.waitForIdle()
     }
 
-    private fun launchHost() {
+    private fun launchHost(useActivityRegistry: Boolean = false) {
         val owner = object : ActivityResultRegistryOwner {
             override val activityResultRegistry: ActivityResultRegistry = registry
         }
-        RuntimePermissionHostTestActivity.content = {
-            CompositionLocalProvider(LocalActivityResultRegistryOwner provides owner) {
-                val version = callbackVersion.value
-                RuntimePermissionHost(
-                    initialRationaleHistory = history.value,
-                    onRationaleObserved = { permission, observed -> observations.add(Triple(version, permission, observed)) },
-                ) {
-                    permissions = LocalRuntimePermissions.current
-                    if (showOrigin.value) Text("origin")
+        val content: @Composable () -> Unit = {
+            val version = callbackVersion.value
+            RuntimePermissionHost(
+                initialRationaleHistory = history.value,
+                onRationaleObserved = { permission, observed -> observations.add(Triple(version, permission, observed)) },
+            ) {
+                permissions = LocalRuntimePermissions.current
+                if (useActivityRegistry && showOrigin.value) {
+                    TextButton(onClick = { check(permissions.tryRequest(RuntimePermission.Microphone)) }) {
+                        Text("Request microphone")
+                    }
                 }
             }
+        }
+        RuntimePermissionHostTestActivity.content = {
+            if (useActivityRegistry) content()
+            else CompositionLocalProvider(LocalActivityResultRegistryOwner provides owner, content = content)
         }
         shadowOf(application.packageManager).addActivityIfNotPresent(ComponentName(application, RuntimePermissionHostTestActivity::class.java))
         scenario = ActivityScenario.launch(RuntimePermissionHostTestActivity::class.java)

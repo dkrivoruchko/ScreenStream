@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Mikrofonzugriff</string>
     <string name="core_permission_microphone_message">Erlauben Sie den Mikrofonzugriff, um Ton von Ihrem Mikrofon in den Stream aufzunehmen.\n\nOhne ihn kann Mikrofonton nicht gestreamt werden.</string>
     <string name="core_permission_device_audio_title">Zugriff auf Geräteaudio</string>
-    <string name="core_permission_device_audio_message">Android benötigt die Mikrofonberechtigung, um Geräteaudio zu streamen. Dadurch wird Ihr Mikrofon nicht eingeschaltet.\n\nEs kann nur Audio gestreamt werden, dessen Freigabe Android und die wiedergebende App erlauben.</string>
+    <string name="core_permission_device_audio_message">Android benötigt die Mikrofonberechtigung, um Geräteaudio zu streamen. Wenn die Mikrofonoption ausgeschaltet ist, wird kein Ton vom Mikrofon gestreamt.\n\nEs kann nur Audio gestreamt werden, dessen Freigabe Android und die wiedergebende App erlauben.</string>
 
     <string name="core_permission_audio_title">Mikrofon- und Geräteaudio</string>
     <string name="core_permission_audio_message">Erlauben Sie den Mikrofonzugriff, um Mikrofon- und Geräteaudio zu streamen.\n\nGeräteaudio kann nur gestreamt werden, wenn Android und die wiedergebende App dessen Freigabe erlauben.</string>

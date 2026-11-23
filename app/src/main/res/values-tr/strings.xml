@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Hata</string>
-    <string name="app_error_recover">Kurtar</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Geri</string>
+    <string name="app_action_close">Kapat</string>
+    <string name="app_action_exit">Çıkış</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Hazırlanıyor…</string>
     <string name="app_module_error_title">Bir hata oluştu</string>
     <string name="app_module_error_restart">Modu yeniden başlat</string>
 
-    <string name="app_activity_update_dialog_title">Güncelleme var</string>
-    <string name="app_activity_update_dialog_message">Güncelleme hazır. Uygulama şimdi yeniden başlatılsın mı?</string>
-    <string name="app_activity_update_dialog_restart">Yeniden başlat</string>
+    <string name="app_exit_dialog_title">ScreenStream’den çıkılsın mı?</string>
+    <string name="app_exit_dialog_message">Etkin bir yayın varsa durdurulacak.</string>
 
-    <string name="app_tab_stream">Yayın</string>
-    <string name="app_tab_settings">Ayarlar</string>
-    <string name="app_tab_about">Hakkında</string>
-    <string name="app_tab_exit">Çıkış</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Yayın yöntemi</string>
+    <string name="app_method_choose">Bir yayın yöntemi seçin</string>
+    <string name="app_method_details">Ayrıntılar</string>
+    <string name="app_method_details_description">Ayrıntılar: %1$s</string>
+    <string name="app_method_benefits">Avantajlar</string>
+    <string name="app_method_things_to_know">Bilinmesi gerekenler</string>
 
-    <string name="app_tab_stream_select_mode">Yayın modunu seçin:</string>
-    <string name="app_tab_stream_switching_modules">Modlar değiştiriliyor…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">Uygulama ayarları</string>
 
-    <string name="app_mode_selected_method">Aktif yayın yöntemi</string>
-    <string name="app_mode_choose_method">Bir yayın yöntemi seçin</string>
-    <string name="app_mode_choose_another_method">Başka bir yöntem seçin</string>
-    <string name="app_mode_change">Değiştir</string>
-    <string name="app_mode_chooser_title">Ekranınızı paylaşmak için bir yöntem seçin</string>
-    <string name="app_mode_close_chooser">Kapat</string>
-    <string name="app_mode_details">Ayrıntılar</string>
-    <string name="app_mode_details_description">Ayrıntılar: %1$s</string>
-    <string name="app_mode_benefits">Avantajlar</string>
-    <string name="app_mode_things_to_know">Bilinmesi gerekenler</string>
+    <string name="app_pref_language">Uygulama dili</string>
+    <string name="app_pref_language_summary">Bu uygulamanın dilini seç</string>
+    <string name="app_pref_language_system_default">Sistem varsayılanı</string>
 
+    <string name="app_pref_dark_theme">Koyu tema</string>
+    <string name="app_pref_dark_theme_summary">Koyu temanın ne zaman kullanılacağı</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>Her zaman</item>
+        <item>Pil Tasarrufu’na göre</item>
+        <item>Asla</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>Her zaman</item>
+        <item>Sisteme göre</item>
+        <item>Asla</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">Dinamik renk</string>
+    <string name="app_pref_dynamic_color_summary">Sistem renklerini kullan</string>
+
+    <string name="app_pref_notifications">Uygulama bildirimleri</string>
+    <string name="app_pref_notifications_summary">Bildirimleri sistem ayarlarında yönet</string>
+    <string name="app_pref_notifications_open_error">Bildirim ayarları açılamadı</string>
+
+    <string name="app_pref_add_tile">Hızlı Ayarlar kutucuğu ekle</string>
+    <string name="app_pref_add_tile_summary">Uygulamayı aç veya etkin yayını durdur</string>
+    <string name="app_pref_tile_already_added">Hızlı Ayarlar kutucuğu zaten eklendi</string>
+    <string name="app_pref_add_tile_error">Hızlı Ayarlar kutucuğu eklenemedi</string>
+
+    <string name="app_pref_save_error">Ayar kaydedilemedi</string>
+
+    <!-- About -->
+    <string name="app_about_title">Hakkında</string>
+    <string name="app_about_version">Sürüm: %1$s</string>
+    <string name="app_about_developer">Dmytro Kryvoruchko tarafından geliştirildi</string>
+
+    <string name="app_about_rate_app">Uygulamayı değerlendir</string>
+    <string name="app_about_source_code">Kaynak kodu</string>
+    <string name="app_about_terms_and_conditions">Şartlar ve Koşullar</string>
+    <string name="app_about_privacy_policy">Gizlilik politikası</string>
+    <string name="app_about_privacy_options">Gizlilik seçenekleri</string>
+    <string name="app_about_license">Lisans</string>
+    <string name="app_about_open_link_error">Bağlantı açılamadı</string>
+    <string name="app_about_privacy_options_open_error">Gizlilik seçenekleri açılamadı</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Güncelleme indirildi</string>
+    <string name="app_update_message">Güncellemeyi yüklemek için uygulamayı yeniden başlatın. Etkin bir yayın varsa durdurulacak.</string>
+    <string name="app_update_restart">Yeniden başlat</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">Yayın bildirimleri</string>
     <string name="app_notification_channel_error">Hata bildirimleri</string>
+
     <string name="app_notification_waiting_content">Uygulamayı açmak için dokunun</string>
     <string name="app_notification_streaming_title">Yayınlanıyor…</string>
     <string name="app_notification_streaming_content">Yayını bitirmek için Durdur\'a dokunun</string>
     <string name="app_notification_stop">Durdur</string>
 
+    <string name="app_notification_error_title">Hata</string>
+    <string name="app_notification_error_recover">Kurtar</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">ScreenStream’i aç</string>
-    <string name="app_tile_stop">Durdur</string>
-
-    <string name="app_pref_back">Geri</string>
-    <string name="app_pref_settings">Ayarlar</string>
-    <string name="app_pref_locale">Uygulama dili</string>
-    <string name="app_pref_locale_summary">Uygulama dili ayarlarını aç</string>
-    <string name="app_pref_locale_default">Sistem varsayılanı</string>
-    <string name="app_pref_night_mode">Koyu tema</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>Her zaman</item>
-        <item>Pil Tasarrufu ile</item>
-        <item>Asla</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>Her zaman</item>
-        <item>Sisteme göre</item>
-        <item>Asla</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">Dinamik renk</string>
-    <string name="app_pref_dynamic_theme_summary">Görünümü duvar kağıdınızın renklerine göre ayarla</string>
-    <string name="app_pref_notification">Uygulama bildirimleri</string>
-    <string name="app_pref_notification_summary">Bildirimleri sistem ayarlarında yönet</string>
-    <string name="app_pref_tile">Hızlı Ayarlar kutucuğu ekle</string>
-    <string name="app_pref_tile_summary">ScreenStream’i Hızlı Ayarlar’a ekle</string>
-
-    <string name="app_tab_about_app_version">Sürüm: %1$s</string>
-    <string name="app_tab_about_developer_name">Dmytro Kryvoruchko tarafından geliştirildi</string>
-    <string name="app_tab_about_rate_app">Uygulamayı değerlendir</string>
-    <string name="app_tab_about_app_sources">Kaynak kodu</string>
-    <string name="app_tab_about_terms_conditions">Şartlar ve Koşullar</string>
-    <string name="app_tab_about_privacy_policy">Gizlilik politikası</string>
-    <string name="app_tab_about_privacy_options">Gizlilik seçenekleri</string>
-    <string name="app_tab_about_license">Lisans</string>
+    <string name="app_tile_stop">Yayını durdur</string>
 </resources>

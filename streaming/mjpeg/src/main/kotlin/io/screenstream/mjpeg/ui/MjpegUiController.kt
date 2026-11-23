@@ -2,7 +2,6 @@ package io.screenstream.mjpeg.ui
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.MjpegCaptureSession.State.SuspensionProblem
 import io.screenstream.mjpeg.http.HttpDelivery
@@ -63,11 +62,11 @@ internal class MjpegUiController(
     override fun send(uiCommand: UiController.Command) = onUiCommand(uiCommand)
 
     @Composable
-    fun Content(modifier: Modifier = Modifier) {
+    fun Content(layout: @Composable (StreamingModule.Ui) -> Unit) {
         MjpegContent(
             uiController = this,
             mjpegSettings = settings.value,
-            modifier = modifier,
+            layout = layout,
         )
     }
 }

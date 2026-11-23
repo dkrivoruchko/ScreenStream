@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">خطأ</string>
-    <string name="app_error_recover">استعادة</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">رجوع</string>
+    <string name="app_action_close">إغلاق</string>
+    <string name="app_action_exit">خروج</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">جارٍ التحضير…</string>
     <string name="app_module_error_title">حدث خطأ ما</string>
     <string name="app_module_error_restart">إعادة تشغيل الوضع</string>
 
-    <string name="app_activity_update_dialog_title">التحديث متاح</string>
-    <string name="app_activity_update_dialog_message">التحديث جاهز. هل تريد إعادة تشغيل التطبيق الآن؟</string>
-    <string name="app_activity_update_dialog_restart">إعادة التشغيل</string>
+    <string name="app_exit_dialog_title">هل تريد الخروج من ScreenStream؟</string>
+    <string name="app_exit_dialog_message">سيتوقف أي بث نشط.</string>
 
-    <string name="app_tab_stream">بث</string>
-    <string name="app_tab_settings">الإعدادات</string>
-    <string name="app_tab_about">حول</string>
-    <string name="app_tab_exit">خروج</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">طريقة البث</string>
+    <string name="app_method_choose">اختر طريقة البث</string>
+    <string name="app_method_details">التفاصيل</string>
+    <string name="app_method_details_description">تفاصيل %1$s</string>
+    <string name="app_method_benefits">المزايا</string>
+    <string name="app_method_things_to_know">ما يجب معرفته</string>
 
-    <string name="app_tab_stream_select_mode">اختر وضع البث:</string>
-    <string name="app_tab_stream_switching_modules">جارٍ تبديل الأوضاع…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">إعدادات التطبيق</string>
 
-    <string name="app_mode_selected_method">طريقة البث النشطة</string>
-    <string name="app_mode_choose_method">اختر طريقة البث</string>
-    <string name="app_mode_choose_another_method">اختر طريقة أخرى</string>
-    <string name="app_mode_change">تغيير</string>
-    <string name="app_mode_chooser_title">اختر طريقة لمشاركة شاشتك</string>
-    <string name="app_mode_close_chooser">إغلاق</string>
-    <string name="app_mode_details">التفاصيل</string>
-    <string name="app_mode_details_description">تفاصيل %1$s</string>
-    <string name="app_mode_benefits">المزايا</string>
-    <string name="app_mode_things_to_know">ما يجب معرفته</string>
+    <string name="app_pref_language">لغة التطبيق</string>
+    <string name="app_pref_language_summary">اختر لغة هذا التطبيق</string>
+    <string name="app_pref_language_system_default">الافتراضي للنظام</string>
 
+    <string name="app_pref_dark_theme">المظهر الداكن</string>
+    <string name="app_pref_dark_theme_summary">متى يُستخدم المظهر الداكن</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>دائمًا</item>
+        <item>حسب توفير شحن البطارية</item>
+        <item>أبدًا</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>دائمًا</item>
+        <item>حسب النظام</item>
+        <item>أبدًا</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">اللون الديناميكي</string>
+    <string name="app_pref_dynamic_color_summary">استخدام ألوان النظام</string>
+
+    <string name="app_pref_notifications">إشعارات التطبيق</string>
+    <string name="app_pref_notifications_summary">إدارة الإشعارات في إعدادات النظام</string>
+    <string name="app_pref_notifications_open_error">تعذّر فتح إعدادات الإشعارات</string>
+
+    <string name="app_pref_add_tile">إضافة مربّع الإعدادات السريعة</string>
+    <string name="app_pref_add_tile_summary">فتح التطبيق أو إيقاف البث النشط</string>
+    <string name="app_pref_tile_already_added">سبقت إضافة مربّع الإعدادات السريعة</string>
+    <string name="app_pref_add_tile_error">تعذّرت إضافة مربّع الإعدادات السريعة</string>
+
+    <string name="app_pref_save_error">تعذّر حفظ الإعداد</string>
+
+    <!-- About -->
+    <string name="app_about_title">حول</string>
+    <string name="app_about_version">الإصدار: %1$s</string>
+    <string name="app_about_developer">طوّره Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">قيّم التطبيق</string>
+    <string name="app_about_source_code">الرمز المصدري</string>
+    <string name="app_about_terms_and_conditions">الشروط والأحكام</string>
+    <string name="app_about_privacy_policy">سياسة الخصوصية</string>
+    <string name="app_about_privacy_options">خيارات الخصوصية</string>
+    <string name="app_about_license">الترخيص</string>
+    <string name="app_about_open_link_error">تعذّر فتح الرابط</string>
+    <string name="app_about_privacy_options_open_error">تعذّر فتح خيارات الخصوصية</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">تم تنزيل التحديث</string>
+    <string name="app_update_message">أعِد تشغيل التطبيق لتثبيت التحديث. سيتوقف أي بث نشط.</string>
+    <string name="app_update_restart">إعادة التشغيل</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">إشعارات البث</string>
     <string name="app_notification_channel_error">إشعارات الأخطاء</string>
+
     <string name="app_notification_waiting_content">اضغط لفتح التطبيق</string>
     <string name="app_notification_streaming_title">جارٍ البث…</string>
     <string name="app_notification_streaming_content">اضغط على إيقاف لإنهاء البث</string>
     <string name="app_notification_stop">إيقاف</string>
 
+    <string name="app_notification_error_title">خطأ</string>
+    <string name="app_notification_error_recover">استعادة</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">فتح ScreenStream</string>
-    <string name="app_tile_stop">إيقاف</string>
-
-    <string name="app_pref_back">رجوع</string>
-    <string name="app_pref_settings">الإعدادات</string>
-    <string name="app_pref_locale">لغة التطبيق</string>
-    <string name="app_pref_locale_summary">افتح إعدادات لغة التطبيق</string>
-    <string name="app_pref_locale_default">الافتراضي للنظام</string>
-    <string name="app_pref_night_mode">المظهر الداكن</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>دائمًا</item>
-        <item>حسب توفير شحن البطارية</item>
-        <item>أبدًا</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>دائمًا</item>
-        <item>حسب النظام</item>
-        <item>أبدًا</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">اللون الديناميكي</string>
-    <string name="app_pref_dynamic_theme_summary">اضبط المظهر استنادًا إلى ألوان خلفية الشاشة لديك</string>
-    <string name="app_pref_notification">إشعارات التطبيق</string>
-    <string name="app_pref_notification_summary">إدارة الإشعارات في إعدادات النظام</string>
-    <string name="app_pref_tile">إضافة مربّع الإعدادات السريعة</string>
-    <string name="app_pref_tile_summary">إضافة ScreenStream إلى الإعدادات السريعة</string>
-
-    <string name="app_tab_about_app_version">الإصدار: %1$s</string>
-    <string name="app_tab_about_developer_name">طوّره Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">قيّم التطبيق</string>
-    <string name="app_tab_about_app_sources">الرمز المصدري</string>
-    <string name="app_tab_about_terms_conditions">الشروط والأحكام</string>
-    <string name="app_tab_about_privacy_policy">سياسة الخصوصية</string>
-    <string name="app_tab_about_privacy_options">خيارات الخصوصية</string>
-    <string name="app_tab_about_license">الترخيص</string>
+    <string name="app_tile_stop">إيقاف البث</string>
 </resources>

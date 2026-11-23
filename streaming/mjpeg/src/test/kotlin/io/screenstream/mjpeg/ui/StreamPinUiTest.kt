@@ -1,6 +1,7 @@
 package io.screenstream.mjpeg.ui
 
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +20,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowToast
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -41,7 +43,7 @@ internal class StreamPinUiTest {
         compose.setContent {
             MjpegTestTheme {
                 CompositionLocalProvider(LocalClipboard provides clipboard) {
-                    StreamPinContent(pin.value, hideOnCapture.value, onShowMessage = {})
+                    StreamPinContent(pin.value, hideOnCapture.value)
                 }
             }
         }
@@ -74,14 +76,13 @@ internal class StreamPinUiTest {
 
     @Test
     @Config(sdk = [32, 33])
-    fun successfulPinCopyShowsManualFeedbackOnlyBeforeAndroid13() {
+    fun successfulPinCopyShowsAShortToastOnlyBeforeAndroid13() {
         val clipboard = RecordingClipboard()
-        val messages = mutableListOf<String>()
         val copyLabel = compose.activity.getString(R.string.mjpeg_stream_pin_copy)
         compose.setContent {
             MjpegTestTheme {
                 CompositionLocalProvider(LocalClipboard provides clipboard) {
-                    StreamPinContent(SecretValue("000042"), false, messages::add)
+                    StreamPinContent(SecretValue("000042"), hidePinOnCapture = false)
                 }
             }
         }
@@ -93,12 +94,12 @@ internal class StreamPinUiTest {
             assertEquals("000042", clip.getItemAt(0).text.toString())
             assertEquals(copyLabel, clip.description.label.toString())
             assertTrue(checkNotNull(clip.description.extras).getBoolean("android.content.extra.IS_SENSITIVE"))
-            val expected = if (Build.VERSION.SDK_INT < 33) {
-                listOf(compose.activity.getString(R.string.mjpeg_stream_pin_copied))
-            } else {
-                emptyList()
+            val showsCopyToast = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+            assertEquals(if (showsCopyToast) 1 else 0, ShadowToast.shownToastCount())
+            if (showsCopyToast) {
+                assertEquals(compose.activity.getString(R.string.mjpeg_stream_pin_copied), ShadowToast.getTextOfLatestToast())
+                assertEquals(Toast.LENGTH_SHORT, ShadowToast.getLatestToast().duration)
             }
-            assertEquals(expected, messages)
         }
     }
 }

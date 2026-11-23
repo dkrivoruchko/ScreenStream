@@ -34,8 +34,8 @@ public interface ScreenCaptureAccess {
      * must undo foreground preparation even without a grant.
      *
      * Normal outcomes are [ConsentResult]s; cancellation and technical failures throw. A launcher failure
-     * is wrapped in [ConsentLaunchException]; a result without data or before submission throws
-     * [IllegalStateException]. Cancelling ends the wait but not Android's dialog, whose late result is ignored.
+     * is wrapped in [ConsentLaunchException]; a successful result without data, or a matching result
+     * before submission, throws [IllegalStateException]. Cancelling ends the wait but not Android's dialog, whose late result is ignored.
      */
     public suspend fun requestConsent(
         attempt: StreamingModule.CaptureAttemptId,

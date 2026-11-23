@@ -139,7 +139,6 @@ internal class SizeSettingsUiTest {
                     imageSettings = data.image,
                     mjpegSettings = settings,
                     editPolicy = MjpegSettings.EditPolicy.All,
-                    onSaveError = { error(it) },
                     visibleSettings = setOf(SizeSearch.info),
                     expanded = true,
                     onExpandedChange = {},

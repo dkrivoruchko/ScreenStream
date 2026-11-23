@@ -65,7 +65,7 @@ Which status carries which generation is the session's decision, verified with [
 **Expected.**
 
 - The copier runs at most once, outside the store monitor. While it is held, readers can acquire images, and status and policy updates complete.
-- A failed copy publishes nothing, returns its buffer for reuse if the store is still open, and rethrows to the caller.
+- A failed copy publishes nothing, returns its buffer for reuse if the store is still open and the spare slot is empty, and rethrows to the caller.
 - A copy whose generation was revoked or replaced while it ran is discarded, even when the attempt ID is unchanged. Resuming creates a new generation, and the old one never becomes current again.
 - After disposal, a late copy neither publishes nor refills the spare buffer.
 - Only accepted publications advance the publication version.
@@ -194,4 +194,4 @@ The runtime shows slow status only for a current listener's response that observ
 - After cutoff, no new image is admitted, and already acquired bytes stay valid until the writer releases them.
 - In the history that fails before the writer runs, the response releases its unclaimed initial lease on exit.
 - The response's final progress is retired exactly once, when its own call job completes. Cancelling the job or closing the reader doesn't count as completion.
-- In the rotation history, the stream ends without any action from the client. A part already being written may complete, and no further part starts. Rotation closes readers but doesn't cancel the call. [Listener cutoff](05-http-runtime.md#mjpeg-srv-08) also cancels the call.
+- In the rotation history, the stream ends without any action from the client. A part already being written may complete, and no further part starts. Rotation closes readers but doesn't cancel the call. [Listener cutoff](../../02-delivery/01-http-delivery.md#cutoff) also cancels the call.

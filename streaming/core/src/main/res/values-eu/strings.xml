@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Mikrofonorako sarbidea</string>
     <string name="core_permission_microphone_message">Baimendu mikrofonorako sarbidea haren soinua transmisioan sartzeko.\n\nBaimenik gabe, ezin da mikrofonoaren audioa transmititu.</string>
     <string name="core_permission_device_audio_title">Gailuaren audiorako sarbidea</string>
-    <string name="core_permission_device_audio_message">Android-ek mikrofonoaren baimena behar du gailuaren audioa transmititzeko. Horrek ez du mikrofonoa pizten.\n\nAndroid-ek eta audioa erreproduzitzen duen aplikazioak partekatzea baimentzen duten audioa soilik transmiti daiteke.</string>
+    <string name="core_permission_device_audio_message">Android-ek mikrofonoaren baimena behar du gailuaren audioa transmititzeko. Mikrofonoaren aukera desaktibatuta badago, mikrofonoaren audioa ez da transmititzen.\n\nAndroid-ek eta audioa erreproduzitzen duen aplikazioak partekatzea baimentzen duten audioa soilik transmiti daiteke.</string>
 
     <string name="core_permission_audio_title">Mikrofonoaren eta gailuaren audioa</string>
     <string name="core_permission_audio_message">Baimendu mikrofonorako sarbidea mikrofonoaren eta gailuaren audioa transmititzeko.\n\nGailuaren audioa transmititzeko, Android-ek eta audioa erreproduzitzen duen aplikazioak hura partekatzea baimendu behar dute.</string>

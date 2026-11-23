@@ -116,7 +116,7 @@ internal class SettingsSearchUiTest {
         val settings = MjpegSettings(IsolatedSettingsContext(compose.activity, temporaryFolder.newFolder()))
         runBlocking { withTimeout(5.seconds) { settings.data.first() } }
         compose.setContent {
-            MjpegTestTheme { MjpegContent(controller, settings) }
+            MjpegTestTheme { MjpegContent(controller, settings, layout = ::MjpegTestLayout) }
         }
         val imageGroup = text(R.string.mjpeg_pref_image_group)
         val connectionGroup = text(R.string.mjpeg_pref_connection_group)

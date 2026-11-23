@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">माइक्रोफ़ोन एक्सेस</string>
     <string name="core_permission_microphone_message">स्ट्रीम में अपने माइक्रोफ़ोन की आवाज़ शामिल करने के लिए माइक्रोफ़ोन एक्सेस की अनुमति दें।\n\nइसके बिना, माइक्रोफ़ोन का ऑडियो स्ट्रीम नहीं किया जा सकता।</string>
     <string name="core_permission_device_audio_title">डिवाइस ऑडियो एक्सेस</string>
-    <string name="core_permission_device_audio_message">डिवाइस का ऑडियो स्ट्रीम करने के लिए Android को माइक्रोफ़ोन की अनुमति चाहिए। इससे आपका माइक्रोफ़ोन चालू नहीं होता।\n\nकेवल वही ऑडियो स्ट्रीम किया जा सकता है जिसे शेयर करने की अनुमति Android और ऑडियो चलाने वाला ऐप देते हैं।</string>
+    <string name="core_permission_device_audio_message">Android पर डिवाइस का ऑडियो स्ट्रीम करने के लिए माइक्रोफ़ोन की अनुमति ज़रूरी है। माइक्रोफ़ोन का विकल्प बंद होने पर स्ट्रीम में माइक्रोफ़ोन का ऑडियो शामिल नहीं होता।\n\nकेवल वही ऑडियो स्ट्रीम किया जा सकता है जिसे शेयर करने की अनुमति Android और ऑडियो चलाने वाला ऐप देते हैं।</string>
 
     <string name="core_permission_audio_title">माइक्रोफ़ोन और डिवाइस का ऑडियो</string>
     <string name="core_permission_audio_message">माइक्रोफ़ोन और डिवाइस का ऑडियो स्ट्रीम करने के लिए माइक्रोफ़ोन एक्सेस की अनुमति दें।\n\nडिवाइस का ऑडियो तभी स्ट्रीम किया जा सकता है जब Android और ऑडियो चलाने वाला ऐप इसे शेयर करने की अनुमति दें।</string>

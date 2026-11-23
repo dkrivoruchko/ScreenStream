@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Fout</string>
-    <string name="app_error_recover">Herstellen</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Terug</string>
+    <string name="app_action_close">Sluiten</string>
+    <string name="app_action_exit">Afsluiten</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Voorbereiden…</string>
     <string name="app_module_error_title">Er is iets misgegaan</string>
     <string name="app_module_error_restart">Modus opnieuw starten</string>
 
-    <string name="app_activity_update_dialog_title">Update beschikbaar</string>
-    <string name="app_activity_update_dialog_message">Er staat een update klaar. App nu opnieuw starten?</string>
-    <string name="app_activity_update_dialog_restart">Opnieuw starten</string>
+    <string name="app_exit_dialog_title">ScreenStream afsluiten?</string>
+    <string name="app_exit_dialog_message">Een eventuele actieve stream wordt gestopt.</string>
 
-    <string name="app_tab_stream">Stream</string>
-    <string name="app_tab_settings">Instellingen</string>
-    <string name="app_tab_about">Informatie</string>
-    <string name="app_tab_exit">Afsluiten</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Streammethode</string>
+    <string name="app_method_choose">Kies een streammethode</string>
+    <string name="app_method_details">Details</string>
+    <string name="app_method_details_description">Details voor %1$s</string>
+    <string name="app_method_benefits">Voordelen</string>
+    <string name="app_method_things_to_know">Goed om te weten</string>
 
-    <string name="app_tab_stream_select_mode">Selecteer streammodus:</string>
-    <string name="app_tab_stream_switching_modules">Modi wisselen…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">App-instellingen</string>
 
-    <string name="app_mode_selected_method">Actieve streammethode</string>
-    <string name="app_mode_choose_method">Kies een streammethode</string>
-    <string name="app_mode_choose_another_method">Kies een andere methode</string>
-    <string name="app_mode_change">Wijzigen</string>
-    <string name="app_mode_chooser_title">Kies hoe je je scherm deelt</string>
-    <string name="app_mode_close_chooser">Sluiten</string>
-    <string name="app_mode_details">Details</string>
-    <string name="app_mode_details_description">Details voor %1$s</string>
-    <string name="app_mode_benefits">Voordelen</string>
-    <string name="app_mode_things_to_know">Goed om te weten</string>
+    <string name="app_pref_language">App-taal</string>
+    <string name="app_pref_language_summary">Taal voor deze app kiezen</string>
+    <string name="app_pref_language_system_default">Systeemstandaard</string>
 
+    <string name="app_pref_dark_theme">Donker thema</string>
+    <string name="app_pref_dark_theme_summary">Wanneer het donkere thema wordt gebruikt</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>Altijd</item>
+        <item>Volgens batterijbesparing</item>
+        <item>Nooit</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>Altijd</item>
+        <item>Systeem volgen</item>
+        <item>Nooit</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">Dynamische kleur</string>
+    <string name="app_pref_dynamic_color_summary">Systeemkleuren gebruiken</string>
+
+    <string name="app_pref_notifications">App-meldingen</string>
+    <string name="app_pref_notifications_summary">Meldingen beheren in de systeeminstellingen</string>
+    <string name="app_pref_notifications_open_error">Kan meldingsinstellingen niet openen</string>
+
+    <string name="app_pref_add_tile">Tegel voor Snelle instellingen toevoegen</string>
+    <string name="app_pref_add_tile_summary">App openen of actieve stream stoppen</string>
+    <string name="app_pref_tile_already_added">Tegel voor Snelle instellingen is al toegevoegd</string>
+    <string name="app_pref_add_tile_error">Kan tegel voor Snelle instellingen niet toevoegen</string>
+
+    <string name="app_pref_save_error">Kan instelling niet opslaan</string>
+
+    <!-- About -->
+    <string name="app_about_title">Informatie</string>
+    <string name="app_about_version">Versie: %1$s</string>
+    <string name="app_about_developer">Gemaakt door Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">Beoordeel de app</string>
+    <string name="app_about_source_code">Broncode</string>
+    <string name="app_about_terms_and_conditions">Algemene voorwaarden</string>
+    <string name="app_about_privacy_policy">Privacybeleid</string>
+    <string name="app_about_privacy_options">Privacyopties</string>
+    <string name="app_about_license">Licentie</string>
+    <string name="app_about_open_link_error">Kan de link niet openen</string>
+    <string name="app_about_privacy_options_open_error">Kan privacyopties niet openen</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Update gedownload</string>
+    <string name="app_update_message">Start de app opnieuw om de update te installeren. Een eventuele actieve stream wordt gestopt.</string>
+    <string name="app_update_restart">Opnieuw starten</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">Meldingen voor streaming</string>
     <string name="app_notification_channel_error">Foutmeldingen</string>
+
     <string name="app_notification_waiting_content">Tik om de app te openen</string>
     <string name="app_notification_streaming_title">Streamen…</string>
     <string name="app_notification_streaming_content">Tik op Stop om de stream te beëindigen</string>
     <string name="app_notification_stop">Stop</string>
 
+    <string name="app_notification_error_title">Fout</string>
+    <string name="app_notification_error_recover">Herstellen</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">ScreenStream openen</string>
-    <string name="app_tile_stop">Stop</string>
-
-    <string name="app_pref_back">Terug</string>
-    <string name="app_pref_settings">Instellingen</string>
-    <string name="app_pref_locale">App-taal</string>
-    <string name="app_pref_locale_summary">App-taalinstellingen openen</string>
-    <string name="app_pref_locale_default">Systeemstandaard</string>
-    <string name="app_pref_night_mode">Donker thema</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>Altijd</item>
-        <item>Volgens batterijbesparing</item>
-        <item>Nooit</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>Altijd</item>
-        <item>Systeem volgen</item>
-        <item>Nooit</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">Dynamische kleur</string>
-    <string name="app_pref_dynamic_theme_summary">Pas het uiterlijk aan op basis van de kleuren van uw achtergrondafbeelding</string>
-    <string name="app_pref_notification">App-meldingen</string>
-    <string name="app_pref_notification_summary">Meldingen beheren in de systeeminstellingen</string>
-    <string name="app_pref_tile">Tegel voor Snelle instellingen toevoegen</string>
-    <string name="app_pref_tile_summary">ScreenStream aan Snelle instellingen toevoegen</string>
-
-    <string name="app_tab_about_app_version">Versie: %1$s</string>
-    <string name="app_tab_about_developer_name">Gemaakt door Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">Beoordeel de app</string>
-    <string name="app_tab_about_app_sources">Broncode</string>
-    <string name="app_tab_about_terms_conditions">Algemene voorwaarden</string>
-    <string name="app_tab_about_privacy_policy">Privacybeleid</string>
-    <string name="app_tab_about_privacy_options">Privacyopties</string>
-    <string name="app_tab_about_license">Licentie</string>
+    <string name="app_tile_stop">Stream stoppen</string>
 </resources>

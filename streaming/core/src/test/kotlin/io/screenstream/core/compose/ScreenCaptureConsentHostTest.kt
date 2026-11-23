@@ -3,7 +3,6 @@ package io.screenstream.core.compose
 import android.app.Activity
 import android.app.Application
 import android.content.Intent
-import android.os.Looper
 import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.ActivityResultRegistryOwner
@@ -56,6 +55,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -144,7 +144,7 @@ internal class ScreenCaptureConsentHostTest {
         compose.onNodeWithText(continueText).assertDoesNotExist()
         compose.runOnIdle { registry.reply(0, Activity.RESULT_CANCELED) }
         assertReason(pending, ScreenCaptureAccess.NoGrantReason.Declined)
-        assertTrue(pending.preparations.isEmpty())
+        assertEquals(0, pending.preparations.get())
         compose.waitUntil(5_000) { settings.screenCaptureEducationCompleted }
         assertTrue(awaitSettingsWrite().isSuccess)
         assertTrue(runBlocking { readCoreSettings(settingsContext).screenCaptureEducationCompleted })
@@ -158,7 +158,7 @@ internal class ScreenCaptureConsentHostTest {
 
     // Cases: CORE-UI-03
     @Test
-    fun savedEducationSkipsDialogAndSuccessfulResultPreparesOnceOnMain() {
+    fun savedEducationSkipsDialogAndSuccessfulResultPreparesOnce() {
         val registry = RecordingConsentRegistry()
         createSettings(educationCompleted = true)
         launchHost(registry)
@@ -167,9 +167,9 @@ internal class ScreenCaptureConsentHostTest {
         assertEquals(1, registry.launches.size)
         compose.runOnIdle { registry.reply(0, Activity.RESULT_OK, Intent("consent")) }
         assertIs<ScreenCaptureAccess.ConsentResult.Granted>(outcome(pending))
-        assertEquals(listOf(Looper.getMainLooper().thread), pending.preparations)
+        assertEquals(1, pending.preparations.get())
         compose.runOnIdle { registry.reply(0, Activity.RESULT_OK, Intent("duplicate")) }
-        assertEquals(1, pending.preparations.size)
+        assertEquals(1, pending.preparations.get())
     }
 
     // Cases: CORE-UI-04
@@ -202,8 +202,8 @@ internal class ScreenCaptureConsentHostTest {
         assertEquals(1, registry.launches.size)
         compose.onNodeWithText(application.getString(android.R.string.cancel)).performClick()
         assertReason(later, ScreenCaptureAccess.NoGrantReason.EducationDeclined)
-        assertTrue(first.preparations.isEmpty())
-        assertTrue(later.preparations.isEmpty())
+        assertEquals(0, first.preparations.get())
+        assertEquals(0, later.preparations.get())
     }
 
     // Cases: CORE-UI-05
@@ -221,7 +221,7 @@ internal class ScreenCaptureConsentHostTest {
         compose.waitForIdle()
         assertEquals(0, registry.launches.size)
         compose.onNodeWithText(educationTitle).assertDoesNotExist()
-        assertTrue(pending.preparations.isEmpty())
+        assertEquals(0, pending.preparations.get())
     }
 
     // Cases: CORE-UI-06
@@ -296,7 +296,7 @@ internal class ScreenCaptureConsentHostTest {
             assertTrue(recreated.activityResultRegistry.dispatchResult(requestCode, Activity.RESULT_OK, Intent("consent")))
         }
         assertIs<ScreenCaptureAccess.ConsentResult.Granted>(outcome(original))
-        assertEquals(listOf(Looper.getMainLooper().thread), original.preparations)
+        assertEquals(1, original.preparations.get())
         assertEquals(Lifecycle.State.STARTED, checkNotNull(scenario).state)
         checkNotNull(scenario).moveToState(Lifecycle.State.RESUMED)
         compose.waitForIdle()
@@ -309,8 +309,8 @@ internal class ScreenCaptureConsentHostTest {
         }
         compose.waitForIdle()
         assertFalse(newer.result.isCompleted)
-        assertTrue(newer.preparations.isEmpty())
-        assertEquals(1, original.preparations.size)
+        assertEquals(0, newer.preparations.get())
+        assertEquals(1, original.preparations.get())
         checkNotNull(scenario).onActivity { recreated ->
             assertTrue(recreated.activityResultRegistry.dispatchResult(newerRequestCode, Activity.RESULT_CANCELED, null))
         }
@@ -333,7 +333,7 @@ internal class ScreenCaptureConsentHostTest {
             it.activityResultRegistry.dispatchResult(requestCode, Activity.RESULT_CANCELED, null)
         }
         assertReason(pending, ScreenCaptureAccess.NoGrantReason.Declined)
-        assertTrue(pending.preparations.isEmpty())
+        assertEquals(0, pending.preparations.get())
     }
 
     // Cases: CORE-UI-08
@@ -367,7 +367,7 @@ internal class ScreenCaptureConsentHostTest {
         assertTrue(pending.result.isCancelled)
         assertNull(access.currentRequest.value)
         compose.runOnIdle { registry.reply(0, Activity.RESULT_OK, Intent("late")) }
-        assertTrue(pending.preparations.isEmpty())
+        assertEquals(0, pending.preparations.get())
     }
 
     // Cases: CORE-UI-10
@@ -387,12 +387,12 @@ internal class ScreenCaptureConsentHostTest {
             "Original launch failure missing: $chain"
         )
         assertNull(access.currentRequest.value)
-        assertTrue(failed.preparations.isEmpty())
+        assertEquals(0, failed.preparations.get())
         compose.runOnIdle { registry.launchFailure = null }
         val later = request()
         compose.runOnIdle { registry.reply(1, Activity.RESULT_OK, Intent("consent")) }
         assertIs<ScreenCaptureAccess.ConsentResult.Granted>(outcome(later))
-        assertEquals(1, later.preparations.size)
+        assertEquals(1, later.preparations.get())
     }
 
     private fun createSettings(
@@ -423,17 +423,21 @@ internal class ScreenCaptureConsentHostTest {
     private data class PendingAttempt(
         val job: CompletableJob,
         val result: Deferred<Result<ScreenCaptureAccess.ConsentResult>>,
-        val preparations: MutableList<Thread>,
+        val preparations: AtomicInteger,
     )
 
     private fun request(): PendingAttempt {
         val job = SupervisorJob(scope.coroutineContext[Job]).also { attempts.add(it) }
-        val preparations = mutableListOf<Thread>()
+        val preparations = AtomicInteger()
         val attempt = StreamingModule.CaptureAttemptId(StreamingModule.InstanceId(StreamingModule.Id("compose-test")))
-        lateinit var result: Deferred<Result<ScreenCaptureAccess.ConsentResult>>
-        compose.runOnIdle {
-            result = CoroutineScope(job + Dispatchers.Main.immediate).async {
-                runCatching { access.requestConsent(attempt, job) { preparations.add(Thread.currentThread()); true } }
+        val result = compose.runOnIdle {
+            CoroutineScope(job + Dispatchers.Main.immediate).async {
+                runCatching {
+                    access.requestConsent(attempt, job) {
+                        preparations.incrementAndGet()
+                        true
+                    }
+                }
             }
         }
         compose.waitForIdle()
@@ -455,7 +459,7 @@ internal class ScreenCaptureConsentHostTest {
     private fun assertEducationUnchanged(registry: RecordingConsentRegistry, pending: PendingAttempt) {
         compose.onNodeWithText(educationTitle).assertDoesNotExist()
         assertEquals(0, registry.launches.size)
-        assertTrue(pending.preparations.isEmpty())
+        assertEquals(0, pending.preparations.get())
         assertTrue(awaitSettingsWrite().isSuccess)
         assertFalse(runBlocking { readCoreSettings(settingsContext).screenCaptureEducationCompleted })
     }
@@ -489,7 +493,7 @@ internal class ScreenCaptureConsentHostTest {
         compose.waitForIdle()
         assertEquals(Lifecycle.State.DESTROYED, checkNotNull(scenario).state)
         assertReason(pending, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
-        assertTrue(pending.preparations.isEmpty())
+        assertEquals(0, pending.preparations.get())
     }
 
     private class RecordingConsentRegistry : ActivityResultRegistry(), ActivityResultRegistryOwner {

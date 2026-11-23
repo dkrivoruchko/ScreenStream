@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">エラー</string>
-    <string name="app_error_recover">回復</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">戻る</string>
+    <string name="app_action_close">閉じる</string>
+    <string name="app_action_exit">終了</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">準備中…</string>
     <string name="app_module_error_title">問題が発生しました</string>
     <string name="app_module_error_restart">モードを再起動</string>
 
-    <string name="app_activity_update_dialog_title">更新が利用可能</string>
-    <string name="app_activity_update_dialog_message">アップデートの準備ができました。今すぐアプリを再起動しますか？</string>
-    <string name="app_activity_update_dialog_restart">再起動</string>
+    <string name="app_exit_dialog_title">ScreenStream を終了しますか？</string>
+    <string name="app_exit_dialog_message">配信中の場合は停止します。</string>
 
-    <string name="app_tab_stream">配信</string>
-    <string name="app_tab_settings">設定</string>
-    <string name="app_tab_about">情報</string>
-    <string name="app_tab_exit">終了</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">配信方法</string>
+    <string name="app_method_choose">配信方法を選択</string>
+    <string name="app_method_details">詳細</string>
+    <string name="app_method_details_description">%1$s の詳細</string>
+    <string name="app_method_benefits">メリット</string>
+    <string name="app_method_things_to_know">注意点</string>
 
-    <string name="app_tab_stream_select_mode">配信モードを選択：</string>
-    <string name="app_tab_stream_switching_modules">モードを切り替えています…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">アプリの設定</string>
 
-    <string name="app_mode_selected_method">現在の配信方法</string>
-    <string name="app_mode_choose_method">配信方法を選択</string>
-    <string name="app_mode_choose_another_method">別の方法を選択</string>
-    <string name="app_mode_change">変更</string>
-    <string name="app_mode_chooser_title">画面を共有する方法を選択</string>
-    <string name="app_mode_close_chooser">閉じる</string>
-    <string name="app_mode_details">詳細</string>
-    <string name="app_mode_details_description">%1$s の詳細</string>
-    <string name="app_mode_benefits">メリット</string>
-    <string name="app_mode_things_to_know">注意点</string>
+    <string name="app_pref_language">アプリの言語</string>
+    <string name="app_pref_language_summary">このアプリの言語を選択</string>
+    <string name="app_pref_language_system_default">システムのデフォルト</string>
 
+    <string name="app_pref_dark_theme">ダークモード</string>
+    <string name="app_pref_dark_theme_summary">ダークモードを使用するタイミング</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>常にオン</item>
+        <item>バッテリー セーバーに従う</item>
+        <item>常にオフ</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>常にオン</item>
+        <item>システムに従う</item>
+        <item>常にオフ</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">ダイナミックカラー</string>
+    <string name="app_pref_dynamic_color_summary">システムの色を使用</string>
+
+    <string name="app_pref_notifications">アプリの通知</string>
+    <string name="app_pref_notifications_summary">システム設定で通知を管理</string>
+    <string name="app_pref_notifications_open_error">通知設定を開けませんでした</string>
+
+    <string name="app_pref_add_tile">クイック設定タイルを追加</string>
+    <string name="app_pref_add_tile_summary">アプリを開く、または配信を停止</string>
+    <string name="app_pref_tile_already_added">クイック設定タイルはすでに追加されています</string>
+    <string name="app_pref_add_tile_error">クイック設定タイルを追加できませんでした</string>
+
+    <string name="app_pref_save_error">設定を保存できませんでした</string>
+
+    <!-- About -->
+    <string name="app_about_title">情報</string>
+    <string name="app_about_version">バージョン: %1$s</string>
+    <string name="app_about_developer">開発者: Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">アプリを評価</string>
+    <string name="app_about_source_code">ソースコード</string>
+    <string name="app_about_terms_and_conditions">利用規約</string>
+    <string name="app_about_privacy_policy">プライバシーポリシー</string>
+    <string name="app_about_privacy_options">プライバシーオプション</string>
+    <string name="app_about_license">ライセンス</string>
+    <string name="app_about_open_link_error">リンクを開けませんでした</string>
+    <string name="app_about_privacy_options_open_error">プライバシーオプションを開けませんでした</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">アップデートをダウンロードしました</string>
+    <string name="app_update_message">アプリを再起動してアップデートをインストールしてください。配信中の場合は停止します。</string>
+    <string name="app_update_restart">再起動</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">配信の通知</string>
     <string name="app_notification_channel_error">エラー通知</string>
+
     <string name="app_notification_waiting_content">タップしてアプリを開く</string>
     <string name="app_notification_streaming_title">配信中…</string>
     <string name="app_notification_streaming_content">［停止］をタップして配信を終了</string>
     <string name="app_notification_stop">停止</string>
 
+    <string name="app_notification_error_title">エラー</string>
+    <string name="app_notification_error_recover">復旧</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">ScreenStream を開く</string>
-    <string name="app_tile_stop">停止</string>
-
-    <string name="app_pref_back">戻る</string>
-    <string name="app_pref_settings">設定</string>
-    <string name="app_pref_locale">アプリの言語</string>
-    <string name="app_pref_locale_summary">アプリの言語設定を開く</string>
-    <string name="app_pref_locale_default">システムのデフォルト</string>
-    <string name="app_pref_night_mode">ダークモード</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>常にオン</item>
-        <item>バッテリー セーバーに従う</item>
-        <item>常にオフ</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>常にオン</item>
-        <item>システムに従う</item>
-        <item>常にオフ</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">ダイナミックカラー</string>
-    <string name="app_pref_dynamic_theme_summary">壁紙の色に基づいて外観を調整します</string>
-    <string name="app_pref_notification">アプリの通知</string>
-    <string name="app_pref_notification_summary">システム設定で通知を管理</string>
-    <string name="app_pref_tile">クイック設定タイルを追加</string>
-    <string name="app_pref_tile_summary">クイック設定に ScreenStream を追加</string>
-
-    <string name="app_tab_about_app_version">バージョン: %1$s</string>
-    <string name="app_tab_about_developer_name">開発者: Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">アプリを評価</string>
-    <string name="app_tab_about_app_sources">ソースコード</string>
-    <string name="app_tab_about_terms_conditions">利用規約</string>
-    <string name="app_tab_about_privacy_policy">プライバシーポリシー</string>
-    <string name="app_tab_about_privacy_options">プライバシーオプション</string>
-    <string name="app_tab_about_license">ライセンス</string>
+    <string name="app_tile_stop">配信を停止</string>
 </resources>

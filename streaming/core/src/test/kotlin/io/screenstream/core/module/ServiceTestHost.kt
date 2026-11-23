@@ -12,20 +12,13 @@ import android.os.Build
 import android.os.Looper
 import android.os.SystemClock
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.core.app.NotificationCompat
-import androidx.window.core.layout.WindowSizeClass
 import io.screenstream.core.manager.StreamingModuleManagerImpl
 import io.screenstream.core.settings.StreamingSettingsStore
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
@@ -43,7 +36,6 @@ import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 /** Real manager delivery and Android lifecycle; the controller's cleanup result is a supplied input. */
-@OptIn(ExperimentalCoroutinesApi::class)
 internal class ServiceTestHost(directory: File) : AutoCloseable {
     val scheduler = TestCoroutineScheduler()
     val notifications = ServiceNotifications()
@@ -72,7 +64,6 @@ internal class ServiceTestHost(directory: File) : AutoCloseable {
         private set
 
     init {
-        Dispatchers.setMain(UnconfinedTestDispatcher(scheduler))
         runBlocking { withTimeout(5.seconds) { settings.initialize() } }
         manager = StreamingModuleManagerImpl(listOf(ServiceDescriptor), context, settings, notifications, StandardTestDispatcher(scheduler))
         loadKoinModules(module {
@@ -108,7 +99,6 @@ internal class ServiceTestHost(directory: File) : AutoCloseable {
             scheduler.runCurrent()
         } finally {
             CoreServiceHost.factory = { error("No Service test factory installed") }
-            Dispatchers.resetMain()
         }
     }
 }
@@ -158,7 +148,7 @@ internal class ServiceControllerProbe(val handle: StreamingModule.Controller.Man
     }
 
     @Composable
-    override fun Content(window: WindowSizeClass, modifier: Modifier) = Unit
+    override fun Content(layout: @Composable (StreamingModule.Ui) -> Unit) = Unit
 }
 
 internal class ServiceNotifications : StreamingModuleNotifications {

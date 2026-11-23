@@ -3,15 +3,12 @@ package info.dvkr.screenstream.rtsp.ui
 import android.content.ActivityNotFoundException
 import android.os.SystemClock
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,8 +26,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -39,7 +36,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
-import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
@@ -53,6 +49,8 @@ import info.dvkr.screenstream.rtsp.ui.main.cards.ServerSettingsCard
 import info.dvkr.screenstream.rtsp.ui.main.cards.VideoCard
 import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.module.StreamingModule.Ui.Section
+import io.screenstream.core.module.StreamingModule.Ui.Section.Role
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
@@ -71,9 +69,8 @@ internal fun RtspMainScreenUI(
     instanceId: StreamingModule.InstanceId,
     rtspStateFlow: StateFlow<RtspState>,
     sendEvent: (event: RtspEvent) -> Unit,
-    windowSizeClass: WindowSizeClass,
     claimInitialLocalNetworkRequest: (request: () -> Boolean) -> Unit,
-    modifier: Modifier = Modifier,
+    layout: @Composable (StreamingModule.Ui) -> Unit,
     rtspSettings: RtspSettings = koinInject(),
     notifications: StreamingModuleNotifications = koinInject()
 ) {
@@ -236,193 +233,210 @@ internal fun RtspMainScreenUI(
         }
     )
 
-    BoxWithConstraints(modifier = modifier) {
-        state.consentRetryToken?.let { retryToken ->
-            AlertDialog(
-                onDismissRequest = {},
-                confirmButton = {
-                    TextButton(onClick = { sendEvent(RtspEvent.RetryConsent(retryToken, retry = true)) }) {
-                        Text(stringResource(R.string.rtsp_error_try_again))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { sendEvent(RtspEvent.RetryConsent(retryToken, retry = false)) }) {
-                        Text(stringResource(android.R.string.cancel))
-                    }
-                },
-                title = { Text(stringResource(CoreR.string.core_screen_capture_permission_required_title)) },
-                text = { Text(stringResource(R.string.rtsp_error_screen_capture_permission_denied_message)) },
-            )
-        }
-
-        val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
-        LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Fixed(if (this.maxWidth >= 800.dp) 2 else 1),
-            modifier = Modifier.fillMaxSize(),
-            state = lazyVerticalStaggeredGridState,
-            contentPadding = PaddingValues(start = 4.dp, end = 4.dp, bottom = 64.dp),
-        ) {
-            state.error?.takeIf { error ->
-                error is RtspError.UnknownError ||
-                        error is RtspError.NotificationPermissionRequired ||
-                        error is RtspError.LocalNetworkPermissionRequired ||
-                        error.isStartupPolicyError()
-            }?.let { error ->
-                item(key = "ERROR") {
-                    val hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio
-                    val errorPermissionState = when (error) {
-                        is RtspError.AudioPermissionRequired -> if (hasEnabledAudioSource) audioPermissionState else null
-                        is RtspError.NotificationPermissionRequired -> notificationPermissionState
-                        is RtspError.LocalNetworkPermissionRequired -> localNetworkPermissionState
-                        else -> null
-                    }
-                    ErrorCard(
-                        error = error,
-                        sendEvent = { event ->
-                            val displayedToken = state.errorToken
-                            val latest = rtspStateFlow.value
-                            if (displayedToken != null && latest.error === error && latest.errorToken == displayedToken) {
-                                sendEvent(if (event is RtspEvent.RecoverError) event.copy(errorToken = displayedToken) else event)
-                            }
-                        },
-                        hasEnabledAudioSource = hasEnabledAudioSource,
-                        permissionState = errorPermissionState,
-                        retryStartupPolicyError = { requestStart(error, state.errorToken) },
-                        requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio, error, state.errorToken) },
-                        requestNotificationPermission = requestNotificationPermission@{
-                            val latest = rtspStateFlow.value
-                            val errorToken = latest.errorToken ?: return@requestNotificationPermission
-                            if (latest.error !== error || errorToken != state.errorToken || error !is RtspError.NotificationPermissionRequired) {
-                                return@requestNotificationPermission
-                            }
-                            if (runtimePermissions.isGranted(RuntimePermission.Notifications)) {
-                                permissionActions.cancel()
-                                sendEvent(RtspEvent.RecoverError(errorToken))
-                                val settingsIntent = notifications.channelSettingsIntent(StreamingModuleNotifications.Channel.Streaming)
-                                if (settingsIntent != null) {
-                                    try {
-                                        context.startActivity(settingsIntent)
-                                    } catch (failure: ActivityNotFoundException) {
-                                        log.w("NotificationSettings", "Settings Activity is unavailable", failure)
-                                    } catch (failure: SecurityException) {
-                                        log.w("NotificationSettings", "Settings Activity launch was denied", failure)
-                                    }
-                                }
-                            } else {
-                                requestPermissionForError(RuntimePermission.Notifications, error, errorToken)
-                            }
-                        },
-                        requestLocalNetworkPermission = { requestPermissionForError(RuntimePermission.LocalNetwork, error, state.errorToken) },
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
-            }
-
-            item(key = "MODE") {
-                ModeCard(
-                    sendEvent = sendEvent,
-                    selectedMode = selectedMode,
-                    onSelectMode = { mode -> updateSettings { copy(mode = mode) } },
-                    isStreaming = state.captureAttempt != null,
-                    serverBindings = state.serverBindings,
-                    clientStatus = state.clientStatus,
-                    error = state.error,
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-            if (selectedMode == RtspSettings.Values.Mode.SERVER) {
-                item(key = "SERVER_PARAMETERS") {
-                    ServerSettingsCard(
-                        settings = settings,
-                        updateSettings = updateSettings,
-                        windowSizeClass = windowSizeClass,
-                        enabled = state.captureAttempt == null,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
-            }
-            if (selectedMode == RtspSettings.Values.Mode.CLIENT) {
-                item(key = "CLIENT_PARAMETERS") {
-                    ClientSettingsCard(
-                        settings = settings,
-                        updateSettings = updateSettings,
-                        windowSizeClass = windowSizeClass,
-                        enabled = state.captureAttempt == null,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
-            }
-            item(key = "VIDEO") {
-                VideoCard(
-                    isStreaming = state.captureAttempt != null,
-                    activeH264ProfileIdc = state.activeH264ProfileIdc,
-                    selectedVideoEncoder = state.selectedVideoEncoder,
-                    settings = settings,
-                    updateSettings = updateSettings,
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-            item(key = "AUDIO") {
-                AudioCard(
-                    isStreaming = state.captureAttempt != null,
-                    selectedAudioEncoder = state.selectedAudioEncoder,
-                    settings = settings,
-                    updateSettings = updateSettings,
-                    onMicEnabledChange = { changeAudioEnabled(isMicrophone = true, enabled = it) },
-                    onDeviceAudioEnabledChange = { changeAudioEnabled(isMicrophone = false, enabled = it) },
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-        }
-
-        LaunchedEffect(state.error) {
-            if (state.error != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
-        }
-
-        var lastClickTimeMs by remember { mutableStateOf<Long?>(null) }
-
-        val mediaServerUrlError = selectedMode == RtspSettings.Values.Mode.CLIENT &&
-                runCatching { RtspUrl.parse(settings.serverAddress) }.isFailure
-
-        Button(
-            onClick = dropUnlessStarted {
-                val now = SystemClock.elapsedRealtime()
-                val previousClickTimeMs = lastClickTimeMs
-                lastClickTimeMs = now
-                if (previousClickTimeMs == null || now - previousClickTimeMs >= 300L) {
-                    if (state.isStreaming) {
-                        state.captureAttempt?.let { sendEvent(RtspEvent.StopStream("User action: Button", it)) }
-                    } else {
-                        requestStart()
-                    }
-                }
-            },
-            modifier = Modifier
-                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
-                .align(alignment = Alignment.BottomCenter),
-            enabled = state.isBusy.not() && mediaServerUrlError.not(),
-            shape = MaterialTheme.shapes.medium,
-            contentPadding = PaddingValues(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
-            elevation = ButtonDefaults.buttonElevation(
-                defaultElevation = 3.0.dp,
-                pressedElevation = 3.0.dp,
-                focusedElevation = 3.0.dp,
-                hoveredElevation = 6.0.dp
-            )
-        ) {
-            Crossfade(targetState = state.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
-                Icon(
-                    painter = painterResource(if (isStreaming) R.drawable.stop_24px else R.drawable.play_arrow_24px),
-                    contentDescription = null
-                )
-            }
-            Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-            Text(
-                text = stringResource(id = if (state.isStreaming) R.string.rtsp_stream_stop else R.string.rtsp_stream_start),
-                style = MaterialTheme.typography.titleMedium
-            )
+    fun retryConsent(token: Uuid, retry: Boolean) {
+        if (rtspStateFlow.value.consentRetryToken == token) {
+            currentSendEvent(RtspEvent.RetryConsent(token, retry))
         }
     }
+
+    state.consentRetryToken?.let { retryToken ->
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {
+                TextButton(onClick = { retryConsent(retryToken, retry = true) }) {
+                    Text(stringResource(R.string.rtsp_error_try_again))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { retryConsent(retryToken, retry = false) }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+            title = { Text(stringResource(CoreR.string.core_screen_capture_permission_required_title)) },
+            text = { Text(stringResource(R.string.rtsp_error_screen_capture_permission_denied_message)) },
+        )
+    }
+
+    val modeSections = buildList {
+        state.error?.takeIf { error ->
+            error is RtspError.UnknownError ||
+                    error is RtspError.NotificationPermissionRequired ||
+                    error is RtspError.LocalNetworkPermissionRequired ||
+                    error.isStartupPolicyError()
+        }?.let { error ->
+            add(Section("error", Role.Overview) {
+                val errorVisibility = remember { BringIntoViewRequester() }
+                var isErrorPlaced by remember { mutableStateOf(false) }
+                LaunchedEffect(error, isErrorPlaced) {
+                    if (isErrorPlaced) errorVisibility.bringIntoView()
+                }
+                val hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio
+                val errorPermissionState = when (error) {
+                    is RtspError.AudioPermissionRequired -> if (hasEnabledAudioSource) audioPermissionState else null
+                    is RtspError.NotificationPermissionRequired -> notificationPermissionState
+                    is RtspError.LocalNetworkPermissionRequired -> localNetworkPermissionState
+                    else -> null
+                }
+                ErrorCard(
+                    error = error,
+                    sendEvent = { event ->
+                        val displayedToken = state.errorToken
+                        val latest = rtspStateFlow.value
+                        if (displayedToken != null && latest.error === error && latest.errorToken == displayedToken) {
+                            currentSendEvent(if (event is RtspEvent.RecoverError) event.copy(errorToken = displayedToken) else event)
+                        }
+                    },
+                    hasEnabledAudioSource = hasEnabledAudioSource,
+                    permissionState = errorPermissionState,
+                    retryStartupPolicyError = { requestStart(error, state.errorToken) },
+                    requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio, error, state.errorToken) },
+                    requestNotificationPermission = requestNotificationPermission@{
+                        val latest = rtspStateFlow.value
+                        val errorToken = latest.errorToken ?: return@requestNotificationPermission
+                        if (latest.error !== error || errorToken != state.errorToken || error !is RtspError.NotificationPermissionRequired) {
+                            return@requestNotificationPermission
+                        }
+                        if (runtimePermissions.isGranted(RuntimePermission.Notifications)) {
+                            permissionActions.cancel()
+                            currentSendEvent(RtspEvent.RecoverError(errorToken))
+                            val settingsIntent = notifications.channelSettingsIntent(StreamingModuleNotifications.Channel.Streaming)
+                            if (settingsIntent != null) {
+                                try {
+                                    context.startActivity(settingsIntent)
+                                } catch (failure: ActivityNotFoundException) {
+                                    log.w("NotificationSettings", "Settings Activity is unavailable", failure)
+                                } catch (failure: SecurityException) {
+                                    log.w("NotificationSettings", "Settings Activity launch was denied", failure)
+                                }
+                            }
+                        } else {
+                            requestPermissionForError(RuntimePermission.Notifications, error, errorToken)
+                        }
+                    },
+                    requestLocalNetworkPermission = { requestPermissionForError(RuntimePermission.LocalNetwork, error, state.errorToken) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(errorVisibility)
+                        .onPlaced { isErrorPlaced = true },
+                )
+            })
+        }
+
+        add(Section("mode", Role.Overview) {
+            ModeCard(
+                sendEvent = currentSendEvent,
+                selectedMode = selectedMode,
+                onSelectMode = { mode -> updateSettings { copy(mode = mode) } },
+                isStreaming = state.captureAttempt != null,
+                serverBindings = state.serverBindings,
+                clientStatus = state.clientStatus,
+                error = state.error,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        })
+        when (selectedMode) {
+            RtspSettings.Values.Mode.SERVER -> add(Section("server-parameters", Role.Settings) {
+                ServerSettingsCard(
+                    settings = settings,
+                    updateSettings = updateSettings,
+                    enabled = state.captureAttempt == null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            })
+
+            RtspSettings.Values.Mode.CLIENT -> add(Section("client-parameters", Role.Settings) {
+                ClientSettingsCard(
+                    settings = settings,
+                    updateSettings = updateSettings,
+                    enabled = state.captureAttempt == null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            })
+        }
+        add(Section("video", Role.Settings) {
+            VideoCard(
+                isStreaming = state.captureAttempt != null,
+                activeH264ProfileIdc = state.activeH264ProfileIdc,
+                selectedVideoEncoder = state.selectedVideoEncoder,
+                settings = settings,
+                updateSettings = updateSettings,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        })
+        add(Section("audio", Role.Settings) {
+            AudioCard(
+                isStreaming = state.captureAttempt != null,
+                selectedAudioEncoder = state.selectedAudioEncoder,
+                settings = settings,
+                updateSettings = updateSettings,
+                onMicEnabledChange = { changeAudioEnabled(isMicrophone = true, enabled = it) },
+                onDeviceAudioEnabledChange = { changeAudioEnabled(isMicrophone = false, enabled = it) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        })
+    }
+
+    var lastClickTimeMs by remember(instanceId) { mutableStateOf<Long?>(null) }
+    val captureEnabled = canToggleCapture(state, settings)
+    fun toggleCapture() {
+        val latestState = rtspStateFlow.value
+        val latestSettings = rtspSettings.data.value
+        if (latestState.captureAttempt != state.captureAttempt || latestState.isStreaming != state.isStreaming) return
+        if (latestSettings.mode != selectedMode || !canToggleCapture(latestState, latestSettings)) return
+        if (selectedMode == RtspSettings.Values.Mode.CLIENT && latestSettings.serverAddress != settings.serverAddress) return
+
+        val now = SystemClock.elapsedRealtime()
+        val previousClickTimeMs = lastClickTimeMs
+        lastClickTimeMs = now
+        if (previousClickTimeMs != null && now - previousClickTimeMs < 300L) return
+
+        if (state.isStreaming) {
+            state.captureAttempt?.let { currentSendEvent(RtspEvent.StopStream("User action: Button", it)) }
+        } else {
+            requestStart()
+        }
+    }
+
+    layout(object : StreamingModule.Ui {
+        override val sections: List<Section> = modeSections
+
+        @Composable
+        override fun CaptureActionButton(modifier: Modifier) {
+            Button(
+                onClick = dropUnlessStarted { toggleCapture() },
+                modifier = modifier,
+                enabled = captureEnabled,
+                shape = MaterialTheme.shapes.medium,
+                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 3.0.dp,
+                    pressedElevation = 3.0.dp,
+                    focusedElevation = 3.0.dp,
+                    hoveredElevation = 6.0.dp,
+                ),
+            ) {
+                Crossfade(targetState = state.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
+                    Icon(
+                        painter = painterResource(if (isStreaming) R.drawable.stop_24px else R.drawable.play_arrow_24px),
+                        contentDescription = null,
+                    )
+                }
+                Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+                Text(
+                    text = stringResource(if (state.isStreaming) R.string.rtsp_stream_stop else R.string.rtsp_stream_start),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+        }
+    })
+}
+
+private fun canToggleCapture(state: RtspState, settings: RtspSettings.Data): Boolean {
+    return !(state.isBusy || state.mode != settings.mode || (state.captureAttempt != null && !state.isStreaming)) && (settings.mode != RtspSettings.Values.Mode.CLIENT || runCatching {
+        RtspUrl.parse(
+            settings.serverAddress
+        )
+    }.isSuccess)
 }
 
 private class LocalNetworkRecovery {

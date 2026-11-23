@@ -3,15 +3,12 @@ package info.dvkr.screenstream.webrtc.ui
 import android.content.ActivityNotFoundException
 import android.os.SystemClock
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -28,8 +25,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -49,6 +46,7 @@ import info.dvkr.screenstream.webrtc.ui.main.cards.OtherSettingsCard
 import info.dvkr.screenstream.webrtc.ui.main.cards.StreamCard
 import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.module.StreamingModule.Ui.Section
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
@@ -71,7 +69,7 @@ internal fun WebRtcMainScreenUI(
     requestStop: (StreamingModule.CaptureAttemptId) -> Unit,
     requestRecovery: (Uuid) -> Unit,
     dismissCaptureRetry: () -> Unit,
-    modifier: Modifier = Modifier,
+    layout: @Composable (StreamingModule.Ui) -> Unit,
     webRtcSettings: WebRtcSettings = koinInject(),
     notifications: StreamingModuleNotifications = koinInject()
 ) {
@@ -184,152 +182,151 @@ internal fun WebRtcMainScreenUI(
         if (pendingPermission === request) pendingPermission = null
     }
 
-    BoxWithConstraints(modifier = modifier) {
-        if (state.showCaptureRetry) {
-            AlertDialog(
-                onDismissRequest = {},
-                confirmButton = {
-                    TextButton(onClick = {
-                        dismissCaptureRetry()
-                        requestStart()
-                    }) { Text(stringResource(R.string.webrtc_error_try_again)) }
-                },
-                dismissButton = { TextButton(onClick = dismissCaptureRetry) { Text(stringResource(android.R.string.cancel)) } },
-                title = { Text(stringResource(CoreR.string.core_screen_capture_permission_required_title)) },
-                text = { Text(stringResource(R.string.webrtc_error_screen_capture_permission_denied_message)) },
-            )
-        }
+    if (state.showCaptureRetry) {
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {
+                TextButton(onClick = {
+                    dismissCaptureRetry()
+                    requestStart()
+                }) { Text(stringResource(R.string.webrtc_error_try_again)) }
+            },
+            dismissButton = { TextButton(onClick = dismissCaptureRetry) { Text(stringResource(android.R.string.cancel)) } },
+            title = { Text(stringResource(CoreR.string.core_screen_capture_permission_required_title)) },
+            text = { Text(stringResource(R.string.webrtc_error_screen_capture_permission_denied_message)) },
+        )
+    }
 
-        val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
-        LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Fixed(if (this.maxWidth >= 800.dp) 2 else 1),
-            modifier = Modifier.fillMaxSize(),
-            state = lazyVerticalStaggeredGridState,
-            contentPadding = PaddingValues(start = 4.dp, end = 4.dp, bottom = 64.dp),
-        ) {
-            state.error?.let { error ->
-                item(key = "ERROR") {
-                    val hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio
-                    val permission = when (error) {
-                        is WebRtcError.AudioPermissionRequired -> if (hasEnabledAudioSource) RuntimePermission.RecordAudio else null
-                        is WebRtcError.NotificationPermissionRequired -> RuntimePermission.Notifications
-                        else -> null
-                    }
-                    val errorPermissionState = permission?.let { runtimePermissions.state(it).collectAsStateWithLifecycle().value }
-                    ErrorCard(
-                        error = error,
-                        recoverError = { state.errorToken?.let(requestRecovery) },
-                        hasEnabledAudioSource = hasEnabledAudioSource,
-                        permissionState = errorPermissionState,
-                        retryStartupPolicyError = { requestStart() },
-                        requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio) },
-                        requestNotificationPermission = requestNotificationPermission@{
-                            if (webRtcStateFlow.value.error !is WebRtcError.NotificationPermissionRequired) return@requestNotificationPermission
-                            if (runtimePermissions.isGranted(RuntimePermission.Notifications)) {
-                                pendingPermission = null
-                                recoverCurrentError()
-                                val settingsIntent = notifications.channelSettingsIntent(StreamingModuleNotifications.Channel.Streaming)
-                                if (settingsIntent != null) {
-                                    try {
-                                        context.startActivity(settingsIntent)
-                                    } catch (failure: ActivityNotFoundException) {
-                                        log.w("NotificationSettings", "Settings Activity is unavailable", failure)
-                                    } catch (failure: SecurityException) {
-                                        log.w("NotificationSettings", "Settings Activity launch was denied", failure)
-                                    }
+    val uiSections = buildList {
+        state.error?.let { error ->
+            add(Section("error", Section.Role.Overview) {
+                val errorVisibility = remember { BringIntoViewRequester() }
+                var isErrorPlaced by remember { mutableStateOf(false) }
+                LaunchedEffect(error, isErrorPlaced) {
+                    if (isErrorPlaced) errorVisibility.bringIntoView()
+                }
+                val hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio
+                val permission = when (error) {
+                    is WebRtcError.AudioPermissionRequired -> if (hasEnabledAudioSource) RuntimePermission.RecordAudio else null
+                    is WebRtcError.NotificationPermissionRequired -> RuntimePermission.Notifications
+                    else -> null
+                }
+                val errorPermissionState = permission?.let { runtimePermissions.state(it).collectAsStateWithLifecycle().value }
+                ErrorCard(
+                    error = error,
+                    recoverError = { state.errorToken?.let(requestRecovery) },
+                    hasEnabledAudioSource = hasEnabledAudioSource,
+                    permissionState = errorPermissionState,
+                    retryStartupPolicyError = { requestStart() },
+                    requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio) },
+                    requestNotificationPermission = requestNotificationPermission@{
+                        if (webRtcStateFlow.value.error !is WebRtcError.NotificationPermissionRequired) return@requestNotificationPermission
+                        if (runtimePermissions.isGranted(RuntimePermission.Notifications)) {
+                            pendingPermission = null
+                            recoverCurrentError()
+                            val settingsIntent = notifications.channelSettingsIntent(StreamingModuleNotifications.Channel.Streaming)
+                            if (settingsIntent != null) {
+                                try {
+                                    context.startActivity(settingsIntent)
+                                } catch (failure: ActivityNotFoundException) {
+                                    log.w("NotificationSettings", "Settings Activity is unavailable", failure)
+                                } catch (failure: SecurityException) {
+                                    log.w("NotificationSettings", "Settings Activity launch was denied", failure)
                                 }
-                            } else {
-                                requestPermissionForError(RuntimePermission.Notifications)
                             }
-                        },
-                        modifier = Modifier.padding(8.dp),
-                        showRecoverAction = !(state.isStreaming && error is WebRtcError.SignalingServerUnavailable)
+                        } else {
+                            requestPermissionForError(RuntimePermission.Notifications)
+                        }
+                    },
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .bringIntoViewRequester(errorVisibility)
+                        .onPlaced { isErrorPlaced = true },
+                    showRecoverAction = !(state.isStreaming && error is WebRtcError.SignalingServerUnavailable)
+                )
+            })
+        }
+        add(Section("stream", Section.Role.Overview) {
+            StreamCard(
+                state = state,
+                onGetNewStreamId = { sendEvent(WebRtcEvent.GetNewStreamId) }, //TODO notify user that this will disconnect all clients
+                onCreateNewPassword = { sendEvent(WebRtcEvent.CreateNewPassword) }, //TODO notify user that this will disconnect all clients
+                modifier = Modifier.padding(8.dp)
+            )
+        })
+
+        add(Section("clients", Section.Role.Overview) {
+            ClientsCard(
+                state = state,
+                onClientDisconnect = { clientId -> sendEvent(WebRtcEvent.RemoveClient(clientId, true, "User request")) },
+                modifier = Modifier.padding(8.dp)
+            )
+        })
+
+        add(Section("audio", Section.Role.Settings) {
+            AudioCard(
+                enabled = !state.isStreaming && !state.waitingCastPermission && state.startAttemptId == null,
+                settings = settings,
+                onMicEnabledChange = { changeAudioEnabled(isMicrophone = true, enabled = it) },
+                onDeviceAudioEnabledChange = { changeAudioEnabled(isMicrophone = false, enabled = it) },
+                modifier = Modifier.padding(8.dp)
+            )
+        })
+
+        add(Section("other-settings", Section.Role.Settings) {
+            OtherSettingsCard(
+                settings = settings,
+                updateSettings = updateSettings,
+                enabled = state.isStreaming.not(),
+                modifier = Modifier.padding(8.dp)
+            )
+        })
+    }
+
+    var lastClickTimeMs by remember { mutableStateOf<Long?>(null) }
+    layout(object : StreamingModule.Ui {
+        override val sections: List<Section> = uiSections
+
+        @Composable
+        override fun CaptureActionButton(modifier: Modifier) {
+            Button(
+                onClick = dropUnlessStarted {
+                    val now = SystemClock.elapsedRealtime()
+                    val previousClickTimeMs = lastClickTimeMs
+                    lastClickTimeMs = now
+                    if (previousClickTimeMs == null || now - previousClickTimeMs >= 300L) {
+                        if (state.isStreaming) {
+                            state.captureAttempt?.let(requestStop)
+                        } else {
+                            requestStart()
+                        }
+                    }
+                },
+                modifier = modifier,
+                enabled = state.isStreaming || state.isBusy.not(),
+                shape = MaterialTheme.shapes.medium,
+                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 3.0.dp,
+                    pressedElevation = 3.0.dp,
+                    focusedElevation = 3.0.dp,
+                    hoveredElevation = 6.0.dp,
+                )
+            ) {
+                Crossfade(targetState = state.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
+                    Icon(
+                        painter = if (isStreaming) painterResource(R.drawable.stop_24px) else painterResource(R.drawable.play_arrow_24px),
+                        contentDescription = null
                     )
                 }
-            }
-
-            item(key = "STREAM") {
-                StreamCard(
-                    state = state,
-                    onGetNewStreamId = { sendEvent(WebRtcEvent.GetNewStreamId) }, //TODO notify user that this will disconnect all clients
-                    onCreateNewPassword = { sendEvent(WebRtcEvent.CreateNewPassword) }, //TODO notify user that this will disconnect all clients
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-
-            item(key = "CLIENTS") {
-                ClientsCard(
-                    state = state,
-                    onClientDisconnect = { clientId -> sendEvent(WebRtcEvent.RemoveClient(clientId, true, "User request")) },
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-
-            item(key = "AUDIO") {
-                AudioCard(
-                    enabled = !state.isStreaming && !state.waitingCastPermission && state.startAttemptId == null,
-                    settings = settings,
-                    onMicEnabledChange = { changeAudioEnabled(isMicrophone = true, enabled = it) },
-                    onDeviceAudioEnabledChange = { changeAudioEnabled(isMicrophone = false, enabled = it) },
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-
-            item(key = "OTHER_PARAMETERS") {
-                OtherSettingsCard(
-                    settings = settings,
-                    updateSettings = updateSettings,
-                    enabled = state.isStreaming.not(),
-                    modifier = Modifier.padding(8.dp)
+                Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+                Text(
+                    text = stringResource(id = if (state.isStreaming) R.string.webrtc_stream_stop else R.string.webrtc_stream_start),
+                    style = MaterialTheme.typography.titleMedium
                 )
             }
         }
-
-        LaunchedEffect(state.error) {
-            if (state.error != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
-        }
-
-        var lastClickTimeMs by remember { mutableStateOf<Long?>(null) }
-
-        Button(
-            onClick = dropUnlessStarted {
-                val now = SystemClock.elapsedRealtime()
-                val previousClickTimeMs = lastClickTimeMs
-                lastClickTimeMs = now
-                if (previousClickTimeMs == null || now - previousClickTimeMs >= 300L) {
-                    if (state.isStreaming) {
-                        state.captureAttempt?.let(requestStop)
-                    } else {
-                        requestStart()
-                    }
-                }
-            },
-            modifier = Modifier
-                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
-                .align(alignment = Alignment.BottomCenter),
-            enabled = state.isStreaming || state.isBusy.not(),
-            shape = MaterialTheme.shapes.medium,
-            contentPadding = PaddingValues(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
-            elevation = ButtonDefaults.buttonElevation(
-                defaultElevation = 3.0.dp,
-                pressedElevation = 3.0.dp,
-                focusedElevation = 3.0.dp,
-                hoveredElevation = 6.0.dp,
-            )
-        ) {
-            Crossfade(targetState = state.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
-                Icon(
-                    painter = if (isStreaming) painterResource(R.drawable.stop_24px) else painterResource(R.drawable.play_arrow_24px),
-                    contentDescription = null
-                )
-            }
-            Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-            Text(
-                text = stringResource(id = if (state.isStreaming) R.string.webrtc_stream_stop else R.string.webrtc_stream_start),
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-    }
+    })
 }
 
 private sealed interface PendingPermissionAction {

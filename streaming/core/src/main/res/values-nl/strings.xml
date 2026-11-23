@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Microfoontoegang</string>
     <string name="core_permission_microphone_message">Sta microfoontoegang toe om geluid van uw microfoon in de stream op te nemen.\n\nZonder deze toestemming kan microfoonaudio niet worden gestreamd.</string>
     <string name="core_permission_device_audio_title">Toegang tot apparaataudio</string>
-    <string name="core_permission_device_audio_message">Android vereist microfoontoestemming om apparaataudio te streamen. Dit schakelt uw microfoon niet in.\n\nAlleen audio die Android en de afspelende app toestaan te delen, kan worden gestreamd.</string>
+    <string name="core_permission_device_audio_message">Android vereist microfoontoestemming om apparaataudio te streamen. Als de microfoonoptie uitstaat, wordt microfoonaudio niet gestreamd.\n\nAlleen audio waarvan Android en de afspelende app het delen toestaan, kan worden gestreamd.</string>
 
     <string name="core_permission_audio_title">Microfoon- en apparaataudio</string>
     <string name="core_permission_audio_message">Sta microfoontoegang toe om microfoon- en apparaataudio te streamen.\n\nApparaataudio kan alleen worden gestreamd als Android en de afspelende app het delen toestaan.</string>

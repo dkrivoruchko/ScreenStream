@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Accès au microphone</string>
     <string name="core_permission_microphone_message">Autorisez l’accès au microphone pour inclure le son du microphone dans le flux.\n\nSans cette autorisation, le son du microphone ne peut pas être diffusé.</string>
     <string name="core_permission_device_audio_title">Accès au son de l’appareil</string>
-    <string name="core_permission_device_audio_message">Android exige l’autorisation du microphone pour diffuser le son de l’appareil. Cela n’active pas votre microphone.\n\nSeul le son dont Android et l’application qui le lit autorisent le partage peut être diffusé.</string>
+    <string name="core_permission_device_audio_message">Android exige l’autorisation d’accès au microphone pour diffuser le son de l’appareil. Si l’option Microphone est désactivée, le son du microphone n’est pas diffusé.\n\nSeul le son dont Android et l’application qui le lit autorisent le partage peut être diffusé.</string>
 
     <string name="core_permission_audio_title">Son du microphone et de l’appareil</string>
     <string name="core_permission_audio_message">Autorisez l’accès au microphone pour diffuser le son du microphone et de l’appareil.\n\nLe son de l’appareil ne peut être diffusé que si Android et l’application qui le lit autorisent son partage.</string>

@@ -9,8 +9,6 @@ import android.content.ContextWrapper
 import android.content.Intent
 import android.os.SystemClock
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.window.core.layout.WindowSizeClass
 import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.module.StreamingModule
@@ -22,6 +20,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -35,6 +34,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
@@ -353,12 +353,24 @@ internal class StreamingModuleManagerTest {
 
     // Cases: CORE-MGR-03, CORE-MGR-04, CORE-MGR-10, CORE-MGR-12
     @Test
-    fun failureClosesAdmissionRetainsMessageAndRequiresExplicitRestart() {
-        val controller = open()
-        controller.handle.reportFailed(123)
+    fun failureClosesAdmissionRetainsMessageAndRequiresExplicitRestart() = runBlocking {
+        val controller = open(report = false)
+        withTimeout(5.seconds) {
+            withContext(Dispatchers.Default) { controller.handle.reportRunning(IDLE, SystemClock.uptimeMillis()) }
+        }
+        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        scheduler.runCurrent()
+        val running = StreamingModuleManager.State.Running(controller.instanceId, IDLE)
+        assertEquals(running, manager.state.value)
+
+        withTimeout(5.seconds) {
+            withContext(Dispatchers.Default) { controller.handle.reportFailed(123) }
+        }
         assertFalse(controller.handle.isCurrent())
+        assertEquals(running, manager.state.value)
         scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.Failed(controller.instanceId, 123), manager.state.value)
+        assertTrue(controller.shutdown.isCompleted)
         controller.handle.reportFailed(456)
         controller.handle.reportRunning(IDLE, SystemClock.uptimeMillis())
         manager.requestStreamStart(controller.instanceId)
@@ -384,9 +396,37 @@ internal class StreamingModuleManagerTest {
         assertNotEquals(controller.instanceId, replacement.instanceId)
     }
 
-    // Cases: CORE-MGR-09, CORE-MGR-11, CORE-MGR-12
+    // Cases: CORE-MGR-04, CORE-MGR-11
+    @Test
+    fun runningInstanceRestartsAfterCleanupAndIgnoresTheOriginalIdentity() {
+        val original = open()
+        val replacement = restartAfterCleanup(original)
+
+        manager.restartModule(original.instanceId)
+        scheduler.runCurrent()
+        assertEquals(StreamingModuleManager.State.Running(replacement.instanceId, IDLE), manager.state.value)
+        assertTrue(replacement.handle.isCurrent())
+        assertFalse(replacement.shutdown.isCompleted)
+        assertNull(nextStart())
+    }
+
+    // Cases: CORE-MGR-04, CORE-MGR-08
+    @Test
+    fun unresponsiveInstanceCanBeRestartedByItsExactIdentity() {
+        val original = open()
+        ShadowSystemClock.advanceBy(Duration.ofMillis(3001))
+        scheduler.advanceTimeBy(3001.milliseconds)
+        scheduler.runCurrent()
+        assertEquals(StreamingModuleManager.State.Unresponsive(original.instanceId, IDLE), manager.state.value)
+
+        restartAfterCleanup(original)
+    }
+
+    // Cases: CORE-MGR-03, CORE-MGR-09, CORE-MGR-11, CORE-MGR-12
     @Test
     fun replacementRevokesOldHandleAndQueuedCommandsBeforeCleanupCompletes() {
+        val competing = Descriptor("competing", 0)
+        manager = newManager(listOf(first, second, competing))
         val old = open()
         manager.requestStreamStart(old.instanceId)
         manager.requestRecovery(old.instanceId, Uuid.random())
@@ -394,11 +434,18 @@ internal class StreamingModuleManagerTest {
         assertFalse(old.handle.isCurrent())
         assertTrue(old.shutdown.isCompleted)
         assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        manager.selectModule(competing.id)
+        manager.requestStreamStart(old.instanceId)
+        manager.requestStreamStop(StreamingModule.CaptureAttemptId(old.instanceId))
+        manager.requestRecovery(old.instanceId, Uuid.random())
         scheduler.runCurrent()
+        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
         assertTrue(old.commands.isEmpty())
         assertNull(nextStart())
         settleCleanup(old)
         val replacement = deliver(checkNotNull(nextStart()))
+        assertEquals(second.id, replacement.instanceId.moduleId)
+        assertTrue(replacement.commands.isEmpty())
         old.handle.reportRunning(IDLE.copy(isStreaming = true), SystemClock.uptimeMillis())
         old.handle.reportFailed(456)
         scheduler.runCurrent()
@@ -407,7 +454,7 @@ internal class StreamingModuleManagerTest {
         assertTrue(replacement.handle.isCurrent())
     }
 
-    // Cases: CORE-MGR-12
+    // Cases: CORE-MGR-09, CORE-MGR-12
     @Test
     fun exitRevokesAdmissionImmediatelyAndStaysExitingAfterCleanupThenReopens() {
         val old = open()
@@ -416,9 +463,18 @@ internal class StreamingModuleManagerTest {
         assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
         manager.exit()
         settleCleanup(old)
+        manager.requestStreamStart(old.instanceId)
+        manager.requestStreamStop(StreamingModule.CaptureAttemptId(old.instanceId))
+        manager.requestRecovery(old.instanceId, Uuid.random())
+        scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
-        val replacement = open()
+        assertTrue(old.commands.isEmpty())
+        assertNull(nextStart())
+        manager.selectModule()
+        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        val replacement = deliver(awaitStartedService())
         assertNotEquals(old.instanceId, replacement.instanceId)
+        assertTrue(replacement.commands.isEmpty())
     }
 
     // Cases: CORE-MGR-07
@@ -547,6 +603,28 @@ internal class StreamingModuleManagerTest {
 
     // Cases: CORE-MGR-07
     @Test
+    fun missingFirstStatusFailsAndShutsDownWithoutAnotherInput() {
+        val controller = open(report = false)
+        ShadowSystemClock.advanceBy(Duration.ofMillis(3000))
+        scheduler.advanceTimeBy(3000.milliseconds)
+        scheduler.runCurrent()
+        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertTrue(controller.handle.isCurrent())
+        assertFalse(controller.shutdown.isCompleted)
+
+        ShadowSystemClock.advanceBy(Duration.ofMillis(1))
+        assertFalse(controller.handle.isCurrent())
+        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        scheduler.advanceTimeBy(1.milliseconds)
+        scheduler.runCurrent()
+        assertEquals(StreamingModuleManager.State.Failed(controller.instanceId), manager.state.value)
+        assertFalse(controller.handle.isCurrent())
+        assertTrue(controller.shutdown.isCompleted)
+        assertNull(nextStart())
+    }
+
+    // Cases: CORE-MGR-07
+    @Test
     fun lateFirstStatusCannotRestoreExpiredStartupAdmission() {
         val controller = open(report = false)
         ShadowSystemClock.advanceBy(Duration.ofMillis(3001))
@@ -560,7 +638,7 @@ internal class StreamingModuleManagerTest {
         assertTrue(controller.shutdown.isCompleted)
     }
 
-    // Cases: CORE-MGR-11
+    // Cases: CORE-MGR-05, CORE-MGR-11
     @Test
     fun shutdownDeadlineOpensReplacementWhileOldCleanupRemainsOwned() {
         val replacementModule = second.copy(slot = 401, service = OtherManagerHost::class.java)
@@ -583,6 +661,10 @@ internal class StreamingModuleManagerTest {
         replacement.handle.reportRunning(IDLE, SystemClock.uptimeMillis())
         scheduler.runCurrent()
         assertEquals(replacementModule.id, replacement.instanceId.moduleId)
+        assertEquals(replacementModule.foregroundSlot.id, replacement.handle.foregroundSlot.id)
+        val replacementService = shadowOf(replacementHost.get())
+        assertEquals(replacementModule.foregroundSlot.id, replacementService.lastForegroundNotificationId)
+        assertTrue(replacementService.isLastForegroundNotificationAttached)
         assertFalse(old.cleanup.isCompleted)
         assertFalse(old.handle.isCurrent())
         settleCleanup(old)
@@ -704,7 +786,7 @@ internal class StreamingModuleManagerTest {
         assertTrue(notifications.foregroundActions.isEmpty())
         assertTrue(controllers.isEmpty())
         assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
-        // Robolectric 4.17 requires withIntent for a different delivery to the same Service.
+        // Deliver the newer start to the same Service.
         host.withIntent(current).startCommand(0, 2)
         val controller = controllers.single()
         assertEquals(first.id, controller.instanceId.moduleId)
@@ -816,6 +898,7 @@ internal class StreamingModuleManagerTest {
         val successorStart = checkNotNull(nextStart())
         // Keep the original Service owner while delivering a different start Intent.
         originalService.withIntent(successorStart).startCommand(0, 2)
+        assertFalse(shadowOf(originalService.get()).isStoppedBySelf)
         scheduler.runCurrent()
         val failed = assertIs<StreamingModuleManager.State.Failed>(manager.state.value)
         assertNotEquals(oldIdentity, failed.instanceId)
@@ -973,6 +1056,8 @@ internal class StreamingModuleManagerTest {
         manager.exit()
         manager.selectModule(second.id)
         manager.requestStreamStart(old.instanceId)
+        manager.requestStreamStop(StreamingModule.CaptureAttemptId(old.instanceId))
+        manager.requestRecovery(old.instanceId, Uuid.random())
         scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
         assertTrue(old.commands.isEmpty())
@@ -1308,6 +1393,27 @@ internal class StreamingModuleManagerTest {
         return controller
     }
 
+    private fun restartAfterCleanup(original: FakeController): FakeController {
+        val originalIdentity = original.instanceId
+        val originalService = services.single()
+        manager.restartModule(originalIdentity.copy())
+        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertFalse(original.handle.isCurrent())
+        assertTrue(original.shutdown.isCompleted)
+        scheduler.runCurrent()
+        assertNull(nextStart())
+
+        originalService.destroy()
+        services.remove(originalService)
+        settleCleanup(original)
+        val replacement = deliver(awaitStartedService())
+        assertEquals(originalIdentity.moduleId, replacement.instanceId.moduleId)
+        assertNotEquals(originalIdentity, replacement.instanceId)
+        assertEquals(originalIdentity, original.handle.instanceId)
+        assertEquals(StreamingModuleManager.State.Running(replacement.instanceId, IDLE), manager.state.value)
+        return replacement
+    }
+
     private fun holdSettingsInitialization(): TestCoroutineScheduler {
         val settingsScheduler = TestCoroutineScheduler()
         val directory = temporaryFolder.newFolder()
@@ -1463,7 +1569,7 @@ internal class StreamingModuleManagerTest {
         override fun onServiceDestroyed() = Unit
 
         @Composable
-        override fun Content(window: WindowSizeClass, modifier: Modifier) = Unit
+        override fun Content(layout: @Composable (StreamingModule.Ui) -> Unit) = Unit
     }
 
     private class Notifications : StreamingModuleNotifications {

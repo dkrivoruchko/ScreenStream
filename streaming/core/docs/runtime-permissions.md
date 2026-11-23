@@ -32,7 +32,7 @@ The three audio entries differ only in their explanation; they share one grant, 
 
 ## Current authorization versus UI state
 
-`isGranted` answers whether a permission is available now. Only this check authorizes protected work, and the module remains responsible if authority is lost after the check.
+`isGranted` answers whether a permission is available now. Protected work needs this check, but it doesn't cover other prerequisites, and the module remains responsible if authority is lost after the check.
 
 `PermissionState` is the host's last-known UI hint: `Granted`, `Requestable`, `SettingsSuggested` or `Requesting`. The host updates it around its own requests, not on independent Android settings changes, so a hint can be stale, and a permission can already be granted while an earlier request is still open. `SettingsSuggested` is inferred from app-wide notification settings or from Android no longer recommending a rationale after it previously did; it suggests, but doesn't prove, permanent denial.
 

@@ -33,15 +33,16 @@ public class TileActionService : TileService() {
 
     internal companion object {
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        internal fun showAddTileRequest(context: Context, log: Logger) {
+        internal fun showAddTileRequest(context: Context, log: Logger, onResult: (Int) -> Unit) {
             val statusBarManager = context.getSystemService(StatusBarManager::class.java)
             statusBarManager.requestAddTileService(
                 ComponentName(context, TileActionService::class.java),
                 context.getString(R.string.app_name),
                 Icon.createWithResource(context, R.drawable.ic_tile_24dp),
-                { it?.run() }
+                context.mainExecutor,
             ) {
                 log.d("TileActionService", "showAddTileRequest: $it")
+                onResult(it)
             }
         }
     }

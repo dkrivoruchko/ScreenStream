@@ -6,22 +6,25 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import info.dvkr.screenstream.ads.attachAdMob
 import info.dvkr.screenstream.review.attachAppReview
 import info.dvkr.screenstream.settings.AppSettings
-import info.dvkr.screenstream.ui.AppNavigation
-import info.dvkr.screenstream.ui.AppUpdateHost
+import info.dvkr.screenstream.ui.MainScreen
 import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
 import info.dvkr.screenstream.update.AppUpdate
+import info.dvkr.screenstream.update.AppUpdateHost
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.compose.RuntimePermissionHost
 import io.screenstream.core.compose.ScreenCaptureConsentHost
@@ -49,6 +52,7 @@ public class SingleActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         if (savedInstanceState == null ||
             streamingModulesManager.state.value == StreamingModuleManager.State.NoModule ||
@@ -80,12 +84,19 @@ public class SingleActivity : AppCompatActivity() {
                         initialRationaleHistory = initialRationaleHistory,
                         onRationaleObserved = appSettings::setPermissionRationaleObserved,
                     ) {
-                        AppNavigation(
-                            streamingModulesManager,
-                            modifier = Modifier
-                                .windowInsetsPadding(WindowInsets.safeDrawing)
-                                .fillMaxSize()
-                        )
+                        val colorScheme = MaterialTheme.colorScheme
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = colorScheme.background,
+                            contentColor = colorScheme.onBackground,
+                        ) {
+                            MainScreen(
+                                streamingModulesManager,
+                                modifier = Modifier
+                                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                                    .fillMaxSize()
+                            )
+                        }
                     }
 
                     AppUpdateHost(appUpdate.restartAvailable, appUpdate::completeUpdate, appUpdate::dismissUpdate)

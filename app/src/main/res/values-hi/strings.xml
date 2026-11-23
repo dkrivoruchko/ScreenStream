@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">त्रुटि</string>
-    <string name="app_error_recover">पुनर्प्राप्त करें</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">पीछे</string>
+    <string name="app_action_close">बंद करें</string>
+    <string name="app_action_exit">बाहर निकलें</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">तैयार हो रहा है…</string>
     <string name="app_module_error_title">कुछ गलत हो गया</string>
     <string name="app_module_error_restart">मोड रीस्टार्ट करें</string>
 
-    <string name="app_activity_update_dialog_title">अपडेट उपलब्ध है</string>
-    <string name="app_activity_update_dialog_message">अपडेट तैयार है। अभी ऐप्लिकेशन रीस्टार्ट करें?</string>
-    <string name="app_activity_update_dialog_restart">रीस्टार्ट करें</string>
+    <string name="app_exit_dialog_title">ScreenStream से बाहर निकलें?</string>
+    <string name="app_exit_dialog_message">अगर कोई स्ट्रीम चालू है, तो वह बंद हो जाएगी।</string>
 
-    <string name="app_tab_stream">स्ट्रीम</string>
-    <string name="app_tab_settings">सेटिंग</string>
-    <string name="app_tab_about">परिचय</string>
-    <string name="app_tab_exit">बाहर निकलें</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">स्ट्रीमिंग का तरीका</string>
+    <string name="app_method_choose">स्ट्रीमिंग का तरीका चुनें</string>
+    <string name="app_method_details">विवरण</string>
+    <string name="app_method_details_description">%1$s का विवरण</string>
+    <string name="app_method_benefits">फ़ायदे</string>
+    <string name="app_method_things_to_know">ध्यान रखने वाली बातें</string>
 
-    <string name="app_tab_stream_select_mode">स्ट्रीम मोड चुनें:</string>
-    <string name="app_tab_stream_switching_modules">मोड बदले जा रहे हैं…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">ऐप्लिकेशन की सेटिंग</string>
 
-    <string name="app_mode_selected_method">स्ट्रीमिंग का सक्रिय तरीका</string>
-    <string name="app_mode_choose_method">स्ट्रीमिंग का तरीका चुनें</string>
-    <string name="app_mode_choose_another_method">दूसरा तरीका चुनें</string>
-    <string name="app_mode_change">बदलें</string>
-    <string name="app_mode_chooser_title">अपनी स्क्रीन शेयर करने का तरीका चुनें</string>
-    <string name="app_mode_close_chooser">बंद करें</string>
-    <string name="app_mode_details">विवरण</string>
-    <string name="app_mode_details_description">%1$s का विवरण</string>
-    <string name="app_mode_benefits">फ़ायदे</string>
-    <string name="app_mode_things_to_know">ध्यान रखने वाली बातें</string>
+    <string name="app_pref_language">ऐप्लिकेशन की भाषा</string>
+    <string name="app_pref_language_summary">इस ऐप्लिकेशन की भाषा चुनें</string>
+    <string name="app_pref_language_system_default">सिस्टम डिफ़ॉल्ट</string>
 
+    <string name="app_pref_dark_theme">गहरे रंग वाली थीम</string>
+    <string name="app_pref_dark_theme_summary">गहरे रंग वाली थीम कब इस्तेमाल करें</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>हमेशा</item>
+        <item>बैटरी सेवर के मुताबिक</item>
+        <item>कभी नहीं</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>हमेशा</item>
+        <item>सिस्टम के मुताबिक</item>
+        <item>कभी नहीं</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">डायनामिक रंग</string>
+    <string name="app_pref_dynamic_color_summary">सिस्टम के रंग इस्तेमाल करें</string>
+
+    <string name="app_pref_notifications">ऐप्लिकेशन की सूचनाएं</string>
+    <string name="app_pref_notifications_summary">सिस्टम सेटिंग में सूचनाएं मैनेज करें</string>
+    <string name="app_pref_notifications_open_error">सूचना सेटिंग नहीं खुल सकी</string>
+
+    <string name="app_pref_add_tile">क्विक सेटिंग टाइल जोड़ें</string>
+    <string name="app_pref_add_tile_summary">ऐप्लिकेशन खोलें या चालू स्ट्रीम बंद करें</string>
+    <string name="app_pref_tile_already_added">क्विक सेटिंग टाइल पहले से जोड़ी गई है</string>
+    <string name="app_pref_add_tile_error">क्विक सेटिंग टाइल नहीं जोड़ी जा सकी</string>
+
+    <string name="app_pref_save_error">सेटिंग सेव नहीं हो सकी</string>
+
+    <!-- About -->
+    <string name="app_about_title">परिचय</string>
+    <string name="app_about_version">संस्करण: %1$s</string>
+    <string name="app_about_developer">Dmytro Kryvoruchko द्वारा विकसित</string>
+
+    <string name="app_about_rate_app">ऐप्लिकेशन को रेटिंग दें</string>
+    <string name="app_about_source_code">सोर्स कोड</string>
+    <string name="app_about_terms_and_conditions">शर्तें और नियम</string>
+    <string name="app_about_privacy_policy">गोपनीयता नीति</string>
+    <string name="app_about_privacy_options">गोपनीयता विकल्प</string>
+    <string name="app_about_license">लाइसेंस</string>
+    <string name="app_about_open_link_error">लिंक नहीं खुल सका</string>
+    <string name="app_about_privacy_options_open_error">गोपनीयता विकल्प नहीं खुल सके</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">अपडेट डाउनलोड हो गया</string>
+    <string name="app_update_message">अपडेट इंस्टॉल करने के लिए ऐप्लिकेशन रीस्टार्ट करें। अगर कोई स्ट्रीम चालू है, तो वह बंद हो जाएगी।</string>
+    <string name="app_update_restart">रीस्टार्ट करें</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">स्ट्रीमिंग सूचनाएँ</string>
     <string name="app_notification_channel_error">त्रुटि सूचनाएँ</string>
+
     <string name="app_notification_waiting_content">ऐप खोलने के लिए टैप करें</string>
     <string name="app_notification_streaming_title">स्ट्रीमिंग…</string>
     <string name="app_notification_streaming_content">स्ट्रीम खत्म करने के लिए रोकें पर टैप करें</string>
     <string name="app_notification_stop">रोकें</string>
 
+    <string name="app_notification_error_title">त्रुटि</string>
+    <string name="app_notification_error_recover">पुनर्प्राप्त करें</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">ScreenStream खोलें</string>
-    <string name="app_tile_stop">रोकें</string>
-
-    <string name="app_pref_back">पीछे</string>
-    <string name="app_pref_settings">सेटिंग</string>
-    <string name="app_pref_locale">ऐप्लिकेशन की भाषा</string>
-    <string name="app_pref_locale_summary">ऐप्लिकेशन की भाषा की सेटिंग खोलें</string>
-    <string name="app_pref_locale_default">सिस्टम डिफ़ॉल्ट</string>
-    <string name="app_pref_night_mode">गहरे रंग वाली थीम</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>हमेशा</item>
-        <item>बैटरी सेवर के मुताबिक</item>
-        <item>कभी नहीं</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>हमेशा</item>
-        <item>सिस्टम के मुताबिक</item>
-        <item>कभी नहीं</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">डायनामिक रंग</string>
-    <string name="app_pref_dynamic_theme_summary">अपने वॉलपेपर के रंगों के आधार पर दिखावट को समायोजित करें</string>
-    <string name="app_pref_notification">ऐप्लिकेशन की सूचनाएं</string>
-    <string name="app_pref_notification_summary">सिस्टम सेटिंग में सूचनाएं मैनेज करें</string>
-    <string name="app_pref_tile">क्विक सेटिंग टाइल जोड़ें</string>
-    <string name="app_pref_tile_summary">क्विक सेटिंग में ScreenStream जोड़ें</string>
-
-    <string name="app_tab_about_app_version">संस्करण: %1$s</string>
-    <string name="app_tab_about_developer_name">Dmytro Kryvoruchko द्वारा विकसित</string>
-    <string name="app_tab_about_rate_app">ऐप्लिकेशन को रेटिंग दें</string>
-    <string name="app_tab_about_app_sources">सोर्स कोड</string>
-    <string name="app_tab_about_terms_conditions">शर्तें और नियम</string>
-    <string name="app_tab_about_privacy_policy">गोपनीयता नीति</string>
-    <string name="app_tab_about_privacy_options">गोपनीयता विकल्प</string>
-    <string name="app_tab_about_license">लाइसेंस</string>
+    <string name="app_tile_stop">स्ट्रीम बंद करें</string>
 </resources>

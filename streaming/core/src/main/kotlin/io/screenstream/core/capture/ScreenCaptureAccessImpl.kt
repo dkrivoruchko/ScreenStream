@@ -91,7 +91,17 @@ internal class ScreenCaptureAccessImpl(
         prepareForeground: () -> Boolean,
     ): ScreenCaptureAccess.ConsentResult = suspendCancellableCoroutine { waiter ->
         waiter.invokeOnCancellation {
-            synchronized(gate) { if (pendingConsent?.waiter === waiter) removePending() }
+            val cancelledAfterSubmission = synchronized(gate) {
+                if (pendingConsent?.waiter !== waiter) return@synchronized false
+                removePending()?.request?.submitted == true
+            }
+            if (cancelledAfterSubmission) {
+                log.i(
+                    "ScreenCaptureAccess",
+                    "Screen capture consent cancelled after submission: attemptId=${attempt.uuid}",
+                    Throwable("Screen capture consent cancelled after submission"),
+                )
+            }
         }
         var cachedGrant: ConsentGrant? = null
         val immediate: Result<ScreenCaptureAccess.ConsentResult>? = synchronized(gate) {

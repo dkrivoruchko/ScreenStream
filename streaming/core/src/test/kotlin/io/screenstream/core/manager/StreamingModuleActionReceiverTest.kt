@@ -4,9 +4,9 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager.ComponentInfoFlags
+import android.os.Looper
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.window.core.layout.WindowSizeClass
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,12 +22,13 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [34])
+@Config(sdk = [34])
 internal class StreamingModuleActionReceiverTest {
     private val manager = RecordingActionManager()
     private val receiver = StreamingModuleActionReceiver()
@@ -49,7 +50,8 @@ internal class StreamingModuleActionReceiverTest {
     // Cases: CORE-ACT-01
     @Test
     fun publicFactoriesRouteExactTargetsAndNotificationOrigin() {
-        actions().forEach { receiver.onReceive(context, shadowOf(it).savedIntent) }
+        actions().forEach { it.send() }
+        shadowOf(Looper.getMainLooper()).idle()
         assertEquals(listOf(Action.Exit(instance), Action.Stop(attempt, true), Action.Recover(instance, token)), manager.commands)
     }
 
@@ -57,10 +59,12 @@ internal class StreamingModuleActionReceiverTest {
     @Test
     fun immutableExplicitActionsReuseOnlyTheSameTarget() {
         val original = actions()
+        val receiverComponent = ComponentName(context, StreamingModuleActionReceiver::class.java)
+        assertFalse(context.packageManager.getReceiverInfo(receiverComponent, ComponentInfoFlags.of(0)).exported)
         assertEquals(original, actions())
         for (action in original) {
             assertTrue(action.isImmutable)
-            assertEquals(ComponentName(context, StreamingModuleActionReceiver::class.java), shadowOf(action).savedIntent.component)
+            assertEquals(receiverComponent, shadowOf(action).savedIntent.component)
         }
         assertEquals(3, original.toSet().size)
         val otherInstance = StreamingModule.InstanceId(instance.moduleId)
@@ -70,7 +74,8 @@ internal class StreamingModuleActionReceiverTest {
         assertNotEquals(original[2], StreamingModuleActionReceiver.recoveryAction(context, instance, Uuid.random()))
         assertNotEquals(original[2], StreamingModuleActionReceiver.recoveryAction(context, otherInstance, token))
         // Creating newer actions never retargets the retained original ones.
-        original.forEach { receiver.onReceive(context, shadowOf(it).savedIntent) }
+        original.forEach { it.send() }
+        shadowOf(Looper.getMainLooper()).idle()
         assertEquals(listOf(Action.Exit(instance), Action.Stop(attempt, true), Action.Recover(instance, token)), manager.commands)
     }
 
@@ -151,7 +156,10 @@ internal class StreamingModuleActionReceiverTest {
         override fun requestStreamStart(instanceId: StreamingModule.InstanceId) = error("Unexpected Start")
 
         @Composable
-        override fun InstanceContent(instanceId: StreamingModule.InstanceId, window: WindowSizeClass, modifier: Modifier, fallback: @Composable () -> Unit) =
-            error("Unexpected UI")
+        override fun InstanceContent(
+            instanceId: StreamingModule.InstanceId,
+            fallback: @Composable () -> Unit,
+            layout: @Composable (StreamingModule.Ui) -> Unit,
+        ) = error("Unexpected UI")
     }
 }

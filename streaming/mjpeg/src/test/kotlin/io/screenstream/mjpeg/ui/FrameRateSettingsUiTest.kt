@@ -133,7 +133,6 @@ internal class FrameRateSettingsUiTest {
                     imageSettings = data.image,
                     mjpegSettings = settings,
                     editPolicy = MjpegSettings.EditPolicy.All,
-                    onSaveError = { error(it) },
                     visibleSettings = setOf(FrameRateSearch.info),
                     expanded = true,
                     onExpandedChange = {},

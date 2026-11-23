@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
@@ -48,6 +47,8 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.dismiss
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,6 +58,7 @@ import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.ui.RtspBindError
 import info.dvkr.screenstream.rtsp.ui.RtspBinding
 import info.dvkr.screenstream.rtsp.ui.RtspError
+import io.screenstream.core.module.StreamingModule.Ui.ModalHost
 import io.screenstream.foundation.qr.generateQRBitmap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -238,16 +240,19 @@ private fun ShowQRCodeButton(
 
     if (showQRDialog) {
         var qrCodeSizePx by remember { mutableIntStateOf(0) }
-        BasicAlertDialog(
-            onDismissRequest = { showQRDialog = false },
-            modifier = Modifier
-                .sizeIn(maxWidth = 208.dp, maxHeight = 208.dp)
-                .aspectRatio(1f)
-                .clip(MaterialTheme.shapes.large)
-                .background(Color.White)
-        ) {
+        ModalHost.current.Modal(title = null, onDismissRequest = { showQRDialog = false }) {
             Box(
                 modifier = Modifier
+                    .sizeIn(maxWidth = 208.dp, maxHeight = 208.dp)
+                    .aspectRatio(1f)
+                    .clip(MaterialTheme.shapes.large)
+                    .background(Color.White)
+                    .semantics(mergeDescendants = true) {
+                        dismiss {
+                            showQRDialog = false
+                            true
+                        }
+                    }
                     .onSizeChanged { qrCodeSizePx = it.width },
                 contentAlignment = Alignment.Center,
             ) {

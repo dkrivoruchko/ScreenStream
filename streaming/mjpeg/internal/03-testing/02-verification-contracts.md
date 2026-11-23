@@ -14,11 +14,11 @@ Each scenario has an ID/lowercase anchor, stimuli and observable outcomes, plus 
 
 ## Scenario areas
 
-All IDs have the `MJPEG-` prefix. The test links are representative entry points; search `// Cases:` in the [source tree](../../src/test/kotlin/io/screenstream/mjpeg) for other contributors.
+All IDs have the `MJPEG-` prefix. The test links are representative entry points. Search `// Cases:` in the local and device source trees for other contributors. [Local tests](../../src/test/kotlin/io/screenstream/mjpeg) · [Device tests](../../src/androidTest/kotlin/io/screenstream/mjpeg)
 
 | Page / IDs | Behavior owners | Test entry points |
 | --- | --- | --- |
-| [Settings](scenarios/01-settings.md): SET-01–11 | [Settings](../01-module/04-settings.md) | [Models](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModelsTest.kt), [persistence](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsPersistenceTest.kt), [edit policy](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsEditPolicyTest.kt) |
+| [Settings](scenarios/01-settings.md): SET-01–11 | [Settings](../01-module/04-settings.md) | [Models](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModelsTest.kt), [persistence](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsPersistenceTest.kt), [edit policy](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsEditPolicyTest.kt), [save-failure UI](../../src/test/kotlin/io/screenstream/mjpeg/ui/SettingsSaveFailureUiTest.kt) |
 | [Controller](scenarios/02-controller.md): CTL-01–17 | [Coordination](../01-module/03-coordination.md), [capture lifecycle](../01-module/02-module-lifecycle.md) | [lifecycle](../../src/test/kotlin/io/screenstream/mjpeg/MjpegControllerLifecycleTest.kt), [capture contracts](../../src/test/kotlin/io/screenstream/mjpeg/MjpegControllerCaptureContractsTest.kt), [statistics](../../src/test/kotlin/io/screenstream/mjpeg/MjpegControllerStatisticsTest.kt) |
 | [Capture](scenarios/03-capture.md): CAP-01–14 | [Capture lifecycle](../01-module/02-module-lifecycle.md), [integration](../01-module/01-module-integration.md) | [Session startup](../../src/test/kotlin/io/screenstream/mjpeg/MjpegCaptureSessionStartupTest.kt), [frames](../../src/test/kotlin/io/screenstream/mjpeg/MjpegCaptureSessionFramesTest.kt), [ownership](../../src/test/kotlin/io/screenstream/mjpeg/MjpegCaptureSessionOwnershipTest.kt), [Service](../../src/test/kotlin/io/screenstream/mjpeg/MjpegStreamingModuleServiceTest.kt) |
 | [Network](scenarios/04-network.md): NET-01–13, LAN-01–05 | [Addresses](../01-module/05-network-addresses.md), [coordination](../01-module/03-coordination.md) | [Policy](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/NetworkAddressPolicyTest.kt), [source](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressSourceTest.kt), [monitor](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressMonitorTest.kt), [cadence](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressCadenceTest.kt) |
@@ -43,9 +43,10 @@ The decision owner holds the history; related scenarios check their own boundary
 | Consumer presence in manager reports | [CTL-04](scenarios/02-controller.md#mjpeg-ctl-04) | Presence itself: [OBS-01](scenarios/05-http-runtime.md#mjpeg-obs-01) |
 | Rates, frame rate and history | [CTL-15](scenarios/02-controller.md#mjpeg-ctl-15), [CTL-16](scenarios/02-controller.md#mjpeg-ctl-16) | HTTP sampling: [OBS-08](scenarios/05-http-runtime.md#mjpeg-obs-08) |
 | Credentials across Stop, edits and reopening | [ACC-03](scenarios/06-access.md#mjpeg-acc-03), [OBS-06](scenarios/05-http-runtime.md#mjpeg-obs-06) | Local credential histories; current device sources use open access |
+| Failed settings save | [SET-08](scenarios/01-settings.md#mjpeg-set-08) | Local error Toast check and the Android draft recreation and Toast event checks in [CFG-04](scenarios/09-integration.md#mjpeg-cfg-04). [Local UI coverage](01-testing.md#what-the-local-suite-covers) |
 
 ## Outside this catalogue
 
 1. Viewer build, Node fixtures/owner tests and browser smoke: [web client tools](../../tools/web-client/README.md).
-2. MJPEG analytics and Compose UI histories ([local UI suite](01-testing.md#what-the-local-suite-covers)); SET-10 remains persistence-only.
+2. MJPEG analytics and the [full local Compose UI inventory](01-testing.md#what-the-local-suite-covers). SET-10 covers persistence.
 3. Device qualification records: keep them with the change or release that produced them.

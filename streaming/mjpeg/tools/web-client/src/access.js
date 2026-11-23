@@ -4,9 +4,21 @@ function createAccessPanel(viewportLayout, callbacks) {
     const fieldError = byId('pin-error');
     const blockCopy = byId('pin-block-copy'), countdown = byId('pin-countdown');
     const logo = byId('pin-logo'), retryButton = byId('pin-retry'), countdownValue = byId('pin-countdown-value');
+    const pinLength = 6;
+    const decimalZeroes = [0x0030, 0x0660, 0x06f0, 0x0966, 0x09e6, 0xff10];
     let current = null, started = false, restoreEntryFocus = false;
 
     function cancelFocusRestore() { restoreEntryFocus = false; }
+
+    function asciiPinDigits(value) {
+        let digits = '';
+        for (let index = 0; index < value.length && digits.length < pinLength; index += 1) {
+            const code = value.charCodeAt(index);
+            const zero = decimalZeroes.find(start => code >= start && code <= start + 9);
+            if (zero !== undefined) digits += String(code - zero);
+        }
+        return digits;
+    }
 
     function showFieldError(value) {
         text(fieldError, value);
@@ -119,12 +131,10 @@ function createAccessPanel(viewportLayout, callbacks) {
         window.addEventListener('blur', cancelFocusRestore);
         input.addEventListener('input', () => {
             const value = input.value, start = input.selectionStart, end = input.selectionEnd;
-            const digits = value.replace(/[^0-9]/g, '').slice(0, 6);
+            const digits = asciiPinDigits(value);
             if (value !== digits) {
                 input.value = digits;
-                input.setSelectionRange(
-                    Math.min(digits.length, value.slice(0, start).replace(/[^0-9]/g, '').length),
-                    Math.min(digits.length, value.slice(0, end).replace(/[^0-9]/g, '').length));
+                input.setSelectionRange(asciiPinDigits(value.slice(0, start)).length, asciiPinDigits(value.slice(0, end)).length);
             }
             showFieldError('');
         });
@@ -132,8 +142,8 @@ function createAccessPanel(viewportLayout, callbacks) {
             if (!event.clipboardData) return;
             event.preventDefault();
             const start = input.selectionStart, end = input.selectionEnd;
-            const digits = event.clipboardData.getData('text').replace(/[^0-9]/g, '');
-            const inserted = digits.slice(0, 6 - input.value.length + end - start);
+            const digits = asciiPinDigits(event.clipboardData.getData('text'));
+            const inserted = digits.slice(0, pinLength - input.value.length + end - start);
             if (!inserted) return;
             input.value = input.value.slice(0, start) + inserted + input.value.slice(end);
             input.setSelectionRange(start + inserted.length, start + inserted.length);

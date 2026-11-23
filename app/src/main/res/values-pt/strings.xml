@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Erro</string>
-    <string name="app_error_recover">Recuperar</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Voltar</string>
+    <string name="app_action_close">Fechar</string>
+    <string name="app_action_exit">Sair</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Preparando…</string>
     <string name="app_module_error_title">Algo deu errado</string>
     <string name="app_module_error_restart">Reiniciar modo</string>
 
-    <string name="app_activity_update_dialog_title">Atualização disponível</string>
-    <string name="app_activity_update_dialog_message">Uma atualização está pronta. Reiniciar o app agora?</string>
-    <string name="app_activity_update_dialog_restart">Reiniciar</string>
+    <string name="app_exit_dialog_title">Sair do ScreenStream?</string>
+    <string name="app_exit_dialog_message">Qualquer transmissão ativa será interrompida.</string>
 
-    <string name="app_tab_stream">Transmissão</string>
-    <string name="app_tab_settings">Configurações</string>
-    <string name="app_tab_about">Sobre</string>
-    <string name="app_tab_exit">Sair</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Método de transmissão</string>
+    <string name="app_method_choose">Escolha um método de transmissão</string>
+    <string name="app_method_details">Detalhes</string>
+    <string name="app_method_details_description">Detalhes de %1$s</string>
+    <string name="app_method_benefits">Vantagens</string>
+    <string name="app_method_things_to_know">Bom saber</string>
 
-    <string name="app_tab_stream_select_mode">Selecionar modo de transmissão:</string>
-    <string name="app_tab_stream_switching_modules">Alternando modos…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">Configurações do app</string>
 
-    <string name="app_mode_selected_method">Método de transmissão ativo</string>
-    <string name="app_mode_choose_method">Escolha um método de transmissão</string>
-    <string name="app_mode_choose_another_method">Escolha outro método</string>
-    <string name="app_mode_change">Alterar</string>
-    <string name="app_mode_chooser_title">Escolha um método para compartilhar sua tela</string>
-    <string name="app_mode_close_chooser">Fechar</string>
-    <string name="app_mode_details">Detalhes</string>
-    <string name="app_mode_details_description">Detalhes de %1$s</string>
-    <string name="app_mode_benefits">Vantagens</string>
-    <string name="app_mode_things_to_know">Bom saber</string>
+    <string name="app_pref_language">Idioma do app</string>
+    <string name="app_pref_language_summary">Escolher o idioma deste app</string>
+    <string name="app_pref_language_system_default">Padrão do sistema</string>
 
-    <string name="app_notification_channel_streaming">Notificações de transmissão</string>
-    <string name="app_notification_channel_error">Notificações de erro</string>
-    <string name="app_notification_waiting_content">Toque para abrir o aplicativo</string>
-    <string name="app_notification_streaming_title">Transmitindo…</string>
-    <string name="app_notification_streaming_content">Toque em Parar para encerrar a transmissão</string>
-    <string name="app_notification_stop">Parar</string>
-
-    <!-- When idle, the tile opens the app; it does not start capture. -->
-    <string name="app_tile_open">Abrir ScreenStream</string>
-    <string name="app_tile_stop">Parar</string>
-
-    <string name="app_pref_back">Voltar</string>
-    <string name="app_pref_settings">Configurações</string>
-    <string name="app_pref_locale">Idioma do app</string>
-    <string name="app_pref_locale_summary">Abrir configurações de idioma do app</string>
-    <string name="app_pref_locale_default">Padrão do sistema</string>
-    <string name="app_pref_night_mode">Tema escuro</string>
+    <string name="app_pref_dark_theme">Tema escuro</string>
+    <string name="app_pref_dark_theme_summary">Quando usar o tema escuro</string>
     <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
+    <string-array name="app_pref_dark_theme_options_battery_saver">
         <item>Sempre</item>
         <item>Definido pela Economia de bateria</item>
         <item>Nunca</item>
     </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
+    <string-array name="app_pref_dark_theme_options_follow_system">
         <item>Sempre</item>
         <item>Seguir o sistema</item>
         <item>Nunca</item>
     </string-array>
-    <string name="app_pref_dynamic_theme">Cor dinâmica</string>
-    <string name="app_pref_dynamic_theme_summary">Ajustar a aparência com base nas cores do seu papel de parede</string>
-    <string name="app_pref_notification">Notificações do app</string>
-    <string name="app_pref_notification_summary">Gerenciar notificações nas configurações do sistema</string>
-    <string name="app_pref_tile">Adicionar bloco de Configurações rápidas</string>
-    <string name="app_pref_tile_summary">Adicionar ScreenStream às Configurações rápidas</string>
 
-    <string name="app_tab_about_app_version">Versão: %1$s</string>
-    <string name="app_tab_about_developer_name">Desenvolvido por Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">Avaliar o aplicativo</string>
-    <string name="app_tab_about_app_sources">Código-fonte</string>
-    <string name="app_tab_about_terms_conditions">Termos e condições</string>
-    <string name="app_tab_about_privacy_policy">Política de privacidade</string>
-    <string name="app_tab_about_privacy_options">Opções de privacidade</string>
-    <string name="app_tab_about_license">Licença</string>
+    <string name="app_pref_dynamic_color">Cor dinâmica</string>
+    <string name="app_pref_dynamic_color_summary">Usar cores do sistema</string>
+
+    <string name="app_pref_notifications">Notificações do app</string>
+    <string name="app_pref_notifications_summary">Gerenciar notificações nas configurações do sistema</string>
+    <string name="app_pref_notifications_open_error">Não foi possível abrir as configurações de notificação</string>
+
+    <string name="app_pref_add_tile">Adicionar bloco de Configurações rápidas</string>
+    <string name="app_pref_add_tile_summary">Abrir o app ou parar uma transmissão ativa</string>
+    <string name="app_pref_tile_already_added">O bloco de Configurações rápidas já foi adicionado</string>
+    <string name="app_pref_add_tile_error">Não foi possível adicionar o bloco de Configurações rápidas</string>
+
+    <string name="app_pref_save_error">Não foi possível salvar a configuração</string>
+
+    <!-- About -->
+    <string name="app_about_title">Sobre</string>
+    <string name="app_about_version">Versão: %1$s</string>
+    <string name="app_about_developer">Desenvolvido por Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">Avaliar o app</string>
+    <string name="app_about_source_code">Código-fonte</string>
+    <string name="app_about_terms_and_conditions">Termos e condições</string>
+    <string name="app_about_privacy_policy">Política de privacidade</string>
+    <string name="app_about_privacy_options">Opções de privacidade</string>
+    <string name="app_about_license">Licença</string>
+    <string name="app_about_open_link_error">Não foi possível abrir o link</string>
+    <string name="app_about_privacy_options_open_error">Não foi possível abrir as opções de privacidade</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Atualização baixada</string>
+    <string name="app_update_message">Reinicie o app para instalar a atualização. Qualquer transmissão ativa será interrompida.</string>
+    <string name="app_update_restart">Reiniciar</string>
+
+    <!-- Notifications -->
+    <string name="app_notification_channel_streaming">Notificações de transmissão</string>
+    <string name="app_notification_channel_error">Notificações de erro</string>
+
+    <string name="app_notification_waiting_content">Toque para abrir o app</string>
+    <string name="app_notification_streaming_title">Transmitindo…</string>
+    <string name="app_notification_streaming_content">Toque em Parar para encerrar a transmissão</string>
+    <string name="app_notification_stop">Parar</string>
+
+    <string name="app_notification_error_title">Erro</string>
+    <string name="app_notification_error_recover">Recuperar</string>
+
+    <!-- Quick Settings tile -->
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Abrir ScreenStream</string>
+    <string name="app_tile_stop">Parar transmissão</string>
 </resources>

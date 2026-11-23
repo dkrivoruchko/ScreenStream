@@ -1,15 +1,18 @@
 package io.screenstream.mjpeg.ui
 
+import android.content.ActivityNotFoundException
 import android.content.ContextWrapper
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -35,6 +38,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowToast
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
@@ -66,7 +70,6 @@ internal class StreamAddressesUiTest {
                         expanded = true,
                         onExpandedChange = {},
                         onRetry = {},
-                        onShowMessage = {},
                     )
                 }
             }
@@ -91,6 +94,50 @@ internal class StreamAddressesUiTest {
     }
 
     @Test
+    fun openingAndSharingFailuresShowShortToasts() {
+        var launchFailure: RuntimeException = ActivityNotFoundException()
+        val context = object : ContextWrapper(compose.activity) {
+            override fun startActivity(intent: Intent) {
+                throw launchFailure
+            }
+        }
+        compose.setContent {
+            MjpegTestTheme {
+                CompositionLocalProvider(LocalContext provides context) {
+                    StreamAddressesContent(
+                        addressServers = listOf(address()),
+                        appliedPin = null,
+                        hidePinOnCapture = false,
+                        expanded = true,
+                        onExpandedChange = {},
+                        onRetry = {},
+                    )
+                }
+            }
+        }
+
+        fun assertFailure(action: SemanticsNodeInteraction, failure: RuntimeException, messageRes: Int) {
+            compose.runOnIdle {
+                launchFailure = failure
+                ShadowToast.reset()
+            }
+            action.performClick()
+            compose.runOnIdle {
+                assertEquals(1, ShadowToast.shownToastCount())
+                assertEquals(text(messageRes), ShadowToast.getTextOfLatestToast())
+                assertEquals(Toast.LENGTH_SHORT, ShadowToast.getLatestToast().duration)
+            }
+        }
+
+        val open = compose.onNodeWithText(ENDPOINT_URL)
+        val share = compose.onNodeWithContentDescription(text(R.string.mjpeg_address_share_description, ENDPOINT_URL))
+        assertFailure(open, ActivityNotFoundException(), R.string.mjpeg_address_error_browser_not_found)
+        assertFailure(open, SecurityException(), R.string.mjpeg_address_error_open)
+        assertFailure(share, ActivityNotFoundException(), R.string.mjpeg_address_error_share)
+        assertFailure(share, SecurityException(), R.string.mjpeg_address_error_share)
+    }
+
+    @Test
     fun qrDialogClosesOnTokenRotationAndReopensWithTheCurrentUrl() {
         val row = mutableStateOf(address(accessUrl = SecretValue("$ENDPOINT_URL?token=$ENCODED_TOKEN")))
         compose.setContent {
@@ -102,7 +149,6 @@ internal class StreamAddressesUiTest {
                     expanded = true,
                     onExpandedChange = {},
                     onRetry = {},
-                    onShowMessage = {},
                 )
             }
         }
@@ -133,9 +179,9 @@ internal class StreamAddressesUiTest {
 
     @Test
     @Config(sdk = [32, 33])
-    fun successfulLinkCopiesShowManualFeedbackOnlyBeforeAndroid13() {
+    fun successfulLinkCopiesShowShortToastsOnlyBeforeAndroid13() {
         val clipboard = RecordingClipboard()
-        val messages = mutableListOf<String>()
+        val showsCopyToast = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
         compose.setContent {
             MjpegTestTheme {
                 CompositionLocalProvider(LocalClipboard provides clipboard) {
@@ -146,7 +192,6 @@ internal class StreamAddressesUiTest {
                         expanded = true,
                         onExpandedChange = {},
                         onRetry = {},
-                        onShowMessage = messages::add,
                     )
                 }
             }
@@ -155,12 +200,14 @@ internal class StreamAddressesUiTest {
         compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_description, ENDPOINT_URL)).performClick()
         assertClipboard(clipboard, ENDPOINT_URL)
         compose.runOnIdle {
-            assertEquals(if (Build.VERSION.SDK_INT < 33) listOf(text(R.string.mjpeg_address_copied)) else emptyList(), messages)
+            assertEquals(if (showsCopyToast) 1 else 0, ShadowToast.shownToastCount())
+            if (showsCopyToast) assertCopyToast()
         }
         copyMenuLink(R.string.mjpeg_address_copy_jpeg)
         assertClipboard(clipboard, "http://192.168.1.10:9000/jpeg")
         compose.runOnIdle {
-            assertEquals(if (Build.VERSION.SDK_INT < 33) List(2) { text(R.string.mjpeg_address_copied) } else emptyList(), messages)
+            assertEquals(if (showsCopyToast) 2 else 0, ShadowToast.shownToastCount())
+            if (showsCopyToast) assertCopyToast()
         }
     }
 
@@ -182,7 +229,6 @@ internal class StreamAddressesUiTest {
                         expanded = true,
                         onExpandedChange = {},
                         onRetry = retries::add,
-                        onShowMessage = {},
                     )
                 }
             }
@@ -258,6 +304,11 @@ internal class StreamAddressesUiTest {
             assertEquals(text(R.string.mjpeg_address_copy_url), clip.description.label.toString())
             assertTrue(checkNotNull(clip.description.extras).getBoolean("android.content.extra.IS_SENSITIVE"))
         }
+    }
+
+    private fun assertCopyToast() {
+        assertEquals(text(R.string.mjpeg_address_copied), ShadowToast.getTextOfLatestToast())
+        assertEquals(Toast.LENGTH_SHORT, ShadowToast.getLatestToast().duration)
     }
 
     private fun retryButton() = compose.onNodeWithContentDescription(text(R.string.mjpeg_server_retry_description, ENDPOINT_URL))

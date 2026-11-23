@@ -7,17 +7,21 @@ import android.content.Intent
 import android.os.SystemClock
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.test.core.app.ActivityScenario
-import androidx.window.core.layout.WindowSizeClass
 import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.manager.StreamingModuleManagerImpl
@@ -49,6 +53,8 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
+private val LocalControllerUi = staticCompositionLocalOf<StreamingModule.Ui?> { null }
+
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "en")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -67,8 +73,8 @@ internal class StreamingModuleInstanceContentTest {
     private val module = ContentModule()
     private val requested = mutableStateOf(StreamingModule.InstanceId(module.id))
     private val checkpoint = mutableIntStateOf(0)
-    private val window = WindowSizeClass(600, 480)
-    private val contentModifier = Modifier.testTag("module-content")
+    private val contentLifecycle = mutableStateOf<LifecycleOwner?>(null)
+    private val fallback = mutableStateOf<@Composable () -> Unit>({ Text("fallback") })
     private val controllers = mutableListOf<ContentController>()
     private var startIntent: Intent? = null
     private lateinit var manager: StreamingModuleManagerImpl
@@ -88,8 +94,14 @@ internal class StreamingModuleInstanceContentTest {
         manager = StreamingModuleManagerImpl(listOf(module), context, settings, ContentNotifications(), dispatcher)
         scenario = launchCoreComposeHost {
             // These checkpoints test the manager's rendering decision, not an undocumented invalidation signal.
-            key(checkpoint.intValue) {
-                manager.InstanceContent(requested.value, window, contentModifier) { Text("fallback") }
+            val owner = contentLifecycle.value ?: LocalLifecycleOwner.current
+            CompositionLocalProvider(LocalLifecycleOwner provides owner) {
+                key(checkpoint.intValue) {
+                    manager.InstanceContent(requested.value, fallback = fallback.value) { ui ->
+                        assertSame(LocalControllerUi.current, ui)
+                        ui.sections.single().content()
+                    }
+                }
             }
         }
         compose.waitForIdle()
@@ -108,25 +120,18 @@ internal class StreamingModuleInstanceContentTest {
 
     // Cases: CORE-UI-11
     @Test
-    fun absentAndUnknownInstanceUseFallbackWhileMatchingControllerReceivesInputs() {
+    fun absentAndUnknownInstanceUseFallbackWhileAdmittedControllerSuppliesItsUiToLayout() {
         compose.onNodeWithText("fallback").assertExists()
         compose.onNodeWithTag("module-content").assertDoesNotExist()
         val controller = open()
         show(StreamingModule.InstanceId(StreamingModule.Id("unknown")))
         compose.onNodeWithText("fallback").assertExists()
-        assertTrue(controller.renderedInputs.isEmpty())
+        compose.onNodeWithTag("module-content").assertDoesNotExist()
 
         show(controller.instanceId)
         compose.onNodeWithText(controller.label).assertExists()
         compose.onNodeWithTag("module-content").assertExists()
         compose.onNodeWithText("fallback").assertDoesNotExist()
-        compose.runOnIdle {
-            assertTrue(controller.renderedInputs.isNotEmpty())
-            controller.renderedInputs.forEach { (actualWindow, actualModifier) ->
-                assertSame(window, actualWindow)
-                assertSame(contentModifier, actualModifier)
-            }
-        }
     }
 
     // Cases: CORE-UI-11, CORE-UI-12
@@ -147,17 +152,19 @@ internal class StreamingModuleInstanceContentTest {
 
     // Cases: CORE-UI-12
     @Test
-    fun failureClosesContentAtExplicitRecompositionCheckpoint() {
+    fun failureShowsFallbackEvenWhileCollectionIsPaused() {
         val controller = open()
+        pauseCollection()
         show(controller.instanceId)
         compose.onNodeWithText(controller.label).assertExists()
         compose.runOnIdle {
             controller.handle.reportFailed()
             scheduler.runCurrent()
             assertFalse(controller.handle.isCurrent())
+            // Change the fallback input without replacing the composition or restarting the collector.
+            fallback.value = { Text("failed fallback") }
         }
-        show(controller.instanceId)
-        compose.onNodeWithText("fallback").assertExists()
+        compose.onNodeWithText("failed fallback").assertExists()
         compose.onNodeWithText(controller.label).assertDoesNotExist()
         assertIs<StreamingModuleManager.State.Failed>(manager.state.value)
     }
@@ -199,6 +206,35 @@ internal class StreamingModuleInstanceContentTest {
         compose.onNodeWithText(replacement.label).assertDoesNotExist()
     }
 
+    // Cases: CORE-UI-12
+    @Test
+    fun directIdentityChangeUsesTheReplacementWithoutWaitingForCollection() {
+        val old = open()
+        pauseCollection()
+        show(old.instanceId)
+        compose.onNodeWithText(old.label).assertExists()
+        compose.runOnIdle {
+            manager.restartModule(old.instanceId)
+            old.cleanup.complete(true)
+            scheduler.runCurrent()
+        }
+        compose.waitUntil(5_000) { scheduler.runCurrent(); startIntent != null }
+        val replacement = deliver()
+
+        // Keep the same composition checkpoint and a stopped collector as the requested launch changes.
+        compose.runOnIdle { requested.value = replacement.instanceId }
+        compose.onNodeWithText(replacement.label).assertExists()
+        compose.onNodeWithText(old.label).assertDoesNotExist()
+    }
+
+    private fun pauseCollection() {
+        compose.runOnIdle {
+            contentLifecycle.value = object : LifecycleOwner {
+                override val lifecycle = LifecycleRegistry(this).apply { currentState = Lifecycle.State.CREATED }
+            }
+        }
+    }
+
     private fun show(instanceId: StreamingModule.InstanceId) {
         compose.runOnIdle {
             requested.value = instanceId
@@ -235,7 +271,17 @@ internal class StreamingModuleInstanceContentTest {
     private class ContentController(val handle: StreamingModule.Controller.ManagerHandle, val label: String) : StreamingModule.Controller {
         override val instanceId = handle.instanceId
         val cleanup = CompletableDeferred<Boolean>()
-        val renderedInputs = mutableListOf<Pair<WindowSizeClass, Modifier>>()
+        private val ui = object : StreamingModule.Ui {
+            override val sections = listOf(
+                StreamingModule.Ui.Section("content", StreamingModule.Ui.Section.Role.Overview) {
+                    Text(label, Modifier.testTag("module-content"))
+                }
+            )
+
+            @Composable
+            override fun CaptureActionButton(modifier: Modifier) = Unit
+        }
+
         override fun startModule() = handle.reportRunning(
             StreamingModule.Status(isStreaming = false, hasConsumer = false, captureAttempt = null, error = null),
             SystemClock.uptimeMillis()
@@ -248,9 +294,10 @@ internal class StreamingModuleInstanceContentTest {
         override fun onServiceDestroyed() = Unit
 
         @Composable
-        override fun Content(window: WindowSizeClass, modifier: Modifier) {
-            SideEffect { renderedInputs.add(window to modifier) }
-            Text(label, modifier)
+        override fun Content(layout: @Composable (StreamingModule.Ui) -> Unit) {
+            CompositionLocalProvider(LocalControllerUi provides ui) {
+                layout(ui)
+            }
         }
     }
 

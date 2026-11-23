@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">შეცდომა</string>
-    <string name="app_error_recover">აღდგენა</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">უკან</string>
+    <string name="app_action_close">დახურვა</string>
+    <string name="app_action_exit">გასვლა</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">მზადდება…</string>
     <string name="app_module_error_title">რაღაც შეცდომა მოხდა</string>
     <string name="app_module_error_restart">რეჟიმის გადატვირთვა</string>
 
-    <string name="app_activity_update_dialog_title">განახლება ხელმისაწვდომია</string>
-    <string name="app_activity_update_dialog_message">განახლება მზადაა. გადაიტვირთოს აპი ახლა?</string>
-    <string name="app_activity_update_dialog_restart">გადატვირთვა</string>
+    <string name="app_exit_dialog_title">გსურთ ScreenStream-იდან გასვლა?</string>
+    <string name="app_exit_dialog_message">აქტიური სტრიმი შეწყდება.</string>
 
-    <string name="app_tab_stream">სტრიმი</string>
-    <string name="app_tab_settings">პარამეტრები</string>
-    <string name="app_tab_about">შესახებ</string>
-    <string name="app_tab_exit">გასვლა</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">სტრიმინგის მეთოდი</string>
+    <string name="app_method_choose">აირჩიეთ სტრიმინგის მეთოდი</string>
+    <string name="app_method_details">დეტალები</string>
+    <string name="app_method_details_description">დეტალები: %1$s</string>
+    <string name="app_method_benefits">უპირატესობები</string>
+    <string name="app_method_things_to_know">რა უნდა იცოდეთ</string>
 
-    <string name="app_tab_stream_select_mode">აირჩიეთ სტრიმის რეჟიმი:</string>
-    <string name="app_tab_stream_switching_modules">რეჟიმების გადართვა…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">აპის პარამეტრები</string>
 
-    <string name="app_mode_selected_method">სტრიმინგის აქტიური მეთოდი</string>
-    <string name="app_mode_choose_method">აირჩიეთ სტრიმინგის მეთოდი</string>
-    <string name="app_mode_choose_another_method">აირჩიეთ სხვა მეთოდი</string>
-    <string name="app_mode_change">შეცვლა</string>
-    <string name="app_mode_chooser_title">აირჩიეთ ეკრანის გაზიარების მეთოდი</string>
-    <string name="app_mode_close_chooser">დახურვა</string>
-    <string name="app_mode_details">დეტალები</string>
-    <string name="app_mode_details_description">დეტალები: %1$s</string>
-    <string name="app_mode_benefits">უპირატესობები</string>
-    <string name="app_mode_things_to_know">რა უნდა იცოდეთ</string>
+    <string name="app_pref_language">აპის ენა</string>
+    <string name="app_pref_language_summary">აპის ენის არჩევა</string>
+    <string name="app_pref_language_system_default">სისტემის ნაგულისხმევი</string>
 
-    <string name="app_notification_channel_streaming">სტრიმინგის შეტყობინებები</string>
-    <string name="app_notification_channel_error">შეცდომის შეტყობინებები</string>
-    <string name="app_notification_waiting_content">შეეხეთ აპის გასახსნელად</string>
-    <string name="app_notification_streaming_title">მიმდინარეობს სტრიმინგი…</string>
-    <string name="app_notification_streaming_content">სტრიმის დასასრულებლად შეეხეთ „შეჩერებას“</string>
-    <string name="app_notification_stop">შეჩერება</string>
-
-    <!-- When idle, the tile opens the app; it does not start capture. -->
-    <string name="app_tile_open">ScreenStream-ის გახსნა</string>
-    <string name="app_tile_stop">შეჩერება</string>
-
-    <string name="app_pref_back">უკან</string>
-    <string name="app_pref_settings">პარამეტრები</string>
-    <string name="app_pref_locale">აპის ენა</string>
-    <string name="app_pref_locale_summary">აპის ენის პარამეტრების გახსნა</string>
-    <string name="app_pref_locale_default">სისტემის ნაგულისხმევი</string>
-    <string name="app_pref_night_mode">მუქი თემა</string>
+    <string name="app_pref_dark_theme">მუქი თემა</string>
+    <string name="app_pref_dark_theme_summary">როდის გამოვიყენოთ მუქი თემა</string>
     <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
+    <string-array name="app_pref_dark_theme_options_battery_saver">
         <item>ყოველთვის</item>
         <item>ბატარეის დამზოგის მიხედვით</item>
         <item>არასოდეს</item>
     </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
+    <string-array name="app_pref_dark_theme_options_follow_system">
         <item>ყოველთვის</item>
         <item>სისტემის მიხედვით</item>
         <item>არასოდეს</item>
     </string-array>
-    <string name="app_pref_dynamic_theme">დინამიური ფერი</string>
-    <string name="app_pref_dynamic_theme_summary">დაარეგულირეთ გარეგნობა თქვენი ფონის ფერების მიხედვით</string>
-    <string name="app_pref_notification">აპის შეტყობინებები</string>
-    <string name="app_pref_notification_summary">შეტყობინებების მართვა სისტემის პარამეტრებში</string>
-    <string name="app_pref_tile">სწრაფი პარამეტრების ფილის დამატება</string>
-    <string name="app_pref_tile_summary">ScreenStream-ის დამატება სწრაფ პარამეტრებში</string>
 
-    <string name="app_tab_about_app_version">ვერსია: %1$s</string>
-    <string name="app_tab_about_developer_name">შემქმნელი: Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">აპის შეფასება</string>
-    <string name="app_tab_about_app_sources">საწყისი კოდი</string>
-    <string name="app_tab_about_terms_conditions">წესები და პირობები</string>
-    <string name="app_tab_about_privacy_policy">კონფიდენციალურობის პოლიტიკა</string>
-    <string name="app_tab_about_privacy_options">კონფიდენციალურობის პარამეტრები</string>
-    <string name="app_tab_about_license">ლიცენზია</string>
+    <string name="app_pref_dynamic_color">დინამიური ფერი</string>
+    <string name="app_pref_dynamic_color_summary">სისტემის ფერების გამოყენება</string>
+
+    <string name="app_pref_notifications">აპის შეტყობინებები</string>
+    <string name="app_pref_notifications_summary">შეტყობინებების მართვა სისტემის პარამეტრებში</string>
+    <string name="app_pref_notifications_open_error">შეტყობინებების პარამეტრები ვერ გაიხსნა</string>
+
+    <string name="app_pref_add_tile">სწრაფი პარამეტრების ფილის დამატება</string>
+    <string name="app_pref_add_tile_summary">აპის გახსნა ან აქტიური სტრიმის შეწყვეტა</string>
+    <string name="app_pref_tile_already_added">სწრაფი პარამეტრების ფილა უკვე დამატებულია</string>
+    <string name="app_pref_add_tile_error">სწრაფი პარამეტრების ფილა ვერ დაემატა</string>
+
+    <string name="app_pref_save_error">პარამეტრი ვერ შეინახა</string>
+
+    <!-- About -->
+    <string name="app_about_title">შესახებ</string>
+    <string name="app_about_version">ვერსია: %1$s</string>
+    <string name="app_about_developer">შემქმნელი: Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">აპის შეფასება</string>
+    <string name="app_about_source_code">საწყისი კოდი</string>
+    <string name="app_about_terms_and_conditions">წესები და პირობები</string>
+    <string name="app_about_privacy_policy">კონფიდენციალურობის პოლიტიკა</string>
+    <string name="app_about_privacy_options">კონფიდენციალურობის პარამეტრები</string>
+    <string name="app_about_license">ლიცენზია</string>
+    <string name="app_about_open_link_error">ბმული ვერ გაიხსნა</string>
+    <string name="app_about_privacy_options_open_error">კონფიდენციალურობის პარამეტრები ვერ გაიხსნა</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">განახლება ჩამოტვირთულია</string>
+    <string name="app_update_message">განახლების დასაინსტალირებლად გადატვირთეთ აპი. აქტიური სტრიმი შეწყდება.</string>
+    <string name="app_update_restart">გადატვირთვა</string>
+
+    <!-- Notifications -->
+    <string name="app_notification_channel_streaming">სტრიმინგის შეტყობინებები</string>
+    <string name="app_notification_channel_error">შეცდომის შეტყობინებები</string>
+
+    <string name="app_notification_waiting_content">შეეხეთ აპის გასახსნელად</string>
+    <string name="app_notification_streaming_title">მიმდინარეობს სტრიმინგი…</string>
+    <string name="app_notification_streaming_content">სტრიმის დასასრულებლად შეეხეთ „შეწყვეტას“</string>
+    <string name="app_notification_stop">შეწყვეტა</string>
+
+    <string name="app_notification_error_title">შეცდომა</string>
+    <string name="app_notification_error_recover">აღდგენა</string>
+
+    <!-- Quick Settings tile -->
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream-ის გახსნა</string>
+    <string name="app_tile_stop">სტრიმის შეწყვეტა</string>
 </resources>

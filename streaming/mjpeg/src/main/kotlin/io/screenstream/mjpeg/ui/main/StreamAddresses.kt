@@ -6,6 +6,7 @@ import android.content.ClipDescription
 import android.content.Intent
 import android.os.Build
 import android.os.PersistableBundle
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -65,10 +66,10 @@ import androidx.compose.ui.semantics.dismiss
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.screenstream.core.compose.LocalRuntimePermissions
+import io.screenstream.core.module.StreamingModule.Ui.ModalHost
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
 import io.screenstream.foundation.qr.generateQRBitmap
@@ -92,7 +93,6 @@ internal fun StreamAddressesContent(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onRetry: (Uuid) -> Unit,
-    onShowMessage: (String) -> Unit,
 ) {
     fun isBlockedByLocalNetworkPermission(server: UiController.AddressServer): Boolean =
         server.serverId == null &&
@@ -161,7 +161,6 @@ internal fun StreamAddressesContent(
                     localNetworkPermissionState = localNetworkPermissionState,
                     onRequestLocalNetworkPermission = onRequestLocalNetworkPermission,
                     onRetry = onRetry,
-                    onShowMessage = onShowMessage,
                 )
             }
             if (index != addressServers.lastIndex) {
@@ -173,7 +172,6 @@ internal fun StreamAddressesContent(
             StreamPinContent(
                 pin = pin,
                 hidePinOnCapture = hidePinOnCapture,
-                onShowMessage = onShowMessage,
             )
         }
     }
@@ -186,23 +184,20 @@ private fun StreamAddressRow(
     localNetworkPermissionState: PermissionState?,
     onRequestLocalNetworkPermission: () -> Unit,
     onRetry: (Uuid) -> Unit,
-    onShowMessage: (String) -> Unit,
 ) {
     val urlHost = if (':' in server.address) "[${server.address}]" else server.address
     val displayUrl = "http://$urlHost:${server.port}/"
     val actionUrl = server.accessUrl?.value ?: displayUrl
     val context = LocalContext.current
-    val browserNotFoundMessage = stringResource(R.string.mjpeg_address_error_browser_not_found)
-    val openErrorMessage = stringResource(R.string.mjpeg_address_error_open)
     val onOpen: () -> Unit = {
         try {
             val intent = Intent(Intent.ACTION_VIEW, actionUrl.toUri())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
         } catch (_: ActivityNotFoundException) {
-            onShowMessage(browserNotFoundMessage)
+            Toast.makeText(context, R.string.mjpeg_address_error_browser_not_found, Toast.LENGTH_SHORT).show()
         } catch (_: SecurityException) {
-            onShowMessage(openErrorMessage)
+            Toast.makeText(context, R.string.mjpeg_address_error_open, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -261,7 +256,6 @@ private fun StreamAddressRow(
             StreamAddressActions(
                 displayUrl = displayUrl,
                 actionUrl = actionUrl,
-                onShowMessage = onShowMessage,
                 modifier = Modifier.weight(1.5f),
             )
         }
@@ -295,16 +289,13 @@ private fun StreamAddressRow(
 private fun StreamAddressActions(
     displayUrl: String,
     actionUrl: String,
-    onShowMessage: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val copyLabel = stringResource(R.string.mjpeg_address_copy_url)
-    val copiedMessage = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) stringResource(R.string.mjpeg_address_copied) else null
     val shareTitle = stringResource(R.string.mjpeg_address_share)
-    val shareErrorMessage = stringResource(R.string.mjpeg_address_error_share)
     var showCopyMenu by remember(actionUrl) { mutableStateOf(false) }
     var showQrCode by remember(actionUrl) { mutableStateOf(false) }
     val copyLink: (String) -> Unit = { url ->
@@ -314,7 +305,9 @@ private fun StreamAddressActions(
                 putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
             }
             clipboard.setClipEntry(ClipEntry(clip))
-            copiedMessage?.let(onShowMessage)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                Toast.makeText(context, R.string.mjpeg_address_copied, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -333,9 +326,9 @@ private fun StreamAddressActions(
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(chooser)
         } catch (_: ActivityNotFoundException) {
-            onShowMessage(shareErrorMessage)
+            Toast.makeText(context, R.string.mjpeg_address_error_share, Toast.LENGTH_SHORT).show()
         } catch (_: SecurityException) {
-            onShowMessage(shareErrorMessage)
+            Toast.makeText(context, R.string.mjpeg_address_error_share, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -515,7 +508,7 @@ private fun QrCodeDialog(
     onDismiss: () -> Unit,
 ) {
     var qrCodeSizePx by remember { mutableIntStateOf(0) }
-    Dialog(onDismissRequest = onDismiss) {
+    ModalHost.current.Modal(title = null, onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier.semantics(mergeDescendants = true) {
                 dismiss {

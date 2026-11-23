@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">مائیکروفون تک رسائی</string>
     <string name="core_permission_microphone_message">اسٹریم میں اپنے مائیکروفون کی آواز شامل کرنے کے لیے مائیکروفون تک رسائی کی اجازت دیں۔\n\nاس کے بغیر مائیکروفون کی آڈیو اسٹریم نہیں کی جا سکتی۔</string>
     <string name="core_permission_device_audio_title">آلے کی آڈیو تک رسائی</string>
-    <string name="core_permission_device_audio_message">آلے کی آڈیو اسٹریم کرنے کے لیے Android کو مائیکروفون کی اجازت درکار ہے۔ اس سے آپ کا مائیکروفون آن نہیں ہوتا۔\n\nصرف وہ آڈیو اسٹریم کی جا سکتی ہے جسے شیئر کرنے کی اجازت Android اور آڈیو چلانے والی ایپ دیں۔</string>
+    <string name="core_permission_device_audio_message">آلے کی آڈیو اسٹریم کرنے کے لیے Android پر مائیکروفون کی اجازت درکار ہے۔ مائیکروفون کا اختیار بند ہو تو اسٹریم میں مائیکروفون کی آڈیو شامل نہیں ہوتی۔\n\nصرف وہ آڈیو اسٹریم کی جا سکتی ہے جسے شیئر کرنے کی اجازت Android اور آڈیو چلانے والی ایپ دیں۔</string>
 
     <string name="core_permission_audio_title">مائیکروفون اور آلے کی آڈیو</string>
     <string name="core_permission_audio_message">مائیکروفون اور آلے کی آڈیو اسٹریم کرنے کے لیے مائیکروفون تک رسائی کی اجازت دیں۔\n\nآلے کی آڈیو صرف اسی وقت اسٹریم کی جا سکتی ہے جب Android اور آڈیو چلانے والی ایپ اسے شیئر کرنے کی اجازت دیں۔</string>

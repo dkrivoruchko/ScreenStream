@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Fout</string>
-    <string name="app_error_recover">Herstel</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Terug</string>
+    <string name="app_action_close">Maak toe</string>
+    <string name="app_action_exit">Verlaat</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Berei voor…</string>
     <string name="app_module_error_title">Iets het verkeerd geloop</string>
     <string name="app_module_error_restart">Herbegin modus</string>
 
-    <string name="app_activity_update_dialog_title">Opdatering beskikbaar</string>
-    <string name="app_activity_update_dialog_message">’n Opdatering is gereed. Herbegin die app nou?</string>
-    <string name="app_activity_update_dialog_restart">Herbegin</string>
+    <string name="app_exit_dialog_title">Verlaat ScreenStream?</string>
+    <string name="app_exit_dialog_message">Enige aktiewe stroom sal stop.</string>
 
-    <string name="app_tab_stream">Stroom</string>
-    <string name="app_tab_settings">Instellings</string>
-    <string name="app_tab_about">Oor</string>
-    <string name="app_tab_exit">Verlaat</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Stroommetode</string>
+    <string name="app_method_choose">Kies \'n stroommetode</string>
+    <string name="app_method_details">Besonderhede</string>
+    <string name="app_method_details_description">Besonderhede vir %1$s</string>
+    <string name="app_method_benefits">Voordele</string>
+    <string name="app_method_things_to_know">Goed om te weet</string>
 
-    <string name="app_tab_stream_select_mode">Kies stroommodus:</string>
-    <string name="app_tab_stream_switching_modules">Wissel modusse…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">Appinstellings</string>
 
-    <string name="app_mode_selected_method">Aktiewe stroommetode</string>
-    <string name="app_mode_choose_method">Kies \'n stroommetode</string>
-    <string name="app_mode_choose_another_method">Kies \'n ander metode</string>
-    <string name="app_mode_change">Verander</string>
-    <string name="app_mode_chooser_title">Kies \'n metode om jou skerm te deel</string>
-    <string name="app_mode_close_chooser">Maak toe</string>
-    <string name="app_mode_details">Besonderhede</string>
-    <string name="app_mode_details_description">Besonderhede vir %1$s</string>
-    <string name="app_mode_benefits">Voordele</string>
-    <string name="app_mode_things_to_know">Goed om te weet</string>
+    <string name="app_pref_language">Apptaal</string>
+    <string name="app_pref_language_summary">Kies die taal vir hierdie app</string>
+    <string name="app_pref_language_system_default">Stelselverstek</string>
 
-    <string name="app_notification_channel_streaming">Stroomkennisgewings</string>
-    <string name="app_notification_channel_error">Foutkennisgewings</string>
-    <string name="app_notification_waiting_content">Tik om die toepassing oop te maak</string>
-    <string name="app_notification_streaming_title">Stroom tans …</string>
-    <string name="app_notification_streaming_content">Tik Stop om die stroom te beëindig</string>
-    <string name="app_notification_stop">Stop</string>
-
-    <!-- When idle, the tile opens the app; it does not start capture. -->
-    <string name="app_tile_open">Maak ScreenStream oop</string>
-    <string name="app_tile_stop">Stop</string>
-
-    <string name="app_pref_back">Terug</string>
-    <string name="app_pref_settings">Instellings</string>
-    <string name="app_pref_locale">Apptaal</string>
-    <string name="app_pref_locale_summary">Maak apptaalinstellings oop</string>
-    <string name="app_pref_locale_default">Stelselverstek</string>
-    <string name="app_pref_night_mode">Donkertema</string>
+    <string name="app_pref_dark_theme">Donkertema</string>
+    <string name="app_pref_dark_theme_summary">Wanneer om donkertema te gebruik</string>
     <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
+    <string-array name="app_pref_dark_theme_options_battery_saver">
         <item>Altyd</item>
         <item>Volgens Batterybespaarder</item>
         <item>Nooit</item>
     </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
+    <string-array name="app_pref_dark_theme_options_follow_system">
         <item>Altyd</item>
         <item>Volg stelsel</item>
         <item>Nooit</item>
     </string-array>
-    <string name="app_pref_dynamic_theme">Dinamiese kleur</string>
-    <string name="app_pref_dynamic_theme_summary">Pas die voorkoms aan op grond van jou muurpapier se kleure</string>
-    <string name="app_pref_notification">Appkennisgewings</string>
-    <string name="app_pref_notification_summary">Bestuur kennisgewings in stelselinstellings</string>
-    <string name="app_pref_tile">Voeg Kitsinstellings-teël by</string>
-    <string name="app_pref_tile_summary">Voeg ScreenStream by Kitsinstellings</string>
 
-    <string name="app_tab_about_app_version">Weergawe: %1$s</string>
-    <string name="app_tab_about_developer_name">Ontwikkel deur Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">Beoordeel app</string>
-    <string name="app_tab_about_app_sources">Bronkode</string>
-    <string name="app_tab_about_terms_conditions">Bepalings en voorwaardes</string>
-    <string name="app_tab_about_privacy_policy">Privaatheidsbeleid</string>
-    <string name="app_tab_about_privacy_options">Privaatheidsopsies</string>
-    <string name="app_tab_about_license">Lisensie</string>
+    <string name="app_pref_dynamic_color">Dinamiese kleur</string>
+    <string name="app_pref_dynamic_color_summary">Gebruik stelselkleure</string>
+
+    <string name="app_pref_notifications">Appkennisgewings</string>
+    <string name="app_pref_notifications_summary">Bestuur kennisgewings in stelselinstellings</string>
+    <string name="app_pref_notifications_open_error">Kon nie kennisgewinginstellings oopmaak nie</string>
+
+    <string name="app_pref_add_tile">Voeg Kitsinstellings-teël by</string>
+    <string name="app_pref_add_tile_summary">Maak die app oop of stop ’n aktiewe stroom</string>
+    <string name="app_pref_tile_already_added">Kitsinstellings-teël is reeds bygevoeg</string>
+    <string name="app_pref_add_tile_error">Kon nie Kitsinstellings-teël byvoeg nie</string>
+
+    <string name="app_pref_save_error">Kon nie instelling stoor nie</string>
+
+    <!-- About -->
+    <string name="app_about_title">Oor</string>
+    <string name="app_about_version">Weergawe: %1$s</string>
+    <string name="app_about_developer">Ontwikkel deur Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">Beoordeel app</string>
+    <string name="app_about_source_code">Bronkode</string>
+    <string name="app_about_terms_and_conditions">Bepalings en voorwaardes</string>
+    <string name="app_about_privacy_policy">Privaatheidsbeleid</string>
+    <string name="app_about_privacy_options">Privaatheidsopsies</string>
+    <string name="app_about_license">Lisensie</string>
+    <string name="app_about_open_link_error">Kon nie die skakel oopmaak nie</string>
+    <string name="app_about_privacy_options_open_error">Kon nie privaatheidsopsies oopmaak nie</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Opdatering afgelaai</string>
+    <string name="app_update_message">Herbegin die app om die opdatering te installeer. Enige aktiewe stroom sal stop.</string>
+    <string name="app_update_restart">Herbegin</string>
+
+    <!-- Notifications -->
+    <string name="app_notification_channel_streaming">Stroomkennisgewings</string>
+    <string name="app_notification_channel_error">Foutkennisgewings</string>
+
+    <string name="app_notification_waiting_content">Tik om die app oop te maak</string>
+    <string name="app_notification_streaming_title">Stroom tans…</string>
+    <string name="app_notification_streaming_content">Tik Stop om die stroom te beëindig</string>
+    <string name="app_notification_stop">Stop</string>
+
+    <string name="app_notification_error_title">Fout</string>
+    <string name="app_notification_error_recover">Herstel</string>
+
+    <!-- Quick Settings tile -->
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Maak ScreenStream oop</string>
+    <string name="app_tile_stop">Stop stroom</string>
 </resources>

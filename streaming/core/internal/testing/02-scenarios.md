@@ -36,11 +36,11 @@ A fake Controller shows how the manager responds to that Controller's behavior. 
 
 **Owner.** [StreamingModuleManager.modules](../../src/main/kotlin/io/screenstream/core/StreamingModuleManager.kt) and [StreamingModule.foregroundSlot](../../src/main/kotlin/io/screenstream/core/module/StreamingModule.kt).
 
-**History.** Construct the manager with a valid catalog of mixed priorities. Separately, construct it with each invalid catalog: empty, duplicate module IDs, a foreground slot ID that isn't positive, a slot equal to the module error slot, one Service class with two different slots, and two Service classes sharing a slot. Also construct it with two definitions that share one Service class and one slot.
+**History.** Construct the manager with a valid, mutable catalog of mixed priorities, then clear the source list. Separately, construct it with each invalid catalog: an empty catalog, empty or whitespace-only module IDs, duplicate module IDs, a foreground slot ID that isn't positive, a slot equal to the module error slot, one Service class with two different slots, and two Service classes sharing a slot. Also construct it with two definitions that share one Service class and one slot.
 
 **Expected.**
 
-- **Order.** `modules` lists definitions by descending priority and can't be modified through the returned list. Don't assert an order between equal priorities.
+- **Catalog.** `modules` retains the original definitions in descending priority after the source list is cleared. The returned list rejects mutation. Equal priorities may appear in either order.
 - **Rejection.** Each invalid catalog fails construction.
 - **Shared Service.** Definitions that share a Service class and its slot are accepted.
 
@@ -80,7 +80,7 @@ A fake Controller shows how the manager responds to that Controller's behavior. 
 
 **Owner.** [Selection and restart](../../docs/module-contract-and-manager.md#selection-and-restart), [Identities and lifetimes](../../docs/module-contract-and-manager.md#identities-and-lifetimes) and [StreamingModuleManager.restartModule](../../src/main/kotlin/io/screenstream/core/StreamingModuleManager.kt).
 
-**History.** Restart a `Running` instance by its exact identity. Separately, restart a `Failed` instance. Then issue restarts with a stale identity from an earlier instance, during startup before the first status, during a transition and before any selection.
+**History.** Restart a `Running` instance with an equal copy of its identity. Separately, restart an `Unresponsive` instance and a `Failed` instance. Then issue restarts with a stale identity from an earlier instance, during startup before the first status, during a transition and before any selection.
 
 **Expected.**
 
@@ -146,7 +146,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 
 **History.** Open a module and in separate runs:
 
-- send no status, then advance both clocks past the first-status deadline
+- send no status, advance elapsed realtime and the scheduler to the first-status deadline, and drain the scheduler. Advance elapsed realtime past the deadline, check admission, then advance and drain the scheduler again
 - report the first status and let the manager apply it by the deadline
 - simulate deep sleep past the deadline, so only elapsed realtime advances
 - advance the clock past the deadline, then report a status before the scheduler observes the deadline
@@ -156,7 +156,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 
 **Expected.**
 
-- **Missed deadline.** Without an applied status, the instance becomes `Failed` with generic presentation, `isCurrent()` is false, and a Controller that exists receives `requestModuleShutdown`.
+- **Missed deadline.** `isCurrent()` is still true at the deadline and false as soon as elapsed realtime passes it, before the manager observes the deadline. Without an applied status, the instance becomes `Failed` with generic presentation, `isCurrent()` is false, and a Controller that exists receives `requestModuleShutdown`.
 - **In time.** A first status that the manager applies by the deadline produces `Running`, or `Unresponsive` if its heartbeat is already stale.
 - **Deep sleep counts.** The startup deadline uses elapsed realtime, so deep sleep alone can expire it.
 - **Late status.** A status reported after the deadline, or reported before it but applied after it, doesn't produce `Running`.
@@ -189,7 +189,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 
 **Owner.** [Capture Start, Stop, and recovery](../../docs/module-contract-and-manager.md#capture-start-stop-and-recovery) and [StreamingModuleManager](../../src/main/kotlin/io/screenstream/core/StreamingModuleManager.kt).
 
-**History.** Send Start, Stop and recovery to a `Running` instance, to an `Unresponsive` instance, and to a Controller whose command methods throw. Then send each command with a stale identity, before the first status, during a replacement, after failure and after Exit.
+**History.** Send Start, Stop and recovery to a `Running` instance, to an `Unresponsive` instance, and to a Controller whose command methods throw. Then send each command with a stale identity, before the first status, during a replacement, after failure and both while Exit awaits cleanup and after it settles.
 
 **Expected.**
 
@@ -207,11 +207,11 @@ After a supplied Android startup rejection, permit the next request and restart 
 
 **Owner.** [ManagerHandle.reportFailed](../../src/main/kotlin/io/screenstream/core/module/StreamingModule.kt) and [Observable process and instance health](../../docs/module-contract-and-manager.md#observable-process-and-instance-health).
 
-**History.** From `Running`, report failure with a message resource while holding cleanup. Then report another failure, report a status and send commands. Release cleanup. Select the same module, then restart it.
+**History.** From a worker thread, report the first status, then failure with a message resource, while holding cleanup. Then report another failure, report a status and send commands. Release cleanup. Select the same module, then restart it.
 
 **Expected.**
 
-- **Failure.** State becomes `Failed` with that instance and message resource. `isCurrent()` is false when `reportFailed` returns.
+- **Failure.** `isCurrent()` is false when `reportFailed` returns. State changes only when the manager's dispatcher applies each report: the status produces `Running`, then the failure produces `Failed` with that instance and message resource.
 - **Shutdown.** The Controller receives `requestModuleShutdown`.
 - **First failure wins.** Later failures and status reports don't change state, and commands are dropped.
 - **Retained.** `Failed` stays visible after cleanup settles and after selecting the same module; restart replaces it.
@@ -234,7 +234,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 - **Closed at once.** When the request returns, A's `isCurrent()` is false, A's Controller has received `requestModuleShutdown`, and state is `Switching`.
 - **Waits for cleanup or deadline.** B's Service start is requested after A's cleanup settles, or after the shutdown deadline if cleanup is still held, whichever comes first. Restarting a failed A keeps the deadline set at its failure.
 - **Old reports are scoped.** A's late reports and cleanup completion don't change B's state.
-- **Existing Controller keeps its Service.** A start for B delivered to a Service that still hosts A's Controller fails B with generic presentation. A's Controller keeps the Service and its cleanup.
+- **Existing Controller keeps its Service.** A start for B delivered to a Service that still hosts A's Controller fails B with generic presentation. The Service doesn't stop itself, and A's Controller keeps it and its cleanup.
 
 **Evidence boundary.** Android delivers starts for a component to its existing Service object. Robolectric shows the manager's response when a test delivers there; device timing of Service destruction needs platform qualification.
 
@@ -251,15 +251,15 @@ After a supplied Android startup rejection, permit the next request and restart 
 - during a replacement, before the new instance starts
 - after ordinary Service dispatch but before fresh Service delivery, then deliver that start
 
-Exit with the exact identity during startup, and with a stale identity or that of a `Failed` instance. During a held Exit wait, repeat Exit, select a module and send Start. Then let the wait end, and select a module.
+Exit with the exact identity during startup, and with a stale identity or that of a `Failed` instance. During a held Exit wait, repeat Exit, select a module and send Start, Stop and recovery. Then let the wait end, and select a module.
 
 **Expected.**
 
 - **Closed at once.** State is `Exiting` when the request returns, `isCurrent()` is false, and any installed Controller receives `requestModuleShutdown`.
 - **Opening cancelled.** Exit before dispatch requests no new Service start. A start already handed to Android can still arrive; a fresh delivery after closure neither promotes nor invokes the factory, and conditionally stops the unowned Service.
 - **Instance-scoped Exit.** The exact identity applies during startup. A stale or failed identity changes nothing.
-- **Shared wait.** A repeated Exit doesn't extend the wait. Selection and Start during the wait are dropped.
-- **Afterward.** `Exiting` stays visible after the wait ends, with cleanup still held. A later selection opens a new instance.
+- **Shared wait.** A repeated Exit doesn't extend the wait. Selection and commands during the wait are dropped, as in [CORE-MGR-09](#core-mgr-09).
+- **Afterward.** `Exiting` stays visible after the wait ends, with cleanup still held. A later selection publishes `Switching` before it returns and opens a new instance.
 
 <a id="core-mgr-13"></a>
 
@@ -342,7 +342,7 @@ Driving coordinator host calls directly doesn't verify Compose wiring; the separ
 
 **Owner.** [Host and request ownership](../../docs/screen-capture.md#host-and-request-ownership) and [ScreenCaptureAccess.requestConsent](../../src/main/kotlin/io/screenstream/core/capture/ScreenCaptureAccess.kt).
 
-**History.** Request consent with no resumed host and no saved consent. Resume hosts H1 and then H2, separate token objects that compare equal, and request again. Before submission, make H2 inactive while H1 stays resumed, then request again. Separately, resume H1 again while an unsubmitted request belongs to H2.
+**History.** Request consent with no resumed host and no saved consent. Resume hosts H1 and then H2, separate token objects that compare equal, and request again. Before submission, make H2 inactive while H1 stays resumed, then request again. Separately, resume H2 again while the next request belongs to H1, then resume H1 again while a request belongs to H2. Finally, make H2 inactive while a request belongs to H1, and submit it from H1.
 
 **Expected.**
 
@@ -350,6 +350,7 @@ Driving coordinator host calls directly doesn't verify Compose wiring; the separ
 - **Latest host selected.** With both resumed, only H2 can submit. Hosts are distinguished by reference, not equality.
 - **Selection change ends the request.** A change of the selected host before submission ends the request with `HostUnavailable`.
 - **Fallback.** The next request is presented to the remaining resumed host, H1.
+- **Unselected host leaves.** A resumed host that isn't selected can leave without ending the request; the selected host can still submit it.
 
 <a id="core-cap-02"></a>
 
@@ -385,13 +386,13 @@ Driving coordinator host calls directly doesn't verify Compose wiring; the separ
 
 **Owner.** [Host and request ownership](../../docs/screen-capture.md#host-and-request-ownership) and [ScreenCaptureConsentHost](../../src/main/kotlin/io/screenstream/core/compose/ScreenCaptureConsentHost.kt).
 
-**History.** Submit from the selected host. Submit again, and submit from a new host token after recreation. After submission, make every host inactive, then resume a different host. Deliver a result with another key, then with the matching key, then deliver the matching key again.
+**History.** Submit from the selected host. Submit again, and submit from a new host token after recreation. After submission, make the host inactive, then resume a different host and make it inactive too. Deliver a result with another key, then with the matching key, then deliver the matching key again.
 
 **Expected.**
 
 - **One launch.** The first submission returns the Android Intent; later submissions return nothing.
 - **Host changes after submission.** The request stays pending across host pause, change and recreation.
-- **Correlation.** A result with another key changes nothing. The matching result settles the request even with no resumed host. A repeated result is ignored.
+- **Correlation.** A result with another key changes nothing. The matching result settles the request even with no resumed host. A repeated result is ignored and can't settle a later request.
 
 <a id="core-cap-05"></a>
 
@@ -402,10 +403,11 @@ Driving coordinator host calls directly doesn't verify Compose wiring; the separ
 **History.** First make consent-Intent construction throw, then request again. After submission, deliver in separate runs:
 
 - a successful result with data, while the foreground callback returns true, returns false or throws
-- a non-success result
+- a non-success result without data
 - a successful result without data
-- a result for a request that hasn't been submitted
 - a launch failure for the request, with an ordinary cause and with a cancellation cause, and a launch failure with another key
+
+Separately, deliver a result for a request that hasn't been submitted.
 
 **Expected.**
 
@@ -545,11 +547,11 @@ Supply an observer that throws an ordinary or cancellation exception during subm
 
 | ID | Controlled history and observable result |
 | --- | --- |
-| <a id="core-svc-01"></a>`CORE-SVC-01` | Waiting (Exit), capture and confirmed capture (Stop) share the definition's slot; releasing capture returns to waiting without leaving foreground. Waiting is `specialUse` from SDK 34; capture is `mediaProjection`, plus `microphone` only when requested on SDK 30+. Content is built even with delivery disabled. Content updates keep slot and types without promoting; repeating the current presentation does nothing. |
-| <a id="core-svc-02"></a>`CORE-SVC-02` | While one attempt owns capture, another's promotion throws and its release or update is ignored. Another instance's attempt, a stale instance or closed admission gets false without calling Android; changed content for the owning attempt is built but not posted. Rollback before promotion does nothing. |
+| <a id="core-svc-01"></a>`CORE-SVC-01` | Waiting (Exit), capture and confirmed capture (Stop) share the definition's slot; releasing capture returns to waiting without leaving foreground. Waiting uses `specialUse` from SDK 34. Capture uses untyped foreground below SDK 29 and `mediaProjection` from SDK 29, with `microphone` added when requested on SDK 30+. Content is built even with delivery disabled. Content updates keep slot and types without promoting; repeating the current presentation does nothing. |
+| <a id="core-svc-02"></a>`CORE-SVC-02` | While one attempt owns capture, another's promotion throws and its release or update is ignored. Another instance's attempt, a stale instance or closed admission gets false without calling Android; changed content for the owning attempt is built but not posted. Rollback before promotion does nothing. After the owner releases, another attempt of the instance can promote, and its Stop action targets that attempt. |
 | <a id="core-svc-03"></a>`CORE-SVC-03` | A platform failure promoting capture or restoring waiting, or posting a content update, rethrows its cause, closes admission, fails the instance and requests Controller shutdown; a failed restoration still clears capture ownership. A failure building a content-update notification propagates, even when posting would be skipped, but doesn't itself close admission, so an eligible update can be retried. |
 | <a id="core-svc-04"></a>`CORE-SVC-04` | From API 33 the Service watches notification permission until destruction. A change for this package or with no package reposts the current notification without rebuilding, only while admission is open, the instance is current and the streaming channel is enabled. Destruction drops a queued refresh. Watch, channel-check and refresh-posting failures don't affect startup, admission or later refreshes. |
-| <a id="core-svc-05"></a>`CORE-SVC-05` | `stopAndAwaitDestruction` closes admission and returns true only after its stop request leads to destruction. Earlier destruction returns false without a stop request; a failed stop request waits for destruction, then returns false. Cancelling the only caller ends its wait without blocking destruction. Expected or unexpected destruction during capture preparation or after Stop is shown ends capture ownership before the original Controller is notified: from then on, including inside the callback, promotion gets false, and updates in both directions and repeated releases build, post and promote nothing. The receipt stays pending inside the callback and completes after it, even when it throws, which doesn't mean Controller cleanup finished. |
+| <a id="core-svc-05"></a>`CORE-SVC-05` | `stopAndAwaitDestruction`, called from a worker thread, closes admission at once, requests the stop on Main and returns true only after that request leads to destruction. Earlier destruction returns false without a stop request; a failed stop request waits for destruction, then returns false. Cancelling the only caller ends its wait without blocking destruction. Expected or unexpected destruction during capture preparation or after Stop is shown ends capture ownership before the original Controller is notified: from then on, including inside the callback, promotion gets false, and updates in both directions and repeated releases build, post and promote nothing. The receipt stays pending inside the callback and completes after it, even when it throws, which doesn't mean Controller cleanup finished. |
 | <a id="core-svc-06"></a>`CORE-SVC-06` | A supplied timeout callback (SDK 34 and 35 forms) requests the Service's stop before Controller shutdown, even if the stop throws; admission closes, the instance fails and a later receipt is false. This doesn't show that Android raises timeouts for Core's foreground types. |
 
 ## Notification actions
@@ -558,9 +560,9 @@ Supply an observer that throws an ordinary or cancellation exception during subm
 
 | ID | Controlled history and observable result |
 | --- | --- |
-| <a id="core-act-01"></a>`CORE-ACT-01` | The receiver routes Intents from the public factories: Exit for that instance, Stop for that attempt with `fromNotification = true`, and recovery for that instance and error token. |
-| <a id="core-act-02"></a>`CORE-ACT-02` | Actions are immutable PendingIntents addressed to the receiver. The same target yields an equal PendingIntent, another instance, attempt or token a distinct one, and earlier actions keep their original target. |
-| <a id="core-act-03"></a>`CORE-ACT-03` | A null Intent, unknown action, missing data, another action's data, or a malformed or non-canonical target URI produces no manager call. Direct `onReceive` calls don't verify that the receiver isn't exported. |
+| <a id="core-act-01"></a>`CORE-ACT-01` | Sent PendingIntents from the public factories reach the receiver declared in Core's manifest, which routes them: Exit for that instance, Stop for that attempt with `fromNotification = true`, and recovery for that instance and error token. |
+| <a id="core-act-02"></a>`CORE-ACT-02` | Actions are immutable PendingIntents addressed to the receiver, which Core's manifest declares non-exported; the app's merged manifest isn't checked. The same target yields an equal PendingIntent, another instance, attempt or token a distinct one, and earlier actions keep their original target. |
+| <a id="core-act-03"></a>`CORE-ACT-03` | A null Intent, unknown action, missing data, another action's data, or a malformed or non-canonical target URI produces no manager call. These inputs are passed to `onReceive` directly. |
 
 ## Runtime permission predicates
 
@@ -574,14 +576,14 @@ Supply an observer that throws an ordinary or cancellation exception during subm
 
 ## Runtime permission host
 
-**Owner.** [RuntimePermissionHost](../../src/main/kotlin/io/screenstream/core/compose/RuntimePermissionHost.kt). A supplied Activity result registry and permission grants exercise local request UI; they do not qualify Android permission dialogs or the app's durable persistence adapter.
+**Owner.** [RuntimePermissionHost](../../src/main/kotlin/io/screenstream/core/compose/RuntimePermissionHost.kt). Supplied permission grants and results, through a recording registry or the Activity's own registry, exercise local request UI; they do not qualify Android permission dialogs or the app's durable persistence adapter.
 
 | ID | Controlled history and observable result |
 | --- | --- |
 | <a id="core-perm-04"></a>`CORE-PERM-04` | A missing permission is admitted only while resumed and with the request slot free. Audio aliases share that slot and UI state; rejected requests are not queued. A fresh root offers unavailable notifications. |
-| <a id="core-perm-05"></a>`CORE-PERM-05` | Dismissing the initial notification offer remains dismissed after Activity recreation. An admitted audio request survives removal of its originating UI and recreation without another system launch; a supplied successful result updates all audio aliases from the current Android grant. |
-| <a id="core-perm-06"></a>`CORE-PERM-06` | Loaded rationale history seeds a saveable snapshot and is not replaced by changed initial arguments. Observations update local history without waiting for persistence and call the latest callback after recomposition; a disappeared observed rationale offers settings. A granted runtime permission reports removal from history. |
-| <a id="core-perm-07"></a>`CORE-PERM-07` | Explanation dismissal, a supplied launcher failure and return from settings settle the slot; later requests can proceed. Returning from settings rechecks the actual grant. |
+| <a id="core-perm-05"></a>`CORE-PERM-05` | Dismissing the initial notification offer remains dismissed after Activity recreation. An admitted audio request survives removal of its originating UI and recreation without another system launch; the recreated Activity's own registry delivers a supplied successful result, which updates all audio aliases from the current Android grant. |
+| <a id="core-perm-06"></a>`CORE-PERM-06` | Loaded rationale history seeds a saveable snapshot and is not replaced by changed initial arguments. Observations update local history without waiting for persistence and call the latest callback after recomposition; a disappeared observed rationale offers settings. A granted runtime permission reports removal from history, so a later denial offers **Continue** instead of **Open settings**. |
+| <a id="core-perm-07"></a>`CORE-PERM-07` | Explanation dismissal, a supplied launcher failure, return from settings and resuming after a grant during the explanation settle the slot and republish the rechecked state, such as `SettingsSuggested` after dismissing a settings suggestion; later requests can proceed. Returning from settings rechecks the actual grant. |
 
 ## Settings ownership and durability
 
@@ -596,22 +598,23 @@ Supply an observer that throws an ordinary or cancellation exception during subm
 
 ## Compose wiring
 
-**Owners.** [ScreenCaptureConsentHost](../../src/main/kotlin/io/screenstream/core/compose/ScreenCaptureConsentHost.kt) for `UI-01–10`; [StreamingModuleManager.InstanceContent](../../src/main/kotlin/io/screenstream/core/StreamingModuleManager.kt) for `UI-11–12`. Consent tests mount the real host in an ActivityScenario; instance-content tests admit Controllers through the manager's internal Service-start callback, without a Service lifecycle.
+**Owners.** [ScreenCaptureConsentHost](../../src/main/kotlin/io/screenstream/core/compose/ScreenCaptureConsentHost.kt) for `UI-01–10`, [StreamingModuleManager.InstanceContent](../../src/main/kotlin/io/screenstream/core/StreamingModuleManager.kt) for `UI-11–12`, and [StreamingModule.Ui.ModalHost](../../src/main/kotlin/io/screenstream/core/module/StreamingModule.kt) for `UI-13`. Consent tests mount the real host in an ActivityScenario. Instance-content tests admit Controllers through the manager's internal Service-start callback. Modal host tests supply inline hosts and check Core's provider entry point, not Compose's own scoping.
 
 | ID | Controlled history and observable result |
 | --- | --- |
 | <a id="core-ui-01"></a>`CORE-UI-01` | Cancelling or Back-dismissing education returns `EducationDeclined`, with no Android launch, foreground preparation or saved acceptance. |
 | <a id="core-ui-02"></a>`CORE-UI-02` | Continue admits one launch and saves acceptance even when the supplied system result declines; the next request skips education. |
-| <a id="core-ui-03"></a>`CORE-UI-03` | With acceptance already saved, the request launches without education. A successful result prepares foreground once on Main; a duplicate result does nothing. |
+| <a id="core-ui-03"></a>`CORE-UI-03` | With acceptance already saved, the request launches without education. A successful result prepares foreground once; a duplicate result does nothing. |
 | <a id="core-ui-04"></a>`CORE-UI-04` | With a supplied fault on saving acceptance, consent still launches, the stored file and loaded acceptance stay unchanged, and a later request shows education again. |
 | <a id="core-ui-05"></a>`CORE-UI-05` | With settings loading held, removing the host ends the request with `HostUnavailable`; once loading completes, nothing launches. |
 | <a id="core-ui-06"></a>`CORE-UI-06` | Pausing the Activity or removing the host ends an unsubmitted request with `HostUnavailable`, and new requests get `HostUnavailable` until the host resumes or is mounted again. |
-| <a id="core-ui-07"></a>`CORE-UI-07` | After recreation, a submitted request stays pending without a second launch, and the new Activity's registry delivers the original result. Success prepares foreground once on Main; denial settles without preparation. A stale result can't settle a newer request. |
+| <a id="core-ui-07"></a>`CORE-UI-07` | After recreation, a submitted request stays pending without a second launch, and the new Activity's registry delivers the original result. Success prepares foreground once; denial settles without preparation. A stale result can't settle a newer request. |
 | <a id="core-ui-08"></a>`CORE-UI-08` | When the submitting Activity, original or recreated, finishes and is destroyed while owning the result registry, the request ends with `HostUnavailable` without foreground preparation. Recreation alone doesn't end it. |
 | <a id="core-ui-09"></a>`CORE-UI-09` | With a result registry other than the Activity's, finishing and destroying the Activity leaves the submitted request pending. Cancelling the attempt clears it, and a late result prepares nothing. |
 | <a id="core-ui-10"></a>`CORE-UI-10` | A throwing launcher ends the request with `ConsentLaunchException` carrying the cause, without foreground preparation; a later request can launch and succeed. |
-| <a id="core-ui-11"></a>`CORE-UI-11` | Before any instance opens, for an unknown ID and for an instance whose factory failed, `InstanceContent` renders the fallback. The current admitted Controller renders its content with the exact window size class and modifier supplied. |
-| <a id="core-ui-12"></a>`CORE-UI-12` | After failure, restart, replacement or Exit, and for a stale identity, the next recomposition renders the fallback; only the replacement's own identity renders its content. Recomposition is forced at checkpoints, so this doesn't show that these changes trigger it. |
+| <a id="core-ui-11"></a>`CORE-UI-11` | Before any instance opens, for an unknown ID and for an instance whose factory failed, `InstanceContent` renders the fallback. For the current admitted instance, the app's layout receives the Controller's exact UI and runs within its composition. |
+| <a id="core-ui-12"></a>`CORE-UI-12` | After failure, restart, replacement or Exit, a test-forced recomposition for the revoked or stale identity renders the fallback; this doesn't assert that Core invalidates the composition itself. With the content's lifecycle collection paused, changing the fallback input at the same composition site after failure renders the fallback despite the cached Controller. Switching the requested identity directly to a replacement at that site renders the replacement while collection is paused. |
+| <a id="core-ui-13"></a>`CORE-UI-13` | Reading `ModalHost.current` without a provider fails. Moving a section's movable content to another provider keeps its untitled modal open in that host, without a dismissal request. Test hosts render inline; the app's modal windows are out of scope. |
 
 Finishing histories call `finish()`, check `isFinishing` and drive the ActivityScenario to `DESTROYED`. This exercises the production disposal hook under simulated lifecycle, not Android task destruction. These local results don't qualify Android's consent dialog, task loss or real Services. Faults enter through a supplied result registry, an isolated settings file or the factory passed to the manager's Service-start callback; the tests use no reflection.
 

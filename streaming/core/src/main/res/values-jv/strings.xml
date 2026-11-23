@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Akses mikropon</string>
     <string name="core_permission_microphone_message">Idini akses mikropon supaya swara saka mikropon sampeyan kalebu ing streaming.\n\nTanpa idin iki, audio mikropon ora bisa di-streaming.</string>
     <string name="core_permission_device_audio_title">Akses audio piranti</string>
-    <string name="core_permission_device_audio_message">Android mbutuhake idin mikropon kanggo streaming audio piranti. Iki ora nguripake mikropon sampeyan.\n\nMung audio sing diidini dienggo bareng dening Android lan aplikasi sing muter audio kasebut sing bisa di-streaming.</string>
+    <string name="core_permission_device_audio_message">Android mbutuhake idin mikropon kanggo streaming audio piranti. Yen opsi mikropon dipateni, audio saka mikropon ora dilebokake ing streaming.\n\nMung audio sing diidini dienggo bareng dening Android lan aplikasi sing muter audio kasebut sing bisa di-streaming.</string>
 
     <string name="core_permission_audio_title">Audio mikropon lan piranti</string>
     <string name="core_permission_audio_message">Idini akses mikropon kanggo streaming audio mikropon lan piranti.\n\nAudio piranti mung bisa di-streaming yen Android lan aplikasi sing muter audio kasebut ngidini audio kasebut dienggo bareng.</string>

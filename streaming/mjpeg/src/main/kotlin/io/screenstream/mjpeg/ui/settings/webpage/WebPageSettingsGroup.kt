@@ -5,7 +5,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.WebPageSettings
@@ -25,13 +24,16 @@ internal val webPageSettingSearchEntries: List<SettingSearchInfo> = listOf(
 internal fun WebPageSettingsGroup(
     webPageSettings: WebPageSettings,
     mjpegSettings: MjpegSettings,
-    onSaveError: (String) -> Unit,
     visibleSettings: Set<SettingSearchInfo>?,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
 ) {
-    val saveErrorText = stringResource(R.string.mjpeg_pref_web_save_error)
-    val save = rememberMjpegSettingsSave(mjpegSettings, "WebPage.save", "Could not save web page settings") { onSaveError(saveErrorText) }
+    val save = rememberMjpegSettingsSave(
+        settings = mjpegSettings,
+        logTag = "WebPage.save",
+        logMessage = "Could not save web page settings",
+        errorMessageRes = R.string.mjpeg_pref_web_save_error,
+    )
 
     fun updateWebPage(transform: WebPageSettings.() -> WebPageSettings) = save { copy(web = web.transform()) }
 

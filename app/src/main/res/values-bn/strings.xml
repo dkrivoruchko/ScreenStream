@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">ত্রুটি</string>
-    <string name="app_error_recover">পুনরুদ্ধার করুন</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">ফিরে যান</string>
+    <string name="app_action_close">বন্ধ করুন</string>
+    <string name="app_action_exit">প্রস্থান</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">প্রস্তুত করা হচ্ছে…</string>
     <string name="app_module_error_title">কিছু ভুল হয়েছে</string>
     <string name="app_module_error_restart">মোড আবার চালু করুন</string>
 
-    <string name="app_activity_update_dialog_title">আপডেট এখন উপলব্ধ</string>
-    <string name="app_activity_update_dialog_message">আপডেট প্রস্তুত। এখন অ্যাপ আবার চালু করবেন?</string>
-    <string name="app_activity_update_dialog_restart">পুনরারম্ভ</string>
+    <string name="app_exit_dialog_title">ScreenStream থেকে বের হবেন?</string>
+    <string name="app_exit_dialog_message">কোনো স্ট্রিম চালু থাকলে তা বন্ধ হয়ে যাবে।</string>
 
-    <string name="app_tab_stream">স্ট্রিম</string>
-    <string name="app_tab_settings">সেটিংস</string>
-    <string name="app_tab_about">সম্পর্কে</string>
-    <string name="app_tab_exit">প্রস্থান</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">স্ট্রিমিং পদ্ধতি</string>
+    <string name="app_method_choose">স্ট্রিমিং পদ্ধতি বেছে নিন</string>
+    <string name="app_method_details">বিস্তারিত</string>
+    <string name="app_method_details_description">%1$s-এর বিস্তারিত</string>
+    <string name="app_method_benefits">সুবিধা</string>
+    <string name="app_method_things_to_know">যা জানা দরকার</string>
 
-    <string name="app_tab_stream_select_mode">স্ট্রিম মোড নির্বাচন করুন:</string>
-    <string name="app_tab_stream_switching_modules">মোড বদলানো হচ্ছে…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">অ্যাপের সেটিংস</string>
 
-    <string name="app_mode_selected_method">সক্রিয় স্ট্রিমিং পদ্ধতি</string>
-    <string name="app_mode_choose_method">স্ট্রিমিং পদ্ধতি বেছে নিন</string>
-    <string name="app_mode_choose_another_method">অন্য পদ্ধতি বেছে নিন</string>
-    <string name="app_mode_change">বদলান</string>
-    <string name="app_mode_chooser_title">স্ক্রিন শেয়ার করার পদ্ধতি বেছে নিন</string>
-    <string name="app_mode_close_chooser">বন্ধ করুন</string>
-    <string name="app_mode_details">বিস্তারিত</string>
-    <string name="app_mode_details_description">%1$s-এর বিস্তারিত</string>
-    <string name="app_mode_benefits">সুবিধা</string>
-    <string name="app_mode_things_to_know">যা জানা দরকার</string>
+    <string name="app_pref_language">অ্যাপের ভাষা</string>
+    <string name="app_pref_language_summary">এই অ্যাপের ভাষা বেছে নিন</string>
+    <string name="app_pref_language_system_default">সিস্টেম ডিফল্ট</string>
 
+    <string name="app_pref_dark_theme">ডার্ক থিম</string>
+    <string name="app_pref_dark_theme_summary">কখন ডার্ক থিম ব্যবহার করা হবে</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
+    <string-array name="app_pref_dark_theme_options_battery_saver">
+        <item>সবসময়</item>
+        <item>ব্যাটারি সেভার অনুযায়ী</item>
+        <item>কখনও না</item>
+    </string-array>
+    <string-array name="app_pref_dark_theme_options_follow_system">
+        <item>সবসময়</item>
+        <item>সিস্টেম অনুসরণ করুন</item>
+        <item>কখনও না</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_color">গতিশীল রঙ</string>
+    <string name="app_pref_dynamic_color_summary">সিস্টেমের রঙ ব্যবহার করুন</string>
+
+    <string name="app_pref_notifications">অ্যাপের বিজ্ঞপ্তি</string>
+    <string name="app_pref_notifications_summary">সিস্টেম সেটিংসে বিজ্ঞপ্তি ম্যানেজ করুন</string>
+    <string name="app_pref_notifications_open_error">বিজ্ঞপ্তির সেটিংস খোলা যায়নি</string>
+
+    <string name="app_pref_add_tile">দ্রুত সেটিংস টাইল যোগ করুন</string>
+    <string name="app_pref_add_tile_summary">অ্যাপ খুলুন বা চালু থাকা স্ট্রিম বন্ধ করুন</string>
+    <string name="app_pref_tile_already_added">দ্রুত সেটিংস টাইল আগেই যোগ করা হয়েছে</string>
+    <string name="app_pref_add_tile_error">দ্রুত সেটিংস টাইল যোগ করা যায়নি</string>
+
+    <string name="app_pref_save_error">সেটিং সেভ করা যায়নি</string>
+
+    <!-- About -->
+    <string name="app_about_title">সম্পর্কে</string>
+    <string name="app_about_version">সংস্করণ: %1$s</string>
+    <string name="app_about_developer">তৈরি করেছেন Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">অ্যাপকে রেটিং দিন</string>
+    <string name="app_about_source_code">সোর্স কোড</string>
+    <string name="app_about_terms_and_conditions">শর্তাবলী</string>
+    <string name="app_about_privacy_policy">গোপনীয়তা নীতি</string>
+    <string name="app_about_privacy_options">গোপনীয়তা বিকল্প</string>
+    <string name="app_about_license">লাইসেন্স</string>
+    <string name="app_about_open_link_error">লিঙ্ক খোলা যায়নি</string>
+    <string name="app_about_privacy_options_open_error">গোপনীয়তা বিকল্প খোলা যায়নি</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">আপডেট ডাউনলোড হয়েছে</string>
+    <string name="app_update_message">আপডেট ইনস্টল করতে অ্যাপ আবার চালু করুন। কোনো স্ট্রিম চালু থাকলে তা বন্ধ হয়ে যাবে।</string>
+    <string name="app_update_restart">আবার চালু করুন</string>
+
+    <!-- Notifications -->
     <string name="app_notification_channel_streaming">স্ট্রিমিং বিজ্ঞপ্তি</string>
     <string name="app_notification_channel_error">ত্রুটি বিজ্ঞপ্তি</string>
+
     <string name="app_notification_waiting_content">অ্যাপ খুলতে ট্যাপ করুন</string>
     <string name="app_notification_streaming_title">স্ট্রিমিং…</string>
     <string name="app_notification_streaming_content">স্ট্রিম শেষ করতে থামান-এ ট্যাপ করুন</string>
     <string name="app_notification_stop">থামান</string>
 
+    <string name="app_notification_error_title">ত্রুটি</string>
+    <string name="app_notification_error_recover">পুনরুদ্ধার করুন</string>
+
+    <!-- Quick Settings tile -->
     <!-- When idle, the tile opens the app; it does not start capture. -->
     <string name="app_tile_open">ScreenStream খুলুন</string>
-    <string name="app_tile_stop">থামান</string>
-
-    <string name="app_pref_back">ফিরে যান</string>
-    <string name="app_pref_settings">সেটিংস</string>
-    <string name="app_pref_locale">অ্যাপের ভাষা</string>
-    <string name="app_pref_locale_summary">অ্যাপের ভাষার সেটিংস খুলুন</string>
-    <string name="app_pref_locale_default">সিস্টেম ডিফল্ট</string>
-    <string name="app_pref_night_mode">ডার্ক থিম</string>
-    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
-        <item>সবসময়</item>
-        <item>ব্যাটারি সেভার অনুযায়ী</item>
-        <item>কখনও না</item>
-    </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
-        <item>সবসময়</item>
-        <item>সিস্টেম অনুসরণ করুন</item>
-        <item>কখনও না</item>
-    </string-array>
-    <string name="app_pref_dynamic_theme">গতিশীল রঙ</string>
-    <string name="app_pref_dynamic_theme_summary">আপনার ওয়ালপেপারের রঙের উপর ভিত্তি করে চেহারা সামঞ্জস্য করুন</string>
-    <string name="app_pref_notification">অ্যাপের বিজ্ঞপ্তি</string>
-    <string name="app_pref_notification_summary">সিস্টেম সেটিংসে বিজ্ঞপ্তি ম্যানেজ করুন</string>
-    <string name="app_pref_tile">দ্রুত সেটিংস টাইল যোগ করুন</string>
-    <string name="app_pref_tile_summary">দ্রুত সেটিংসে ScreenStream যোগ করুন</string>
-
-    <string name="app_tab_about_app_version">সংস্করণ: %1$s</string>
-    <string name="app_tab_about_developer_name">তৈরি করেছেন Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">অ্যাপকে রেটিং দিন</string>
-    <string name="app_tab_about_app_sources">সোর্স কোড</string>
-    <string name="app_tab_about_terms_conditions">শর্তাবলী</string>
-    <string name="app_tab_about_privacy_policy">গোপনীয়তা নীতি</string>
-    <string name="app_tab_about_privacy_options">গোপনীয়তা বিকল্প</string>
-    <string name="app_tab_about_license">লাইসেন্স</string>
+    <string name="app_tile_stop">স্ট্রিম বন্ধ করুন</string>
 </resources>

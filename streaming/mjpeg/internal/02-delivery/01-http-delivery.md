@@ -158,12 +158,12 @@ Each incarnation has a budget of three attempts. A successful bind spends an att
 | Outcome of a bind attempt | Reported failure |
 | --- | --- |
 | `SecurityException` | `PermissionDenied` |
-| Any `SocketException`, including `BindException` | `AddressUnavailable` |
+| Any `SocketException`, including `BindException`, or a `CancellationException` with a direct `BindException` cause | `AddressUnavailable` |
 | Any other `IOException` | `IoFailure` |
 | Any other exception | `Unknown` |
 | The engine terminated by itself | `IoFailure` |
 
-Before mapping an exception, the attempt checks whether its own coroutine was cancelled. Cancelling the owner during terminal stop propagates as cancellation. A cancelled engine under a still-active owner is mapped like any other failure. That result is published only if the incarnation is still planned, so a server that was just removed from the plan shows nothing.
+Before mapping an exception, the attempt checks whether its own coroutine was cancelled. Cancelling the owner during terminal stop propagates as cancellation. A cancelled engine under a still-active owner follows the table. An extra cancellation wrapper, such as the one coroutine stack-trace recovery adds in the host CIO tests, gives `Unknown`. The result is published only while the incarnation is still planned.
 
 ## Access generations and PIN blocks
 
@@ -222,7 +222,7 @@ Requests pass two gates. The [route adapter](03-web-client.md#routes-and-respons
 
 1. **Credentials**: open access, a valid token, or a cookie that the adapter accepted for this request. Failure returns `403`, even if no image could have been served either.
 2. **Runtime**: delivery isn't closing, the listener still belongs to a planned server, and the call's job is still active. Failure returns `503` with `Retry-After: 1`.
-3. **Image**: the store opens a reader that pins the selected image as its initial lease before any header is written. Failure returns `503`. While delivery is active the logo is always installed, so in practice this happens only during shutdown.
+3. **Image**: the store opens a reader that pins the selected image as its initial lease before any header is written. Failure returns `503`. This is defensive: the logo is installed before any listener opens, and the store is disposed only after the runtime check already fails.
 
 Delivery then creates the `JpegResponse` and registers it with its client row. It also installs a completion handler on the exact call job. That handler retires the response; returning from the route or from `respond` doesn't. Retirement closes the reader and transfers the response's final progress to the retired totals exactly once. If the row still belongs to that endpoint, retirement also adds the bytes to the row, so a late completion can't update a replacement row. The public [availability rules](../../docs/server.md#availability) describe the resulting statuses.
 

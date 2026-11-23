@@ -235,7 +235,7 @@ internal class MjpegSettingsModelsTest {
 
     // Cases: MJPEG-SET-06, MJPEG-SET-11
     @Test
-    fun explicitPinGenerationWorksForBothPoliciesAndPreservesOtherAccessChoices() {
+    fun explicitPinGenerationReplacesCurrentPinAndPreservesOtherAccessChoicesForBothPolicies() {
         for (policy in AccessSettings.PinPolicy.entries) {
             val withoutPin = AccessSettings(
                 pinEnabled = true, pinPolicy = policy, pin = null,
@@ -258,6 +258,7 @@ internal class MjpegSettingsModelsTest {
             val pin = assertNotNull(generated.pin)
             assertEquals(6, pin.value.length)
             assertTrue(pin.value.all { it in '0'..'9' })
+            assertNotEquals(original.pin, pin)
             assertEquals(original.copy(pin = pin), generated)
             assertFalse(generated.toString().contains(pin.value))
         }

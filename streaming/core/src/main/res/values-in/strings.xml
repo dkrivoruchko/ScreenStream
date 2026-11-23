@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Akses mikrofon</string>
     <string name="core_permission_microphone_message">Izinkan akses mikrofon untuk menyertakan suara dari mikrofon Anda dalam streaming.\n\nTanpanya, audio mikrofon tidak dapat di-streaming.</string>
     <string name="core_permission_device_audio_title">Akses audio perangkat</string>
-    <string name="core_permission_device_audio_message">Android memerlukan izin mikrofon untuk streaming audio perangkat. Ini tidak menyalakan mikrofon Anda.\n\nHanya audio yang diizinkan untuk dibagikan oleh Android dan aplikasi pemutarnya yang dapat di-streaming.</string>
+    <string name="core_permission_device_audio_message">Android memerlukan izin mikrofon untuk streaming audio perangkat. Jika opsi mikrofon dinonaktifkan, audio dari mikrofon tidak disertakan dalam streaming.\n\nHanya audio yang diizinkan untuk dibagikan oleh Android dan aplikasi pemutarnya yang dapat di-streaming.</string>
 
     <string name="core_permission_audio_title">Audio mikrofon dan perangkat</string>
     <string name="core_permission_audio_message">Izinkan akses mikrofon untuk streaming audio mikrofon dan perangkat.\n\nAudio perangkat hanya dapat di-streaming jika Android dan aplikasi pemutarnya mengizinkan berbagi audio tersebut.</string>

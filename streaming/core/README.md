@@ -21,7 +21,7 @@ The host app:
 
 - includes `StreamingKoinModule`, which provides the manager, `ScreenCaptureAccess` and the streaming settings store, and supplies the Android `Context`, every `StreamingModule` definition, one `StreamingModuleNotifications` provider and one `ConsentRequestObserver`
 - mounts `ScreenCaptureConsentHost()` once at the Activity root and wraps module UI in `RuntimePermissionHost`, supplying loaded rationale history and its app-owned persistence callback (or another `RuntimePermissions` implementation)
-- renders the selected module with `StreamingModuleManager.InstanceContent` and removes its tasks when the manager publishes `Exiting`
+- renders the selected module with `StreamingModuleManager.InstanceContent`, binds a modal host for each pane with `Ui.ModalHost.Provide`, and removes its tasks when the manager publishes `Exiting`
 - supplies a Foundation `Logger` factory accepting the source owner (`Any`)
 
 Core's manifest declares the non-exported `StreamingModuleActionReceiver`. Each module declares its own Service with its foreground types and permissions.

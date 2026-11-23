@@ -1,75 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">Fehler</string>
-    <string name="app_error_recover">Wiederherstellen</string>
+    <!-- App and shared actions -->
+    <string name="app_action_back">Zurück</string>
+    <string name="app_action_close">Schließen</string>
+    <string name="app_action_exit">Beenden</string>
 
+    <!-- Stream screen -->
+    <string name="app_stream_switching_modes">Wird vorbereitet…</string>
     <string name="app_module_error_title">Etwas ist schiefgelaufen</string>
     <string name="app_module_error_restart">Modus neu starten</string>
 
-    <string name="app_activity_update_dialog_title">Update verfügbar</string>
-    <string name="app_activity_update_dialog_message">Ein Update ist bereit. App jetzt neu starten?</string>
-    <string name="app_activity_update_dialog_restart">Neu starten</string>
+    <string name="app_exit_dialog_title">ScreenStream beenden?</string>
+    <string name="app_exit_dialog_message">Ein eventuell aktiver Stream wird gestoppt.</string>
 
-    <string name="app_tab_stream">Stream</string>
-    <string name="app_tab_settings">Einstellungen</string>
-    <string name="app_tab_about">Infos</string>
-    <string name="app_tab_exit">Beenden</string>
+    <!-- Streaming method chooser -->
+    <string name="app_method_label">Streaming-Methode</string>
+    <string name="app_method_choose">Streaming-Methode auswählen</string>
+    <string name="app_method_details">Details</string>
+    <string name="app_method_details_description">Details zu %1$s</string>
+    <string name="app_method_benefits">Vorteile</string>
+    <string name="app_method_things_to_know">Wissenswertes</string>
 
-    <string name="app_tab_stream_select_mode">Stream-Modus auswählen:</string>
-    <string name="app_tab_stream_switching_modules">Modi werden gewechselt…</string>
+    <!-- App settings -->
+    <string name="app_settings_title">App-Einstellungen</string>
 
-    <string name="app_mode_selected_method">Aktive Streaming-Methode</string>
-    <string name="app_mode_choose_method">Streaming-Methode auswählen</string>
-    <string name="app_mode_choose_another_method">Andere Methode auswählen</string>
-    <string name="app_mode_change">Ändern</string>
-    <string name="app_mode_chooser_title">Methode zum Teilen des Bildschirms auswählen</string>
-    <string name="app_mode_close_chooser">Schließen</string>
-    <string name="app_mode_details">Details</string>
-    <string name="app_mode_details_description">Details zu %1$s</string>
-    <string name="app_mode_benefits">Vorteile</string>
-    <string name="app_mode_things_to_know">Wissenswertes</string>
+    <string name="app_pref_language">App-Sprache</string>
+    <string name="app_pref_language_summary">Sprache für diese App auswählen</string>
+    <string name="app_pref_language_system_default">Systemstandard</string>
 
-    <string name="app_notification_channel_streaming">Streaming-Benachrichtigungen</string>
-    <string name="app_notification_channel_error">Fehlerbenachrichtigungen</string>
-    <string name="app_notification_waiting_content">Zum Öffnen der App tippen</string>
-    <string name="app_notification_streaming_title">Streaming läuft …</string>
-    <string name="app_notification_streaming_content">Tippen Sie auf Stopp, um den Stream zu beenden</string>
-    <string name="app_notification_stop">Stopp</string>
-
-    <!-- When idle, the tile opens the app; it does not start capture. -->
-    <string name="app_tile_open">ScreenStream öffnen</string>
-    <string name="app_tile_stop">Stopp</string>
-
-    <string name="app_pref_back">Zurück</string>
-    <string name="app_pref_settings">Einstellungen</string>
-    <string name="app_pref_locale">App-Sprache</string>
-    <string name="app_pref_locale_summary">App-Spracheinstellungen öffnen</string>
-    <string name="app_pref_locale_default">Systemstandard</string>
-    <string name="app_pref_night_mode">Dunkles Design</string>
+    <string name="app_pref_dark_theme">Dunkles Design</string>
+    <string name="app_pref_dark_theme_summary">Wann das dunkle Design verwendet wird</string>
     <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
-    <string-array name="app_pref_night_mode_options_api21_28">
+    <string-array name="app_pref_dark_theme_options_battery_saver">
         <item>Immer</item>
         <item>Je nach Energiesparmodus</item>
         <item>Nie</item>
     </string-array>
-    <string-array name="app_pref_night_mode_options_api29">
+    <string-array name="app_pref_dark_theme_options_follow_system">
         <item>Immer</item>
         <item>Systemeinstellung verwenden</item>
         <item>Nie</item>
     </string-array>
-    <string name="app_pref_dynamic_theme">Dynamische Farbe</string>
-    <string name="app_pref_dynamic_theme_summary">Darstellung an die Farben des Hintergrundbilds anpassen</string>
-    <string name="app_pref_notification">App-Benachrichtigungen</string>
-    <string name="app_pref_notification_summary">Benachrichtigungen in den Systemeinstellungen verwalten</string>
-    <string name="app_pref_tile">Kachel für Schnelleinstellungen hinzufügen</string>
-    <string name="app_pref_tile_summary">ScreenStream zu den Schnelleinstellungen hinzufügen</string>
 
-    <string name="app_tab_about_app_version">Version: %1$s</string>
-    <string name="app_tab_about_developer_name">Entwickelt von Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">App bewerten</string>
-    <string name="app_tab_about_app_sources">Quellcode</string>
-    <string name="app_tab_about_terms_conditions">Nutzungsbedingungen</string>
-    <string name="app_tab_about_privacy_policy">Datenschutzrichtlinie</string>
-    <string name="app_tab_about_privacy_options">Datenschutzoptionen</string>
-    <string name="app_tab_about_license">Lizenz</string>
+    <string name="app_pref_dynamic_color">Dynamische Farbe</string>
+    <string name="app_pref_dynamic_color_summary">Systemfarben verwenden</string>
+
+    <string name="app_pref_notifications">App-Benachrichtigungen</string>
+    <string name="app_pref_notifications_summary">Benachrichtigungen in den Systemeinstellungen verwalten</string>
+    <string name="app_pref_notifications_open_error">Benachrichtigungseinstellungen konnten nicht geöffnet werden</string>
+
+    <string name="app_pref_add_tile">Kachel für Schnelleinstellungen hinzufügen</string>
+    <string name="app_pref_add_tile_summary">App öffnen oder aktiven Stream stoppen</string>
+    <string name="app_pref_tile_already_added">Kachel für Schnelleinstellungen bereits hinzugefügt</string>
+    <string name="app_pref_add_tile_error">Kachel für Schnelleinstellungen konnte nicht hinzugefügt werden</string>
+
+    <string name="app_pref_save_error">Einstellung konnte nicht gespeichert werden</string>
+
+    <!-- About -->
+    <string name="app_about_title">Infos</string>
+    <string name="app_about_version">Version: %1$s</string>
+    <string name="app_about_developer">Entwickelt von Dmytro Kryvoruchko</string>
+
+    <string name="app_about_rate_app">App bewerten</string>
+    <string name="app_about_source_code">Quellcode</string>
+    <string name="app_about_terms_and_conditions">Nutzungsbedingungen</string>
+    <string name="app_about_privacy_policy">Datenschutzrichtlinie</string>
+    <string name="app_about_privacy_options">Datenschutzoptionen</string>
+    <string name="app_about_license">Lizenz</string>
+    <string name="app_about_open_link_error">Link konnte nicht geöffnet werden</string>
+    <string name="app_about_privacy_options_open_error">Datenschutzoptionen konnten nicht geöffnet werden</string>
+
+    <!-- In-app update -->
+    <string name="app_update_title">Update heruntergeladen</string>
+    <string name="app_update_message">Starten Sie die App neu, um das Update zu installieren. Ein eventuell aktiver Stream wird gestoppt.</string>
+    <string name="app_update_restart">Neu starten</string>
+
+    <!-- Notifications -->
+    <string name="app_notification_channel_streaming">Streaming-Benachrichtigungen</string>
+    <string name="app_notification_channel_error">Fehlerbenachrichtigungen</string>
+
+    <string name="app_notification_waiting_content">Zum Öffnen der App tippen</string>
+    <string name="app_notification_streaming_title">Streaming läuft…</string>
+    <string name="app_notification_streaming_content">Tippen Sie auf Stopp, um den Stream zu beenden</string>
+    <string name="app_notification_stop">Stopp</string>
+
+    <string name="app_notification_error_title">Fehler</string>
+    <string name="app_notification_error_recover">Wiederherstellen</string>
+
+    <!-- Quick Settings tile -->
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream öffnen</string>
+    <string name="app_tile_stop">Stream stoppen</string>
 </resources>

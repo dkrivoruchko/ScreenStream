@@ -72,7 +72,7 @@ A **capture attempt** is one accepted Start inside the instance. It lasts from t
 | Select MJPEG mode | Created. HTTP delivery and address discovery start. | None | Can open the page once a listener is listening, and see the inactive stream image |
 | Start stream | Unchanged | Created: consent, then capture | Receive live images once the first JPEG arrives |
 | Stop stream | Unchanged. Listeners and credentials stay. | Cleaned up | Stay connected and see the inactive stream image |
-| Exit, Restart mode or another mode | Closed and cleaned up | Stopped and cleaned up | Disconnected. Old links and credentials stop working. |
+| Exit, Restart mode or another mode | Closed and cleaned up | Stopped and cleaned up | Disconnected. Old access links and viewing cookies stop working. |
 
 ```mermaid
 flowchart LR
@@ -210,13 +210,13 @@ MJPEG mode distinguishes problems that a capture attempt can survive from proble
 | Capture cleanup fails | Ends | Reports failure and shuts down | The app shows a mode failure and offers **Restart mode** |
 | HTTP delivery, address discovery or settings fail, Android refuses the Service's capture phase, or Android destroys the Service | Stopped | Reports failure and shuts down | Same as above |
 
-A paused capture resumes when capture conditions change or a changed image setting reaches the Engine; the app does not retry on a timer. [Handle errors and recovery](../../../screen-capture-engine/docs/usage.md#handle-errors-and-recovery) defines the Engine's pause categories, and [Streaming Module Notifications](../../core/docs/notifications.md#error-presentation) describes how Core presents operation errors and failures.
+A paused capture can resume when capture conditions change or a changed image setting reaches the Engine; the app does not retry on a timer. [Handle errors and recovery](../../../screen-capture-engine/docs/usage.md#handle-errors-and-recovery) defines the Engine's pause categories, and [Streaming Module Notifications](../../core/docs/notifications.md#error-presentation) describes how Core presents operation errors and failures.
 
 ### Closing the mode
 
-Exit (from the app or the notification), **Restart mode** and selecting a different mode all ask the manager to close the instance. The instance stops accepting work, stops any capture attempt, shuts down HTTP delivery (ending every viewer connection and discarding the credentials) and closes address discovery. After capture cleanup, it stops the Service.
+Exit (from the app or the notification), **Restart mode** and selecting a different mode all ask the manager to close the instance. The instance stops accepting work, stops any capture attempt, shuts down HTTP delivery (ending every viewer connection and discarding the token and viewing cookie) and closes address discovery. After capture cleanup, it stops the Service.
 
-The manager waits only for a limited time, so a replacement instance can open while the old one is still releasing resources. **Restart mode** opens a replacement that waits for a new Start, with fresh credentials. [Closing a module instance](../../core/docs/module-contract-and-manager.md#closing-a-module-instance) describes the manager's side.
+The manager waits only for a limited time, so a replacement instance can open while the old one is still releasing resources. **Restart mode** opens a replacement that waits for a new Start, with a new token and viewing cookie when protection is on. [Closing a module instance](../../core/docs/module-contract-and-manager.md#closing-a-module-instance) describes the manager's side.
 
 ## Status and statistics
 

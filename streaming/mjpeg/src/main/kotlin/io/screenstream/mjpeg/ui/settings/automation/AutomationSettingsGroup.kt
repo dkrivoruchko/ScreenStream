@@ -5,7 +5,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings
@@ -26,13 +25,16 @@ internal val automationSettingSearchEntries: List<SettingSearchInfo> = listOf(
 internal fun AutomationSettingsGroup(
     behaviorSettings: StreamBehaviorSettings,
     mjpegSettings: MjpegSettings,
-    onSaveError: (String) -> Unit,
     visibleSettings: Set<SettingSearchInfo>?,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
 ) {
-    val saveErrorText = stringResource(R.string.mjpeg_pref_automation_save_error)
-    val save = rememberMjpegSettingsSave(mjpegSettings, "Automation.save", "Could not save automation settings") { onSaveError(saveErrorText) }
+    val save = rememberMjpegSettingsSave(
+        settings = mjpegSettings,
+        logTag = "Automation.save",
+        logMessage = "Could not save automation settings",
+        errorMessageRes = R.string.mjpeg_pref_automation_save_error,
+    )
 
     fun updateBehavior(transform: StreamBehaviorSettings.() -> StreamBehaviorSettings) = save { copy(behavior = behavior.transform()) }
 

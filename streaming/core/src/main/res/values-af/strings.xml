@@ -19,7 +19,7 @@
     <string name="core_permission_microphone_title">Mikrofoontoegang</string>
     <string name="core_permission_microphone_message">Laat mikrofoontoegang toe om klank van jou mikrofoon by die stroom in te sluit.\n\nDaarsonder kan mikrofoonklank nie gestroom word nie.</string>
     <string name="core_permission_device_audio_title">Toegang tot toestelklank</string>
-    <string name="core_permission_device_audio_message">Android vereis mikrofoontoestemming om toestelklank te stroom. Dit skakel nie jou mikrofoon aan nie.\n\nSlegs klank wat Android en die spelende app toelaat om gedeel te word, kan gestroom word.</string>
+    <string name="core_permission_device_audio_message">Android vereis mikrofoontoestemming om toestelklank te stroom. As die mikrofoonopsie af is, word klank van die mikrofoon nie gestroom nie.\n\nSlegs klank wat Android en die spelende app toelaat om gedeel te word, kan gestroom word.</string>
 
     <string name="core_permission_audio_title">Mikrofoon- en toestelklank</string>
     <string name="core_permission_audio_message">Laat mikrofoontoegang toe om mikrofoon- en toestelklank te stroom.\n\nToestelklank kan slegs gestroom word wanneer Android en die spelende app dit toelaat.</string>

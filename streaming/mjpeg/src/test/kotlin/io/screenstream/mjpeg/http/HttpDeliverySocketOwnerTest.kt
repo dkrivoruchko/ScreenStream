@@ -12,6 +12,7 @@ import io.screenstream.mjpeg.http.HttpDelivery.ServerFailure
 import io.screenstream.mjpeg.http.HttpDelivery.ServerState
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -54,10 +55,16 @@ internal class HttpDeliverySocketOwnerTest {
     // Cases: MJPEG-SRV-01, MJPEG-SRV-04
     @Test(timeout = 30_000)
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun directListenerExceptionsMapIndependentlyWhileAnotherAddressKeepsListening(): Unit = runBlocking {
+    fun listenerExceptionsMapIndependentlyWhileAnotherAddressKeepsListening(): Unit = runBlocking {
         val failures = listOf(
             BindException("occupied") to ServerFailure.AddressUnavailable,
             BindException("address not available") to ServerFailure.AddressUnavailable,
+            CancellationException("engine bind failed", BindException("occupied")) to ServerFailure.AddressUnavailable,
+            CancellationException(
+                "recovered engine cancellation",
+                CancellationException("engine bind failed", BindException("occupied")),
+            ) to ServerFailure.Unknown,
+            CancellationException("engine cancelled", SocketException("unavailable")) to ServerFailure.Unknown,
             SecurityException("denied") to ServerFailure.PermissionDenied,
             SocketException("unavailable") to ServerFailure.AddressUnavailable,
             IOException("io") to ServerFailure.IoFailure,
@@ -73,7 +80,7 @@ internal class HttpDeliverySocketOwnerTest {
                 val failed = fixture.delivery.awaitHttpInfo {
                     it.servers.first().state is ServerState.Failed && it.servers.last().state == ServerState.Listening
                 }
-                assertEquals(expected, assertIs<ServerState.Failed>(failed.servers.first().state).reason)
+                assertEquals(expected, assertIs<ServerState.Failed>(failed.servers.first().state).reason, "Failed listener threw $cause")
                 assertNull(failed.fatalCause)
             } finally {
                 fixture.close()

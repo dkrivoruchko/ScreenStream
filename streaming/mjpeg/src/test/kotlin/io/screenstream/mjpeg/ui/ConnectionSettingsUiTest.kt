@@ -39,6 +39,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowToast
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -59,8 +60,6 @@ internal class ConnectionSettingsUiTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
-    private val saveErrors = mutableListOf<String>()
-
     @Test
     fun portDismissalSavesValidValuesAndDiscardsInvalidDrafts() {
         val settings = newSettings()
@@ -78,7 +77,7 @@ internal class ConnectionSettingsUiTest {
         closeEditor()
         assertEquals(initial.copy(network = initial.network.copy(httpPort = 9090)), compose.awaitSavedMjpegSettings(settings))
         compose.onNodeWithText("9090").assertIsDisplayed()
-        compose.runOnIdle { assertTrue(saveErrors.isEmpty()) }
+        compose.runOnIdle { assertEquals(0, ShadowToast.shownToastCount()) }
     }
 
     @Test
@@ -93,7 +92,7 @@ internal class ConnectionSettingsUiTest {
         portField().assertIsNotEnabled()
         closeEditor()
         assertEquals(initial, compose.awaitSavedMjpegSettings(settings))
-        compose.runOnIdle { assertTrue(saveErrors.isEmpty()) }
+        compose.runOnIdle { assertEquals(0, ShadowToast.shownToastCount()) }
     }
 
     @Test
@@ -125,7 +124,7 @@ internal class ConnectionSettingsUiTest {
             ),
         )
         assertEquals(expected, compose.awaitSavedMjpegSettings(settings))
-        compose.runOnIdle { assertTrue(saveErrors.isEmpty()) }
+        compose.runOnIdle { assertEquals(0, ShadowToast.shownToastCount()) }
     }
 
     private fun assertQueuedPortSave(editPolicyAtExecution: MjpegSettings.EditPolicy, expectedPort: Int?) {
@@ -162,7 +161,7 @@ internal class ConnectionSettingsUiTest {
                     web = initial.web.copy(title = "Unrelated queued edit"),
                 )
                 assertEquals(expected, compose.awaitSavedMjpegSettings(settings))
-                compose.runOnIdle { assertTrue(saveErrors.isEmpty()) }
+                compose.runOnIdle { assertEquals(0, ShadowToast.shownToastCount()) }
             } finally {
                 releaseSave.countDown()
                 try {
@@ -187,7 +186,6 @@ internal class ConnectionSettingsUiTest {
                     networkSettings = data.network,
                     mjpegSettings = settings,
                     editPolicy = policy.value,
-                    onSaveError = saveErrors::add,
                     visibleSettings = setOf(visibleSetting),
                     expanded = true,
                     onExpandedChange = {},

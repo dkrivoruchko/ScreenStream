@@ -127,6 +127,7 @@ internal class ControlledHttpDelivery(
 
     override val info = MutableStateFlow(HttpDelivery.Info())
     override val appliedToken: SecretValue? = null
+    val initialConfiguration = CompletableDeferred<Configuration>()
     val configuration = MutableStateFlow<Configuration?>(null)
     val startCalls = MutableStateFlow(0)
     val plan = MutableStateFlow<Plan?>(null)
@@ -158,7 +159,9 @@ internal class ControlledHttpDelivery(
         onStart()
         if (closed || configuration.value != null || !acceptConfiguration) return false
         initialLogoBytes = logoBytes
-        configuration.value = Configuration(accessSettings, postStopImage, webSettings)
+        val applied = Configuration(accessSettings, postStopImage, webSettings)
+        initialConfiguration.complete(applied)
+        configuration.value = applied
         return true
     }
 
