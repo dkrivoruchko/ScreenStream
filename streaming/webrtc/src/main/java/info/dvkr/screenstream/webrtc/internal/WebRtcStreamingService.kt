@@ -111,6 +111,8 @@ internal class WebRtcStreamingService(
     private val versionName by lazy {
         runCatching { service.packageManager.getPackageInfo("com.google.android.gms", 0).versionName }.getOrNull() ?: "-"
     }
+    // Worker cleanup can outlive the Android Service.
+    private val receiverContext = service.applicationContext
     private val powerManager: PowerManager by lazy { service.application.getSystemService(PowerManager::class.java) }
     private val connectivityManager: ConnectivityManager by lazy { service.application.getSystemService(ConnectivityManager::class.java) }
     private val mainHandler: Handler by lazy { Handler(Looper.getMainLooper()) }
@@ -594,9 +596,9 @@ internal class WebRtcStreamingService(
 
         val intentFilter = IntentFilter().apply { addAction(Intent.ACTION_SCREEN_OFF) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            service.registerReceiver(broadcastReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+            receiverContext.registerReceiver(broadcastReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
         else
-            service.registerReceiver(broadcastReceiver, intentFilter)
+            receiverContext.registerReceiver(broadcastReceiver, intentFilter)
         receiverRegistered = true
 
         connectivityManager.registerNetworkCallback(
@@ -640,7 +642,10 @@ internal class WebRtcStreamingService(
             }
         }
         attempt { wakeLock?.let { if (it.isHeld) it.release() } }
-        if (receiverRegistered) attempt { service.unregisterReceiver(broadcastReceiver) }
+        if (receiverRegistered) {
+            receiverRegistered = false
+            attempt { receiverContext.unregisterReceiver(broadcastReceiver) }
+        }
         if (networkRegistered) attempt { connectivityManager.unregisterNetworkCallback(networkCallback) }
         attempt { coroutineScope.cancel() }
         val destroyJob = Job()

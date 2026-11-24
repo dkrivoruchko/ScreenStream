@@ -12,6 +12,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.net.DatagramPacket
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -150,8 +151,13 @@ internal class OnvifDiscoveryServer(
                     messageNumber = messageCounter.incrementAndGet(),
                 )
                 val data = response.toByteArray(Charsets.UTF_8)
-                withContext(Dispatchers.IO) {
-                    socket.send(DatagramPacket(data, data.size, packet.address, packet.port))
+                try {
+                    withContext(Dispatchers.IO) {
+                        socket.send(DatagramPacket(data, data.size, packet.address, packet.port))
+                    }
+                } catch (_: IOException) {
+                    if (socket.isClosed) break
+                    continue
                 }
                 log.v(
                     "OnvifDiscoveryServer",

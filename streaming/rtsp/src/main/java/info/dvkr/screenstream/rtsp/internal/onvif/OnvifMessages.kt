@@ -304,7 +304,7 @@ internal object OnvifMessages {
                 $body
               </env:Body>
             </env:Envelope>
-        """.trimIndent()
+        """.trimIndent().trimStart()
 
     private fun soapEnvelope(body: String): String =
         """
@@ -314,7 +314,7 @@ internal object OnvifMessages {
                 $body
               </env:Body>
             </env:Envelope>
-        """.trimIndent()
+        """.trimIndent().trimStart()
 
     private fun appSequence(deviceInfo: OnvifDeviceInfo, messageNumber: Long): String =
         """<d:AppSequence InstanceId="${deviceInfo.instanceId}" MessageNumber="$messageNumber"/>"""

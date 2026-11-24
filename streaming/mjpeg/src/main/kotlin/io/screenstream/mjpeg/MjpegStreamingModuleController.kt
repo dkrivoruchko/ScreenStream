@@ -1,5 +1,6 @@
 package io.screenstream.mjpeg
 
+import android.os.Build
 import android.os.SystemClock
 import android.widget.Toast
 import androidx.annotation.VisibleForTesting
@@ -335,6 +336,9 @@ internal class MjpegStreamingModuleController(
                 onStatisticsChanged = { enqueue(Event.StatisticsChanged) },
                 engineFactory = engineFactory,
                 analytics = MjpegSessionAnalytics(analyticsFactory, id),
+                readForegroundServiceType = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) service.foregroundServiceType else null
+                },
             )
             val attempt = CaptureAttempt(session = session, failureBeforeStart = lastFailure)
             if (!http.registerCapture(id, initialCaptureGeneration)) return@synchronized null

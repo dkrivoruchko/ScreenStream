@@ -2,6 +2,7 @@ package io.screenstream.mjpeg
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.ServiceInfo
 import android.media.projection.MediaProjection
 import android.os.PowerManager
 import android.os.SystemClock
@@ -73,6 +74,7 @@ internal class MjpegCaptureSession(
     private val onStatisticsChanged: () -> Unit = {},
     private val engineFactory: MjpegEngineFactory = DefaultMjpegEngineFactory,
     private val analytics: MjpegSessionAnalytics? = null,
+    private val readForegroundServiceType: () -> Int? = { null },
 ) : KoinComponent {
     private val log: Logger by inject { parametersOf(this) }
 
@@ -455,6 +457,15 @@ internal class MjpegCaptureSession(
                 }
             }
         } catch (cause: Throwable) {
+            if (failureStage == "Startup.projection" && cause is SecurityException &&
+                cause.message == "Media projections require a foreground service of type " +
+                    "ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION"
+            ) {
+                @SuppressLint("InlinedApi")
+                val requested = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                val actual = runCatching(readForegroundServiceType).getOrNull()
+                log.w("Startup.projection", "fgs=$actual requested=$requested attemptId=${id.uuid}")
+            }
             failCapture(failureStage, cause)
         } finally {
             analytics?.startupFinished(state.value.captureFailure)

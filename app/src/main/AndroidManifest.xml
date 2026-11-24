@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+    <uses-feature
         android:name="android.hardware.wifi"
         android:required="false" />
 
@@ -34,9 +37,6 @@
             android:name="info.dvkr.screenstream.SingleActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
-            <layout
-                android:minWidth="320dp"
-                android:minHeight="320dp" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

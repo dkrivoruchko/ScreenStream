@@ -4,10 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -21,7 +18,6 @@ import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
@@ -99,10 +95,6 @@ internal fun SearchSettingsField(query: TextFieldState, modifier: Modifier = Mod
     OutlinedTextField(
         state = query,
         modifier = modifier
-            .padding(horizontal = 16.dp)
-            .fillMaxWidth()
-            .wrapContentWidth(Alignment.CenterHorizontally)
-            .widthIn(max = 560.dp)
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .semantics { contentDescription = placeholder },

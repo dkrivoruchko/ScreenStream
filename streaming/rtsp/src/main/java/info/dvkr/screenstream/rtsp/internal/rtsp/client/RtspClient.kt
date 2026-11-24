@@ -371,7 +371,7 @@ internal class RtspClient(
                                 runCatching { writeAndFlush(commandsManager.createTeardown()) }
                             }
                         }
-                        runCatching { commandsManager.getResponseWithTimeout(socket, RtspBaseMessageHandler.Method.TEARDOWN) }
+                        runCatching { commandsManager.getResponseWithTimeout(socket, RtspBaseMessageHandler.Method.TEARDOWN, timeoutMs = 1_000) }
                         socket.close()
                     }
                 }

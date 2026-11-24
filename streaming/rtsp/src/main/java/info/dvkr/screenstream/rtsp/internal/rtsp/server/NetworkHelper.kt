@@ -145,18 +145,18 @@ internal class NetworkHelper(private val context: Context) : KoinComponent {
     ) {
         val allIfaceNames = COMMON_IFACE_NAMES + LOOPBACK_IFACE_NAMES
 
-        runCatching { NetworkInterface.getNetworkInterfaces() }.getOrElse {
-            val interfaces = mutableSetOf<NetworkInterface>()
+        val interfaces = runCatching { NetworkInterface.getNetworkInterfaces() }.getOrNull() ?: run {
+            val fallbackInterfaces = mutableSetOf<NetworkInterface>()
             (0..10).forEach { index ->
-                runCatching { NetworkInterface.getByIndex(index) }.getOrNull()?.let(interfaces::add)
+                runCatching { NetworkInterface.getByIndex(index) }.getOrNull()?.let(fallbackInterfaces::add)
             }
             allIfaceNames.forEach { base ->
-                runCatching { NetworkInterface.getByName(base) }.getOrNull()?.let(interfaces::add)
-                (0..15).forEach { i -> runCatching { NetworkInterface.getByName("$base$i") }.getOrNull()?.let(interfaces::add) }
+                runCatching { NetworkInterface.getByName(base) }.getOrNull()?.let(fallbackInterfaces::add)
+                (0..15).forEach { i -> runCatching { NetworkInterface.getByName("$base$i") }.getOrNull()?.let(fallbackInterfaces::add) }
             }
-            Collections.enumeration(interfaces.toList())
+            Collections.enumeration(fallbackInterfaces.toList())
         }
-            .asSequence()
+        interfaces.asSequence()
             .filter { nif ->
                 if (!runCatching { nif.isUp }.getOrDefault(false)) return@filter false
                 val isLoopback = LOOPBACK_IFACE_NAMES.any {
