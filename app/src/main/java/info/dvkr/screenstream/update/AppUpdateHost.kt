@@ -19,28 +19,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.ui.HandleDialogEscape
-import kotlinx.coroutines.flow.StateFlow
-
-@Composable
-internal fun AppUpdateHost(
-    restartAvailable: StateFlow<Boolean>,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    if (restartAvailable.collectAsStateWithLifecycle().value) {
-        AppUpdateSheet(
-            onConfirm = onConfirm,
-            onDismiss = onDismiss,
-        )
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppUpdateSheet(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
+internal fun AppUpdateHost(appUpdate: AppUpdate) {
+    if (!appUpdate.restartAvailable.collectAsStateWithLifecycle().value) return
+
+    val onDismiss = appUpdate::dismissUpdate
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         shape = MaterialTheme.shapes.medium,
@@ -79,7 +64,7 @@ private fun AppUpdateSheet(
             ) {
                 Text(text = stringResource(id = android.R.string.cancel))
             }
-            TextButton(onClick = onConfirm) {
+            TextButton(onClick = appUpdate::completeUpdate) {
                 Text(text = stringResource(id = R.string.app_update_restart))
             }
         }

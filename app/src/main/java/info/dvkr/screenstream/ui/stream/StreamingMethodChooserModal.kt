@@ -56,78 +56,77 @@ internal fun StreamingMethodChooserModal(
     onDismiss: () -> Unit,
     pane: ModalPane?,
 ) {
-    var detailsModuleId by retain { mutableStateOf<String?>(null) }
-    val detailsModule = modules.firstOrNull { it.id.value == detailsModuleId }
+    var detailsModuleId by retain { mutableStateOf<StreamingModule.Id?>(null) }
+    var focusSelectionOnEntry by retain { mutableStateOf(true) }
     val chooserScrollState = retain { ScrollState(0) }
-    val detailsScrollState = retain(detailsModuleId) { ScrollState(0) }
-    var focusSelectedOnEntry by retain { mutableStateOf(true) }
-    val returnToChooser = { detailsModuleId = null }
-    val onBack = returnToChooser.takeIf { detailsModule != null }
-    val title = stringResource(detailsModule?.description?.titleRes ?: R.string.app_method_choose)
-    val focus = remember { FocusRequester() }
-    val focusCurrentMethod = focusSelectedOnEntry && selectionEnabled && modules.any { it.id == selectedModuleId }
+    val details = detailsModuleId?.let { id -> modules.firstOrNull { it.id == id }?.description }
+    val scrollState = if (details == null) {
+        chooserScrollState
+    } else {
+        retain(detailsModuleId) { ScrollState(0) }
+    }
+    val focusRequester = remember { FocusRequester() }
+    val focusSelectedMethod = focusSelectionOnEntry && selectionEnabled && modules.any { it.id == selectedModuleId }
 
     AdaptiveAppModal(
-        title = title,
+        title = stringResource(details?.titleRes ?: R.string.app_method_choose),
         onDismiss = onDismiss,
         pane = pane,
-        onBack = onBack,
-        actionFocusRequester = focus.takeUnless { focusCurrentMethod },
+        onBack = if (details == null) null else ({ detailsModuleId = null }),
+        actionModifier = if (focusSelectedMethod) Modifier else Modifier.focusRequester(focusRequester),
     ) {
         val inputMode = LocalInputModeManager.current
-        LaunchedEffect(detailsModuleId, focusCurrentMethod) {
-            if (inputMode.inputMode == InputMode.Keyboard) focus.requestFocus()
+        LaunchedEffect(detailsModuleId, focusSelectedMethod) {
+            if (inputMode.inputMode == InputMode.Keyboard) focusRequester.requestFocus()
         }
-        val group = if (detailsModule == null) Modifier.selectableGroup() else Modifier
+        val contentModifier = Modifier.fillMaxWidth()
+        if (details != null) {
+            Column(
+                modifier = contentModifier
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(details.introRes),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                StreamingMethodDetailsSection(
+                    title = stringResource(R.string.app_method_benefits),
+                    items = stringArrayResource(details.benefitsRes),
+                )
+                StreamingMethodDetailsSection(
+                    title = stringResource(R.string.app_method_things_to_know),
+                    items = stringArrayResource(details.thingsToKnowRes),
+                )
+            }
+            return@AdaptiveAppModal
+        }
+
         Column(
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .fillMaxWidth()
-                .then(group)
-                .verticalScroll(if (detailsModule == null) chooserScrollState else detailsScrollState),
+            modifier = contentModifier
+                .selectableGroup()
+                .verticalScroll(scrollState)
         ) {
-            if (detailsModule == null) {
-                modules.forEachIndexed { index, module ->
-                    if (index > 0) HorizontalDivider()
-                    val current = module.id == selectedModuleId
-                    StreamingMethodChoiceRow(
-                        description = module.description,
-                        selected = current,
-                        selectionEnabled = selectionEnabled,
-                        modifier = if (focusCurrentMethod && current) Modifier.focusRequester(focus) else Modifier,
-                        onSelect = {
-                            onMethodSelect(module.id)
-                            onDismiss()
-                        },
-                        onDetails = {
-                            // Focusing a list item on return could move the restored scroll position.
-                            focusSelectedOnEntry = false
-                            detailsModuleId = module.id.value
-                        },
-                    )
-                }
-            } else {
-                val description = detailsModule.description
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        text = stringResource(description.introRes),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    StreamingMethodDetailsSection(
-                        title = stringResource(R.string.app_method_benefits),
-                        items = stringArrayResource(description.benefitsRes),
-                    )
-                    StreamingMethodDetailsSection(
-                        title = stringResource(R.string.app_method_things_to_know),
-                        items = stringArrayResource(description.thingsToKnowRes),
-                    )
-                }
+            modules.forEachIndexed { index, module ->
+                if (index > 0) HorizontalDivider()
+                val selected = module.id == selectedModuleId
+                StreamingMethodChoiceRow(
+                    description = module.description,
+                    selected = selected,
+                    selectionEnabled = selectionEnabled,
+                    onSelect = {
+                        onMethodSelect(module.id)
+                        onDismiss()
+                    },
+                    onShowDetails = {
+                        // Focusing a list item on return could move the restored scroll position.
+                        focusSelectionOnEntry = false
+                        detailsModuleId = module.id
+                    },
+                    modifier = if (focusSelectedMethod && selected) Modifier.focusRequester(focusRequester) else Modifier,
+                )
             }
         }
     }
@@ -139,11 +138,11 @@ private fun StreamingMethodChoiceRow(
     selected: Boolean,
     selectionEnabled: Boolean,
     onSelect: () -> Unit,
-    onDetails: () -> Unit,
+    onShowDetails: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val title = stringResource(description.titleRes)
-    val detailsDescription = stringResource(R.string.app_method_details_description, title)
+    val detailsContentDescription = stringResource(R.string.app_method_details_description, title)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -158,7 +157,7 @@ private fun StreamingMethodChoiceRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         RadioButton(selected = selected, onClick = null, enabled = selectionEnabled)
-        Column(modifier = Modifier.weight(1F)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -169,20 +168,18 @@ private fun StreamingMethodChoiceRow(
                     modifier = Modifier.size(24.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(text = title, modifier = Modifier.weight(1F), style = MaterialTheme.typography.titleMedium)
+                Text(text = title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
             }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(IntrinsicSize.Min)
-                    .padding(top = 8.dp),
+                    .height(IntrinsicSize.Min),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1F)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(text = stringResource(description.summaryRes), style = MaterialTheme.typography.bodyMedium)
                     Text(
                         text = stringResource(description.conditionsRes),
-                        modifier = Modifier.padding(top = 8.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -193,10 +190,10 @@ private fun StreamingMethodChoiceRow(
                         .padding(start = 8.dp, top = 4.dp, bottom = 4.dp),
                 )
                 TextButton(
-                    onClick = onDetails,
+                    onClick = onShowDetails,
                     modifier = Modifier
                         .widthIn(min = 64.dp, max = 112.dp)
-                        .semantics { contentDescription = detailsDescription },
+                        .semantics { contentDescription = detailsContentDescription },
                 ) {
                     Text(text = stringResource(R.string.app_method_details))
                 }
@@ -209,10 +206,10 @@ private fun StreamingMethodChoiceRow(
 private fun StreamingMethodDetailsSection(title: String, items: Array<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(text = title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall)
-        items.forEach { item ->
+        for (item in items) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(text = "\u2022", style = MaterialTheme.typography.bodyMedium)
-                Text(text = item, modifier = Modifier.weight(1F), style = MaterialTheme.typography.bodyMedium)
+                Text(text = item, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

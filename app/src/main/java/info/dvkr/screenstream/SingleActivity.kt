@@ -9,19 +9,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import info.dvkr.screenstream.ads.attachAdMob
 import info.dvkr.screenstream.review.attachAppReview
 import info.dvkr.screenstream.settings.AppSettings
-import info.dvkr.screenstream.ui.MainScreen
+import info.dvkr.screenstream.ui.StreamScreen
 import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
 import info.dvkr.screenstream.update.AppUpdate
 import info.dvkr.screenstream.update.AppUpdateHost
@@ -54,10 +47,8 @@ public class SingleActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        if (savedInstanceState == null ||
-            streamingModulesManager.state.value == StreamingModuleManager.State.NoModule ||
-            streamingModulesManager.state.value == StreamingModuleManager.State.Exiting
-        ) {
+        val moduleState = streamingModulesManager.state.value
+        if (savedInstanceState == null || moduleState == StreamingModuleManager.State.NoModule || moduleState == StreamingModuleManager.State.Exiting) {
             streamingModulesManager.selectModule()
         }
 
@@ -79,28 +70,15 @@ public class SingleActivity : AppCompatActivity() {
 
             val initialRationaleHistory = appSettings.data.value.permissionsWithObservedRationale
             setContent {
-                ScreenStreamTheme {
+                ScreenStreamTheme(appSettings = appSettings) {
                     RuntimePermissionHost(
                         initialRationaleHistory = initialRationaleHistory,
                         onRationaleObserved = appSettings::setPermissionRationaleObserved,
                     ) {
-                        val colorScheme = MaterialTheme.colorScheme
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = colorScheme.background,
-                            contentColor = colorScheme.onBackground,
-                        ) {
-                            MainScreen(
-                                streamingModulesManager,
-                                modifier = Modifier
-                                    .windowInsetsPadding(WindowInsets.safeDrawing)
-                                    .fillMaxSize()
-                            )
-                        }
+                        StreamScreen(streamingModulesManager)
                     }
 
-                    AppUpdateHost(appUpdate.restartAvailable, appUpdate::completeUpdate, appUpdate::dismissUpdate)
-
+                    AppUpdateHost(appUpdate)
                     ScreenCaptureConsentHost()
                 }
             }

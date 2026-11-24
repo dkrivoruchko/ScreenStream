@@ -1,9 +1,14 @@
 package info.dvkr.screenstream.ads
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 
-@Composable
-public fun AnchoredAdaptiveBanner(minimumRemainingHeight: Dp, modifier: Modifier = Modifier) {
+internal interface AnchoredAdaptiveBannerState {
+    val reservedHeight: Dp
 }
+
+@Composable
+internal fun rememberAnchoredAdaptiveBannerState(paneWidth: Dp): AnchoredAdaptiveBannerState? = null
+
+@Composable
+internal fun AnchoredAdaptiveBanner(state: AnchoredAdaptiveBannerState) = Unit

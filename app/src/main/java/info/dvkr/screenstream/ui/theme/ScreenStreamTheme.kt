@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.settings.AppSettings
-import org.koin.compose.koinInject
 
 private val lightScheme = lightColorScheme(
     primary = Color(0xFF32628D),
@@ -98,7 +97,7 @@ internal val dynamicThemeAvailable: Boolean = Build.VERSION.SDK_INT >= Build.VER
 @Composable
 internal fun ScreenStreamTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    appSettings: AppSettings = koinInject(),
+    appSettings: AppSettings,
     content: @Composable () -> Unit
 ) {
     val appSettingsState = appSettings.data.collectAsStateWithLifecycle()

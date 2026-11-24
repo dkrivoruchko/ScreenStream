@@ -44,12 +44,7 @@ import org.koin.compose.koinInject
 internal fun AboutModal(onDismiss: () -> Unit, pane: ModalPane?) {
     val scroll = retain { ScrollState(0) }
     AdaptiveAppModal(title = stringResource(R.string.app_about_title), onDismiss = onDismiss, pane = pane) {
-        AboutContent(
-            scroll,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .fillMaxWidth()
-        )
+        AboutContent(scroll, modifier = Modifier.fillMaxWidth())
     }
 }
 

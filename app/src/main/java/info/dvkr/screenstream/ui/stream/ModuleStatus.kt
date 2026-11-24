@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.ui.stream
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -30,49 +29,6 @@ import info.dvkr.screenstream.R
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.module.StreamingModule
 
-@Composable
-internal fun StreamBody(
-    state: StreamingModuleManager.State,
-    manager: StreamingModuleManager,
-    statusModifier: Modifier,
-    content: @Composable (StreamingModule.Ui, @Composable () -> Unit) -> Unit,
-) {
-    val instanceId = state.instanceIdOrNull
-    if (instanceId == null) {
-        if (state == StreamingModuleManager.State.Switching) {
-            Box(statusModifier, contentAlignment = Alignment.Center) {
-                Text(text = stringResource(R.string.app_stream_switching_modes))
-            }
-        }
-        return
-    }
-
-    val restart = { manager.restartModule(instanceId) }
-    manager.InstanceContent(
-        instanceId = instanceId,
-        fallback = {
-            ModuleUnavailable(
-                message = (state as? StreamingModuleManager.State.Failed)?.messageResource?.let { stringResource(it) },
-                onRestart = restart,
-                modifier = statusModifier,
-            )
-        },
-    ) { module ->
-        content(module) {
-            val error = (state as? StreamingModuleManager.State.Running)?.status?.error
-            if (state is StreamingModuleManager.State.Unresponsive || error != null) {
-                ModuleRecoveryMessage(
-                    detail = error?.message,
-                    onRestart = restart,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                )
-            }
-        }
-    }
-}
-
 internal val StreamingModuleManager.State.instanceIdOrNull: StreamingModule.InstanceId?
     get() = when (this) {
         is StreamingModuleManager.State.Running -> instanceId
@@ -84,15 +40,14 @@ internal val StreamingModuleManager.State.instanceIdOrNull: StreamingModule.Inst
     }
 
 @Composable
-private fun ModuleRecoveryMessage(
+internal fun ModuleRecoveryCard(
     onRestart: () -> Unit,
-    detail: String?,
-    modifier: Modifier = Modifier,
+    errorDetail: String?,
 ) {
     val title = stringResource(R.string.app_module_error_title)
-    val message = detail?.takeUnless { it.isBlank() || it == title }
+    val message = errorDetail?.takeUnless { it.isBlank() || it == title }
 
-    ElevatedCard(modifier = modifier) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -130,39 +85,38 @@ private fun ModuleRecoveryMessage(
 }
 
 @Composable
-private fun ModuleUnavailable(
+internal fun ModuleUnavailableContent(
     onRestart: () -> Unit,
     message: String?,
-    modifier: Modifier = Modifier,
+    modifier: Modifier,
 ) {
     ElevatedCard(
-        modifier = modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
+        modifier = modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
     ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.app_icon_error),
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.error,
+            )
+            Text(
+                text = message ?: stringResource(R.string.app_module_error_title),
                 modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.app_icon_error),
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-                Text(
-                    text = message ?: stringResource(R.string.app_module_error_title),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                )
-                Button(onClick = onRestart) { Text(text = stringResource(R.string.app_module_error_restart)) }
-            }
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+            )
+            Button(onClick = onRestart) { Text(text = stringResource(R.string.app_module_error_restart)) }
         }
     }
 }

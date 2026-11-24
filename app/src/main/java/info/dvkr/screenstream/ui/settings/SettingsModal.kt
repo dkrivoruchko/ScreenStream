@@ -153,7 +153,6 @@ internal fun SettingsModal(
         onBack = if (showLanguages) ({ returnToSettings() }) else null,
     ) {
         val body = Modifier
-            .weight(1f, fill = false)
             .fillMaxWidth()
             .verticalScroll(languagesScroll ?: settingsScroll)
         Column(
