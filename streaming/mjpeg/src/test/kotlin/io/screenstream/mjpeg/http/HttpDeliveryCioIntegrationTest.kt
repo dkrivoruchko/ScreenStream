@@ -81,7 +81,7 @@ internal class HttpDeliveryCioIntegrationTest {
     @get:Rule
     val koin = MjpegKoinTestRule()
 
-    // Cases: MJPEG-WEB-08, MJPEG-IMG-09, MJPEG-OBS-01, MJPEG-OBS-03, MJPEG-OBS-04
+    // Cases: MJPEG-WEB-07, MJPEG-WEB-08, MJPEG-IMG-09, MJPEG-OBS-01, MJPEG-OBS-03, MJPEG-OBS-04
     @Test
     @LooperMode(LooperMode.Mode.PAUSED)
     fun protectedViewingChecksCredentialsAndRetiresCompletedMediaCalls(): Unit = runBlocking {
@@ -97,6 +97,16 @@ internal class HttpDeliveryCioIntegrationTest {
             val token = checkNotNull(delivery.appliedToken).value
             for (path in listOf("/jpeg", "/mjpeg")) {
                 RawHttpConnection(port, path).use { assertEquals(403, it.status, path) }
+            }
+            RawHttpConnection(
+                port,
+                "/pin",
+                listOf("Origin: http://127.0.0.1:$port", "Content-Type: application/x-www-form-urlencoded"),
+                requestBody = "pin=123456",
+            ).use {
+                assertEquals(204, it.status)
+                assertNull(it.headers["content-length"])
+                assertTrue(assertNotNull(it.headers["set-cookie"]).startsWith("screenstream_access="))
             }
             delivery.updateConfiguration(httpTestProtectedAccessSettings(), PostStopImage.Placeholder, httpTestPageSettings())
             val logoResponse = requestHttpJpeg(port, "/jpeg?token=$token&retirement=logo")
@@ -329,9 +339,7 @@ internal class HttpDeliveryCioIntegrationTest {
                 }
                 delivery.info.value.servers.single()
             }
-            // Host coroutine stack-trace recovery adds a second cancellation wrapper around
-            // the BindException. The classifier only unwraps a direct BindException cause.
-            assertEquals(ServerState.Failed(ServerFailure.Unknown, 3), failure.state)
+            assertEquals(ServerState.Failed(ServerFailure.AddressUnavailable, 3), failure.state)
             delivery.retryServer(Uuid.random())
             assertEquals(failure, delivery.info.value.servers.single())
             occupied.close()
@@ -371,7 +379,7 @@ internal class HttpDeliveryCioIntegrationTest {
             val ready = delivery.awaitHttpInfo {
                 it.servers.first().state is ServerState.Failed && it.servers.last().state == ServerState.Listening
             }
-            assertEquals(ServerFailure.Unknown, assertIs<ServerState.Failed>(ready.servers.first().state).reason)
+            assertEquals(ServerFailure.AddressUnavailable, assertIs<ServerState.Failed>(ready.servers.first().state).reason)
             RawHttpConnection(port, "/jpeg").use {
                 assertEquals(200, it.status)
                 assertContentEquals(logo, it.readBody())
@@ -639,7 +647,7 @@ internal class HttpDeliveryCioIntegrationTest {
         }
     }
 
-    // Cases: MJPEG-WEB-01, MJPEG-WEB-02, MJPEG-WEB-14, MJPEG-WEB-17
+    // Cases: MJPEG-WEB-01, MJPEG-WEB-02, MJPEG-WEB-14, MJPEG-WEB-16, MJPEG-WEB-17
     @Test
     fun actualCioAuthorityMethodsAndRangeKeepTheDirectWireContract() = runBlocking {
         val delivery = KtorHttpDelivery(httpTestContext())
@@ -667,6 +675,18 @@ internal class HttpDeliveryCioIntegrationTest {
                 RawHttpConnection(port, path, method = "HEAD").use {
                     assertEquals(405, it.status, path)
                     assertEquals(allow, it.headers["allow"])
+                }
+            }
+            for (path in listOf("/jpeg", "/mjpeg")) {
+                RawHttpConnection(
+                    port,
+                    path,
+                    listOf("Origin: https://viewer.example", "Access-Control-Request-Method: GET"),
+                    method = "OPTIONS",
+                ).use {
+                    assertEquals(204, it.status, path)
+                    assertNull(it.headers["content-length"], path)
+                    assertEquals("*", it.headers["access-control-allow-origin"], path)
                 }
             }
             RawHttpConnection(port, "/jpeg?ignored=start", listOf("Range: bytes=1-2", "Accept-Encoding: gzip", "X-Forwarded-For: 198.51.100.7")).use {

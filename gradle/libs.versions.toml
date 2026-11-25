@@ -30,7 +30,7 @@ kotlinx-serialization = "1.13.0"
 koin = "4.2.2"
 
 # Ktor
-ktor = "3.6.1"
+ktor = "3.6.2"
 
 # Logging
 kermit = "2.2.0"

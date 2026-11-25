@@ -132,6 +132,8 @@ The redirect removes the token from the page URL, and the page script never read
 - An open stream returns `204` without a cookie.
 - A retired listener returns `403` without verifying the PIN or spending an attempt.
 
+Check on a CIO socket that the `204` response omits `Content-Length`.
+
 The capacity wait for unknown peers belongs to [MJPEG-ACC-10](06-access.md#mjpeg-acc-10).
 
 ## Media routes
@@ -175,7 +177,7 @@ The capacity wait for unknown peers belongs to [MJPEG-ACC-10](06-access.md#mjpeg
 
 **History.** Send `OPTIONS` to each media path with absent and arbitrary `Origin`, `Access-Control-Request-Method` and `Access-Control-Request-Headers`, with and without credentials. Also send `OPTIONS` to `/`, `/pin`, `/ws` and an unknown path. Repeat with a malformed `Host` and on a retired listener.
 
-**Expected.** Media paths always return `204` with the fixed advertised `GET, OPTIONS` policy. They don't check credentials and don't reflect request fields. `/`, `/pin` and `/ws` grant no CORS: they return `405` with their `Allow` value, and unknown paths return `404`. Authority rejection (`400` or `403`) still comes first.
+**Expected.** Media paths always return `204` with the fixed advertised `GET, OPTIONS` policy. On a CIO socket the `204` response omits `Content-Length`. They don't check credentials and don't reflect request fields. `/`, `/pin` and `/ws` grant no CORS: they return `405` with their `Allow` value, and unknown paths return `404`. Authority rejection (`400` or `403`) still comes first.
 
 <a id="mjpeg-web-17"></a>
 

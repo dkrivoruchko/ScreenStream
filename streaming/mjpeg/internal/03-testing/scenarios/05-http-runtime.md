@@ -90,13 +90,12 @@ The changed-scoped-IP check runs while retained entries are being matched. When 
 - The mappings are independent:
   - `SecurityException` → PermissionDenied
   - `BindException` and every other `SocketException` → AddressUnavailable
-  - `CancellationException` with a direct `BindException` cause → AddressUnavailable
   - another `IOException` → IoFailure
-  - any other caught exception, including a cancellation with a nested bind failure or another cause → Unknown
+  - any other caught exception, including engine cancellation → Unknown
   - an unexpected end of listening → IoFailure
 - Before mapping an exception, the socket owner checks whether it was itself cancelled. A cancelled delivery publishes no failure, while a cancelled physical engine still maps normally.
 
-**Boundary.** In the Gradle host tests, coroutine stack-trace recovery adds a second cancellation wrapper to the CIO bind failure, giving `Unknown`. The controlled listener cases establish the mapping for each exception shape. Android CIO needs its own runtime evidence.
+**Boundary.** The occupied-port case exercises CIO on the host JVM. The controlled listener cases establish the mapping for each exception shape. Android CIO needs its own runtime evidence.
 
 <a id="mjpeg-srv-05"></a>
 

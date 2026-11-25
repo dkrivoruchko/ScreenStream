@@ -59,11 +59,7 @@ internal class HttpDeliverySocketOwnerTest {
         val failures = listOf(
             BindException("occupied") to ServerFailure.AddressUnavailable,
             BindException("address not available") to ServerFailure.AddressUnavailable,
-            CancellationException("engine bind failed", BindException("occupied")) to ServerFailure.AddressUnavailable,
-            CancellationException(
-                "recovered engine cancellation",
-                CancellationException("engine bind failed", BindException("occupied")),
-            ) to ServerFailure.Unknown,
+            CancellationException("engine bind failed", BindException("occupied")) to ServerFailure.Unknown,
             CancellationException("engine cancelled", SocketException("unavailable")) to ServerFailure.Unknown,
             SecurityException("denied") to ServerFailure.PermissionDenied,
             SocketException("unavailable") to ServerFailure.AddressUnavailable,

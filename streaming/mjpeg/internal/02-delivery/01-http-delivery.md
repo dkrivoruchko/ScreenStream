@@ -158,12 +158,12 @@ Each incarnation has a budget of three attempts. A successful bind spends an att
 | Outcome of a bind attempt | Reported failure |
 | --- | --- |
 | `SecurityException` | `PermissionDenied` |
-| Any `SocketException`, including `BindException`, or a `CancellationException` with a direct `BindException` cause | `AddressUnavailable` |
+| Any `SocketException`, including `BindException` | `AddressUnavailable` |
 | Any other `IOException` | `IoFailure` |
 | Any other exception | `Unknown` |
 | The engine terminated by itself | `IoFailure` |
 
-Before mapping an exception, the attempt checks whether its own coroutine was cancelled. Cancelling the owner during terminal stop propagates as cancellation. A cancelled engine under a still-active owner follows the table. An extra cancellation wrapper, such as the one coroutine stack-trace recovery adds in the host CIO tests, gives `Unknown`. The result is published only while the incarnation is still planned.
+Before mapping an exception, the attempt checks whether its own coroutine was cancelled. Cancelling the owner during terminal stop propagates as cancellation. A cancelled engine under a still-active owner follows the table. The result is published only while the incarnation is still planned.
 
 ## Access generations and PIN blocks
 
