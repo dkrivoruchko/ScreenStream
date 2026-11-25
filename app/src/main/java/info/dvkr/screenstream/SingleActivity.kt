@@ -11,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
-import info.dvkr.screenstream.ads.attachAdMob
+import info.dvkr.screenstream.ads.AdMob
 import info.dvkr.screenstream.review.attachAppReview
 import info.dvkr.screenstream.settings.AppSettings
 import info.dvkr.screenstream.ui.StreamScreen
@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.get
 import org.koin.android.ext.android.inject
 import org.koin.core.parameter.parametersOf
 import kotlin.coroutines.cancellation.CancellationException
@@ -68,6 +69,8 @@ public class SingleActivity : AppCompatActivity() {
                 waitingForSettings = false
             }
 
+            val adMob = get<AdMob>()
+            if (savedInstanceState == null && isTaskRoot) adMob.beginAppLaunch()
             val initialRationaleHistory = appSettings.data.value.permissionsWithObservedRationale
             setContent {
                 ScreenStreamTheme(appSettings = appSettings) {
@@ -84,7 +87,7 @@ public class SingleActivity : AppCompatActivity() {
             }
 
             // Let the main thread install the window decor before UMP reads it on a worker thread.
-            attachAdMob(this@SingleActivity)
+            adMob.attach(this@SingleActivity)
             attachAppReview(this@SingleActivity)
 
             appSettings.data.map { it.nightMode }

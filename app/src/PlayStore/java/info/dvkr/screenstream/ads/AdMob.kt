@@ -5,11 +5,20 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.SystemClock
+import android.view.WindowManager.BadTokenException
 import androidx.activity.ComponentActivity
+import androidx.annotation.MainThread
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.core.view.doOnAttach
+import androidx.lifecycle.Lifecycle.Event.ON_DESTROY
+import androidx.lifecycle.Lifecycle.Event.ON_PAUSE
+import androidx.lifecycle.Lifecycle.Event.ON_RESUME
+import androidx.lifecycle.Lifecycle.State.DESTROYED
+import androidx.lifecycle.Lifecycle.State.RESUMED
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import com.google.android.libraries.ads.mobile.sdk.MobileAds
 import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
@@ -17,7 +26,7 @@ import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
 import com.google.android.libraries.ads.mobile.sdk.common.RequestConfiguration
 import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
 import com.google.android.ump.ConsentDebugSettings
-import com.google.android.ump.ConsentInformation
+import com.google.android.ump.ConsentForm
 import com.google.android.ump.ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.FormError
@@ -30,273 +39,352 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import org.koin.android.ext.android.get
 import org.koin.core.annotation.Singleton
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
-/** Ad retention belongs to this Activity and is independent of Play updates. */
-internal fun attachAdMob(activity: ComponentActivity) {
-    val adMob = activity.get<AdMob>()
-    activity.lifecycle.addObserver(object : DefaultLifecycleObserver {
-        override fun onDestroy(owner: LifecycleOwner) {
-            adMob.onActivityDestroyed(activity)
-        }
-    })
-    adMob.init(activity)
-}
-
 @Singleton
-public class AdMob(private val context: Context) : KoinComponent {
+internal class AdMob(private val context: Context) : KoinComponent {
 
     private val log: Logger by inject { parametersOf(this) }
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    internal enum class Availability { PENDING, READY, UNAVAILABLE }
+    enum class Availability { PENDING, READY, UNAVAILABLE }
+
+    private enum class ConsentPhase { IDLE, STARTUP, PRIVACY_OPTIONS }
+
+    private enum class SdkState { IDLE, STARTING, READY }
 
     private companion object {
-        private const val ADMOB_APP_ID_META_DATA_NAME = "com.google.android.gms.ads.APPLICATION_ID"
-        private const val TEST_DEVICE_HASHED_ID = "203640674D72D8AD3E73BDFC4AD236B2"
-        private val RETAINED_BANNER_TTL = 60.seconds
+        private const val APP_ID_METADATA_KEY = "com.google.android.gms.ads.APPLICATION_ID"
+        private const val TEST_DEVICE_HASH = "203640674D72D8AD3E73BDFC4AD236B2"
+        private const val BANNER_PLACEMENT = "AnchoredAdaptiveBanner"
+        private val BANNER_TTL = 60.seconds
     }
 
-    private val consentInformation: ConsentInformation = UserMessagingPlatform.getConsentInformation(context)
+    private val consent = UserMessagingPlatform.getConsentInformation(context)
 
-    private val adUnitIds: List<String> by lazy {
+    private val configuredUnitId: String? by lazy {
         runCatching {
-            val jsonArray = JSONArray(BuildConfig.AD_UNIT_IDS)
-            List(jsonArray.length()) { index -> jsonArray.getString(index).trim() }.filter { it.isNotBlank() }
+            val ids = JSONArray(BuildConfig.AD_UNIT_IDS)
+            List(ids.length()) { ids.getString(it).trim() }.firstOrNull(String::isNotBlank)
         }.getOrElse { cause ->
             log.w("adUnitIds", "Invalid AD_UNIT_IDS: ${cause.message}")
-            emptyList()
-        }
-    }
-
-    private val retainedBanners: MutableMap<String, RetainedBanner> = mutableMapOf()
-
-    internal var availability: Availability by mutableStateOf(Availability.PENDING)
-        private set
-
-    private val isConsentRequestInProgress = AtomicBoolean(false)
-
-    private val isMobileAdsInitializeCalled = AtomicBoolean(false)
-
-    private val isDebuggable: Boolean = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-
-    private val requestConfiguration: RequestConfiguration? =
-        if (isDebuggable) {
-            RequestConfiguration.Builder().setTestDeviceIds(listOf(TEST_DEVICE_HASHED_ID)).build()
-        } else {
             null
         }
-
-    private val consentRequestParameters = if (isDebuggable) {
-        ConsentRequestParameters.Builder()
-            .setConsentDebugSettings(
-                ConsentDebugSettings.Builder(context)
-                    .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_OTHER)
-                    .addTestDeviceHashedId(TEST_DEVICE_HASHED_ID)
-                    .build()
-            )
-            .build()
-    } else {
-        ConsentRequestParameters.Builder().build()
     }
 
-    public var isPrivacyOptionsRequired: Boolean by mutableStateOf(consentInformation.privacyOptionsRequirementStatus == REQUIRED)
+    private var cachedBanner: CachedBanner? = null
+
+    var availability: Availability by mutableStateOf(Availability.PENDING)
         private set
 
-    public fun showPrivacyOptionsForm(activity: Activity, onFailure: () -> Unit) {
-        UserMessagingPlatform.showPrivacyOptionsForm(activity) { formError ->
-            if (formError != null) {
-                log.w("showPrivacyOptionsForm", "Error: ${formError.errorCode} ${formError.message}")
-            }
-            updatePrivacyOptionsRequirementStatus()
-            if (formError != null) onFailure()
+    var bannerRevision: Int by mutableIntStateOf(0)
+        private set
+
+    // Lifecycle, consent, and banner state are owned by the main thread.
+    private var refreshRequested = true
+    private var consentPhase = ConsentPhase.IDLE
+    private var pendingForm: ConsentForm? = null
+    private var formToken: Any? = null
+    private var startupFormHost: ComponentActivity? = null
+    private val resumedHosts = mutableListOf<ComponentActivity>()
+    private var sdkState = SdkState.IDLE
+    private val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+    private val requestConfiguration = if (debuggable) RequestConfiguration.Builder().setTestDeviceIds(listOf(TEST_DEVICE_HASH)).build() else null
+    private val consentParameters = ConsentRequestParameters.Builder().apply {
+        if (debuggable) {
+            setConsentDebugSettings(
+                ConsentDebugSettings.Builder(context)
+                    .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_OTHER)
+                    .addTestDeviceHashedId(TEST_DEVICE_HASH)
+                    .build()
+            )
         }
+    }.build()
+
+    var isPrivacyOptionsRequired: Boolean by mutableStateOf(consent.privacyOptionsRequirementStatus == REQUIRED)
+        private set
+
+    @MainThread
+    fun beginAppLaunch() {
+        refreshRequested = true
+        if (pendingForm != null) {
+            pendingForm = null
+            consentPhase = ConsentPhase.IDLE
+        }
+        publishAvailability()
     }
 
-    public fun init(activity: Activity) {
-        log.d("init", "${activity.hashCode()}")
+    @MainThread
+    fun showPrivacyOptionsForm(activity: Activity, onFailure: () -> Unit) {
+        if (refreshRequested || sdkState == SdkState.STARTING || consentPhase != ConsentPhase.IDLE || activity.isFinishing || activity.isDestroyed) {
+            onFailure()
+            return
+        }
 
-        if (availability == Availability.READY) return
-        if (isConsentRequestInProgress.compareAndSet(false, true).not()) {
+        consentPhase = ConsentPhase.PRIVACY_OPTIONS
+        showForm(onFailure) { listener -> UserMessagingPlatform.showPrivacyOptionsForm(activity, listener) }
+    }
+
+    @MainThread
+    fun attach(activity: ComponentActivity) {
+        log.d("init", "${activity.hashCode()}")
+        // Adding the observer can immediately deliver ON_RESUME.
+        requestConsent(activity)
+        activity.lifecycle.addObserver(LifecycleEventObserver { _, event ->
+            when (event) {
+                ON_RESUME -> {
+                    resumedHosts.removeAll { it === activity }
+                    resumedHosts.add(activity)
+                    advanceConsent()
+                }
+
+                ON_PAUSE, ON_DESTROY -> {
+                    resumedHosts.removeAll { it === activity }
+                    if (event == ON_DESTROY) onHostDestroyed(activity)
+                }
+
+                else -> Unit
+            }
+        })
+        activity.window.decorView.doOnAttach { advanceConsent() }
+    }
+
+    private fun requestConsent(activity: Activity) {
+        if (!refreshRequested || activity.isFinishing || activity.isDestroyed) return
+        if (consentPhase != ConsentPhase.IDLE || sdkState == SdkState.STARTING) {
             log.d("init", "Pending consent request. Ignoring")
             return
         }
-        availability = Availability.PENDING
 
-        consentInformation.requestConsentInfoUpdate(
+        refreshRequested = false
+        consentPhase = ConsentPhase.STARTUP
+        publishAvailability()
+
+        consent.requestConsentInfoUpdate(
             activity,
-            consentRequestParameters,
+            consentParameters,
             {
-                updatePrivacyOptionsRequirementStatus()
-                if (activity.isFinishing.not() && activity.isDestroyed.not()) {
-                    UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity) { formError -> completeConsentRequest(formError) }
-                } else {
-                    log.w("init", "Activity is finishing or destroyed. Skipping consent form")
-                    completeConsentRequest()
+                scope.launch(Dispatchers.Main.immediate) {
+                    if (activity.isFinishing || activity.isDestroyed) {
+                        log.w("init", "Activity is finishing or destroyed. Skipping consent form")
+                    }
+                    loadFormIfRequired()
                 }
             },
-            { formError -> completeConsentRequest(formError) }
+            { error -> scope.launch(Dispatchers.Main.immediate) { completeConsent(error) } },
+        )
+        updatePrivacyOptions()
+    }
+
+    private fun loadFormIfRequired() {
+        if (refreshRequested || consent.canRequestAds() || !consent.isConsentFormAvailable) {
+            completeConsent()
+            return
+        }
+
+        updatePrivacyOptions()
+        UserMessagingPlatform.loadConsentForm(
+            context.applicationContext,
+            { form ->
+                scope.launch(Dispatchers.Main.immediate) {
+                    if (refreshRequested || consent.canRequestAds()) {
+                        completeConsent()
+                    } else {
+                        pendingForm = form
+                        advanceConsent()
+                    }
+                }
+            },
+            { error -> scope.launch(Dispatchers.Main.immediate) { completeConsent(error) } },
         )
     }
 
-    private fun completeConsentRequest(error: FormError? = null) {
-        isConsentRequestInProgress.set(false)
-        updatePrivacyOptionsRequirementStatus()
-        initializeMobileAds(error)
+    private fun advanceConsent() {
+        if (refreshRequested) {
+            currentResumedHost()?.let(::requestConsent)
+            return
+        }
+        val form = pendingForm ?: return
+        val host = currentResumedHost() ?: return
+        if (consent.canRequestAds()) {
+            completeConsent()
+            return
+        }
+
+        pendingForm = null
+        startupFormHost = host
+        showForm { listener -> form.show(host, listener) }
     }
 
-    private fun updatePrivacyOptionsRequirementStatus() {
-        scope.launch {
-            isPrivacyOptionsRequired = consentInformation.privacyOptionsRequirementStatus == REQUIRED
+    private fun currentResumedHost(): ComponentActivity? = resumedHosts.lastOrNull {
+        it.lifecycle.currentState == RESUMED && !it.isFinishing && !it.isDestroyed && it.window.decorView.isAttachedToWindow
+    }
+
+    private fun onHostDestroyed(activity: ComponentActivity) {
+        if (cachedBanner?.activityIdentityHash == System.identityHashCode(activity)) removeCachedBanner()?.ad?.destroy()
+        if (startupFormHost !== activity) return
+        startupFormHost = null
+        formToken = null
+        // Keep startup active until UMP has dismissed the old dialog in the destroy dispatch.
+        scope.launch { loadFormIfRequired() }
+    }
+
+    private fun showForm(
+        onPrivacyFailure: (() -> Unit)? = null,
+        show: (ConsentForm.OnConsentFormDismissedListener) -> Unit,
+    ) {
+        val token = Any()
+        formToken = token
+        try {
+            show(ConsentForm.OnConsentFormDismissedListener { formError ->
+                scope.launch {
+                    if (formToken !== token) return@launch
+                    if (formError != null && onPrivacyFailure != null) {
+                        log.w("showPrivacyOptionsForm", "Error: ${formError.errorCode} ${formError.message}")
+                        completeConsent()
+                        onPrivacyFailure()
+                    } else completeConsent(formError)
+                }
+            })
+        } catch (_: BadTokenException) {
+            completeConsent()
+            onPrivacyFailure?.invoke()
         }
     }
 
-    private fun initializeMobileAds(error: FormError? = null) {
-        if (availability == Availability.READY) {
+    private fun completeConsent(error: FormError? = null) {
+        if (error != null) log.w("initializeMobileAds", "Error: ${error.errorCode} ${error.message}")
+        consentPhase = ConsentPhase.IDLE
+        pendingForm = null
+        startupFormHost = null
+        formToken = null
+        updatePrivacyOptions()
+        initializeMobileAds()
+        advanceConsent()
+        publishAvailability()
+    }
+
+    private fun updatePrivacyOptions() {
+        isPrivacyOptionsRequired = consent.privacyOptionsRequirementStatus == REQUIRED
+    }
+
+    // Opening Privacy options does not invalidate an eligible creative. Reconcile on dismissal.
+    private fun awaitingConsent(): Boolean = refreshRequested || consentPhase == ConsentPhase.STARTUP
+
+    @MainThread
+    fun canLoadBanner(revision: Int): Boolean =
+        revision == bannerRevision && availability == Availability.READY && !awaitingConsent() && consent.canRequestAds()
+
+    private fun publishAvailability() {
+        val next = when {
+            awaitingConsent() -> Availability.PENDING
+            !consent.canRequestAds() || sdkState == SdkState.IDLE -> Availability.UNAVAILABLE
+            sdkState == SdkState.READY -> Availability.READY
+            else -> Availability.PENDING
+        }
+        // Compose can observe only the reopened gate if it changes twice in one frame.
+        if (availability == Availability.READY && next != Availability.READY) bannerRevision++
+        availability = next
+        if (next != Availability.READY) removeCachedBanner()?.ad?.destroy()
+    }
+
+    private fun initializeMobileAds() {
+        if (refreshRequested || !consent.canRequestAds()) return
+        if (sdkState == SdkState.READY) {
             log.d("initializeMobileAds", "Already initialized. Ignoring")
             return
         }
-
-        if (error != null) {
-            log.w("initializeMobileAds", "Error: ${error.errorCode} ${error.message}")
-        }
-
-        if (consentInformation.canRequestAds().not()) {
-            availability = Availability.UNAVAILABLE
-            return
-        }
-
         log.d("initializeMobileAds")
-        if (isMobileAdsInitializeCalled.compareAndSet(false, true).not()) {
+        if (sdkState == SdkState.STARTING) {
             log.d("initializeMobileAds", "Pending initialization. Ignoring")
             return
         }
 
-        scope.launch(Dispatchers.IO) {
-            val appId = runCatching {
-                context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
-                    .metaData?.getString(ADMOB_APP_ID_META_DATA_NAME)?.trim()?.trim('"')?.takeIf { it.isNotBlank() }
-            }.getOrElse { cause ->
-                log.w("initializeMobileAds", "Failed to read AdMob app id: ${cause.message}")
-                null
-            } ?: run {
-                log.w("initializeMobileAds", "Missing AdMob app id")
-                isMobileAdsInitializeCalled.set(false)
-                scope.launch { availability = Availability.UNAVAILABLE }
-                return@launch
-            }
-
-            runCatching {
-                val initializationConfig = InitializationConfig.Builder(appId)
-                    .apply { requestConfiguration?.let(::setRequestConfiguration) }
-                    .build()
-                MobileAds.initialize(context, initializationConfig) {
-                    scope.launch {
-                        log.d("initializeMobileAds", "Done")
-                        availability = Availability.READY
-                    }
-                }
-            }.onFailure { cause ->
-                isMobileAdsInitializeCalled.set(false)
-                log.e("initializeMobileAds", "Failed: ${cause.message}", cause)
-                scope.launch { availability = Availability.UNAVAILABLE }
-            }
+        // Initialization can preload ads. Queue a new UMP turn until the SDK call returns.
+        sdkState = SdkState.STARTING
+        scope.launch {
+            val initialized = runCatching { withContext(Dispatchers.IO) { initializeSdk() } }
+                .onFailure { cause -> log.e("initializeMobileAds", "Failed: ${cause.message}", cause) }
+                .getOrDefault(false)
+            sdkState = if (initialized) SdkState.READY else SdkState.IDLE
+            if (initialized) log.d("initializeMobileAds", "Done")
+            advanceConsent()
+            publishAvailability()
         }
     }
 
-    internal fun getAdUnitId(index: Int, placement: String): String? {
-        val ids = adUnitIds
-        if (ids.isEmpty()) {
-            log.w("getAdUnitId", "Missing ad unit ids")
-            return null
+    private fun initializeSdk(): Boolean {
+        val appId = runCatching {
+            context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+                .metaData?.getString(APP_ID_METADATA_KEY)?.trim()?.trim('"')?.takeIf { it.isNotBlank() }
+        }.onFailure { cause ->
+            log.w("initializeMobileAds", "Failed to read AdMob app id: ${cause.message}")
+        }.getOrNull() ?: run {
+            log.w("initializeMobileAds", "Missing AdMob app id")
+            return false
         }
-        if (index !in ids.indices) log.w("getAdUnitId", "Missing ad unit id[$index] for $placement. Using first id")
-        return ids.getOrNull(index) ?: ids.first()
-    }
-
-    internal fun takeRetainedBanner(activity: Activity, placement: String, adWidth: Int, adSize: AdSize): BannerAd? {
-        val now = SystemClock.elapsedRealtime()
-        evictExpiredRetainedBanners(now)
-
-        val retainedBanner = retainedBanners.remove(placement) ?: return null
-        return if (retainedBanner.activityId == System.identityHashCode(activity) &&
-            retainedBanner.adWidth == adWidth &&
-            retainedBanner.adSize == adSize &&
-            retainedBanner.expiresAtMillis > now
-        ) {
-            retainedBanner.cleanupJob?.cancel()
-            log.d("takeRetainedBanner", placement)
-            retainedBanner.bannerAd
-        } else {
-            retainedBanner.cleanupJob?.cancel()
-            retainedBanner.bannerAd.destroy()
-            null
-        }
-    }
-
-    internal fun retainBanner(activity: Activity, placement: String, adWidth: Int, adSize: AdSize, bannerAd: BannerAd): Boolean {
-        if (activity.isFinishing || activity.isDestroyed) return false
-
-        val now = SystemClock.elapsedRealtime()
-        evictExpiredRetainedBanners(now)
-
-        retainedBanners.remove(placement)?.let {
-            it.cleanupJob?.cancel()
-            it.bannerAd.destroy()
-        }
-
-        val retainedBanner =
-            RetainedBanner(System.identityHashCode(activity), adWidth, adSize, bannerAd, now + RETAINED_BANNER_TTL.inWholeMilliseconds)
-        retainedBanners[placement] = retainedBanner
-        retainedBanner.cleanupJob = scope.launch {
-            delay(RETAINED_BANNER_TTL)
-            if (retainedBanners[placement] === retainedBanner) {
-                retainedBanners.remove(placement)
-                retainedBanner.bannerAd.destroy()
-            }
-        }
-        log.d("retainBanner", placement)
+        val configuration = InitializationConfig.Builder(appId)
+            .apply { requestConfiguration?.let(::setRequestConfiguration) }
+            .build()
+        if (!consent.canRequestAds()) return false
+        MobileAds.initialize(context, configuration)
         return true
     }
 
-    public fun onActivityDestroyed(activity: Activity) {
-        val activityId = System.identityHashCode(activity)
-        val iterator = retainedBanners.iterator()
-        while (iterator.hasNext()) {
-            val entry = iterator.next()
-            if (entry.value.activityId == activityId) {
-                entry.value.cleanupJob?.cancel()
-                entry.value.bannerAd.destroy()
-                iterator.remove()
-            }
-        }
+    fun bannerUnitId(): String? = configuredUnitId.also {
+        if (it == null) log.w("getAdUnitId", "Missing ad unit ids")
     }
 
-    private fun evictExpiredRetainedBanners(now: Long) {
-        val iterator = retainedBanners.iterator()
-        while (iterator.hasNext()) {
-            val retainedBanner = iterator.next().value
-            if (retainedBanner.expiresAtMillis <= now) {
-                retainedBanner.cleanupJob?.cancel()
-                retainedBanner.bannerAd.destroy()
-                iterator.remove()
-            }
+    fun takeCachedBanner(activity: Activity, size: AdSize): BannerAd? {
+        val now = SystemClock.elapsedRealtime()
+        val entry = removeCachedBanner() ?: return null
+
+        if (entry.expiresAtMillis > now && entry.activityIdentityHash == System.identityHashCode(activity) && entry.size == size) {
+            log.d("takeRetainedBanner", BANNER_PLACEMENT)
+            return entry.ad
         }
+        entry.ad.destroy()
+        return null
     }
 
-    private data class RetainedBanner(
-        val activityId: Int,
-        val adWidth: Int,
-        val adSize: AdSize,
-        val bannerAd: BannerAd,
+    fun retainBanner(activity: Activity, size: AdSize, ad: BannerAd, revision: Int): Boolean {
+        if (!canLoadBanner(revision)) return false
+        if (activity.isFinishing || activity.isDestroyed) return false
+        if ((activity as? LifecycleOwner)?.lifecycle?.currentState == DESTROYED) return false
+
+        val expiresAtMillis = SystemClock.elapsedRealtime() + BANNER_TTL.inWholeMilliseconds
+        removeCachedBanner()?.ad?.destroy()
+
+        val entry = CachedBanner(System.identityHashCode(activity), size, ad, expiresAtMillis)
+        cachedBanner = entry
+        entry.expiryJob = scope.launch {
+            delay(BANNER_TTL)
+            if (cachedBanner === entry) {
+                cachedBanner = null
+                ad.destroy()
+            }
+        }
+        log.d("retainBanner", BANNER_PLACEMENT)
+        return true
+    }
+
+    private fun removeCachedBanner(): CachedBanner? = cachedBanner?.also {
+        cachedBanner = null
+        it.expiryJob?.cancel()
+    }
+
+    private class CachedBanner(
+        val activityIdentityHash: Int,
+        val size: AdSize,
+        val ad: BannerAd,
         val expiresAtMillis: Long,
-        var cleanupJob: Job? = null
-    )
+    ) {
+        var expiryJob: Job? = null
+    }
 }
