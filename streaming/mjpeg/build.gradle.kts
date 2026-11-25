@@ -65,20 +65,23 @@ dependencies {
     implementation(libs.kotlinx.io.core)
     implementation(libs.kotlinx.serialization.json)
 
+    implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.koin.annotations)
 
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.compression)
+    implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.default.headers)
     implementation(libs.ktor.server.websockets)
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    testImplementation(libs.ktor.client.cio)
+    testImplementation(libs.ktor.client.core)
     testImplementation(libs.ktor.server.test.host)
 
-    testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 

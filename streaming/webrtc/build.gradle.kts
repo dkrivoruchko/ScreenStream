@@ -61,21 +61,24 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.window)
-    implementation(libs.androidx.window.core)
 
     implementation(libs.kotlinx.coroutines.android)
 
+    implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.koin.annotations)
 
     implementation(libs.play.services.base)
     implementation(libs.play.integrity)
     implementation(libs.socket)
+    implementation(libs.engine.io.client)
     implementation(libs.okhttp)
 
-    // OkHttp brings Okio 3.18.1; 3.18.2 fixes Base64 padding compatibility.
-    // Remove this override when the OkHttp dependency includes that fix.
-    implementation(libs.okio)
+    constraints {
+        addProvider("implementation", libs.okio) {
+            because("OkHttp requests Okio 3.18.1. Okio 3.18.2 restores Base64 padding compatibility.")
+        }
+    }
 }
 
 configurations.all {

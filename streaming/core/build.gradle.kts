@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.core)
 
+    implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.koin.annotations)
 
@@ -62,9 +63,9 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotlinx.serialization.json)
     testImplementation(libs.robolectric)
-    // Used directly for pressBack; Espresso 3.7 also fixes InputManager access on API 37.
+    // Espresso 3.7 fixes InputManager access on API 37 and is used directly for pressBack.
+    // Five JVM test files also use ActivityScenario from transitive AndroidX Test Core.
     testImplementation(libs.androidx.test.espresso.core)
 
-    testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
 }

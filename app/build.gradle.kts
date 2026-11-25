@@ -150,6 +150,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.core)
 
+    implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.koin.annotations)
 
@@ -160,10 +161,12 @@ dependencies {
     "PlayStoreImplementation"(libs.play.app.review)
     "PlayStoreImplementation"(libs.ads.mobile.sdk)
     "PlayStoreImplementation"(libs.user.messaging.platform)
-    // The Ads SDK still requests WorkManager 2.7.0 for offline pings with a CONNECTED constraint.
-    // WorkManager 2.11.2+ fixes blocked background-network tracking on Android 15+.
-    // Remove this override when the ads SDK requires WorkManager 2.11.2 or newer.
-    "PlayStoreImplementation"(libs.androidx.work.runtime)
+    constraints {
+        addProvider("PlayStoreImplementation", libs.androidx.work.runtime) {
+            because("The Ads SDK requests WorkManager 2.7.0 for offline pings. " +
+                "WorkManager 2.11.2 includes background networking fixes for Android 15 and later.")
+        }
+    }
     "PlayStoreImplementation"(platform(libs.firebase.bom))
     "PlayStoreImplementation"(libs.firebase.analytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics.ndk)

@@ -41,13 +41,14 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.window)
-    implementation(libs.androidx.window.core)
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.io.core)
 
+    implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.koin.annotations)
 
+    implementation(libs.ktor.network)
     implementation(libs.ktor.network.tls)
 }
