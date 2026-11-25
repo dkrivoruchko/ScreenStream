@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Обновление загружено</string>
-    <string name="app_update_message">Перезапустите приложение, чтобы установить обновление. Если идёт трансляция, она остановится.</string>
-    <string name="app_update_restart">Перезапустить</string>
+    <string name="app_update_message">Обновление остановит трансляцию и перезапустит приложение.</string>
+    <string name="app_update_available">Доступно обновление</string>
+    <string name="app_update_download">Загрузить</string>
+    <string name="app_update_downloading">Загрузка обновления</string>
+    <string name="app_update_install">Обновить</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Уведомления о трансляции</string>

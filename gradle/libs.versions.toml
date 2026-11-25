@@ -1,6 +1,6 @@
 [versions]
 # Build tooling
-agp = "9.5.2"
+agp = "9.5.3"
 android-tools-desugar = "2.1.5"
 crashlytics-gradle = "3.0.8"
 google-services = "4.6.0"

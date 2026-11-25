@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Оновлення завантажено</string>
-    <string name="app_update_message">Перезапустіть застосунок, щоб установити оновлення. Якщо триває трансляція, її буде зупинено.</string>
-    <string name="app_update_restart">Перезапустити</string>
+    <string name="app_update_message">Оновлення зупинить трансляцію та перезапустить застосунок.</string>
+    <string name="app_update_available">Доступне оновлення</string>
+    <string name="app_update_download">Завантажити</string>
+    <string name="app_update_downloading">Завантаження оновлення</string>
+    <string name="app_update_install">Оновити</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Сповіщення про трансляцію</string>

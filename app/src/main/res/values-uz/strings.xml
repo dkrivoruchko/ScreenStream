@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Yangilanish yuklab olindi</string>
-    <string name="app_update_message">Yangilanishni oʻrnatish uchun ilovani qayta ishga tushiring. Faol translatsiya toʻxtatiladi.</string>
-    <string name="app_update_restart">Qayta ishga tushirish</string>
+    <string name="app_update_message">Yangilash translatsiyani toʻxtatadi va ilovani qayta ishga tushiradi.</string>
+    <string name="app_update_available">Yangilanish mavjud</string>
+    <string name="app_update_download">Yuklab olish</string>
+    <string name="app_update_downloading">Yangilanish yuklab olinmoqda</string>
+    <string name="app_update_install">Yangilash</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Translatsiya bildirishnomalari</string>

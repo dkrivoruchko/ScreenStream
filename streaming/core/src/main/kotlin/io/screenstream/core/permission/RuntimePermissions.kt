@@ -111,8 +111,9 @@ public enum class PermissionState {
  */
 public interface RuntimePermissions {
     /**
-     * Last-known UI hint, initialized on first observation and updated around this host's requests, not on
-     * independent OS changes. Entries sharing [RuntimePermission.androidPermission] share one flow.
+     * Last-known UI hint, initialized on first observation and refreshed on Activity resume and around host
+     * requests. [PermissionState.Requesting] remains until the request settles, even if [isGranted] already
+     * reports availability. Entries sharing [RuntimePermission.androidPermission] share one flow.
      */
     @MainThread
     public fun state(permission: RuntimePermission): StateFlow<PermissionState>

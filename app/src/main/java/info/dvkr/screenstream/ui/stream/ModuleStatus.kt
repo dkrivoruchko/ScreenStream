@@ -26,18 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.R
-import io.screenstream.core.StreamingModuleManager
-import io.screenstream.core.module.StreamingModule
-
-internal val StreamingModuleManager.State.instanceIdOrNull: StreamingModule.InstanceId?
-    get() = when (this) {
-        is StreamingModuleManager.State.Running -> instanceId
-        is StreamingModuleManager.State.Unresponsive -> instanceId
-        is StreamingModuleManager.State.Failed -> instanceId
-        StreamingModuleManager.State.NoModule,
-        StreamingModuleManager.State.Switching,
-        StreamingModuleManager.State.Exiting -> null
-    }
 
 @Composable
 internal fun ModuleRecoveryCard(

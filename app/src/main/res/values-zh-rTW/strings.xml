@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">已下載更新</string>
-    <string name="app_update_message">重新啟動應用程式即可安裝更新。如有進行中的串流，將會停止。</string>
-    <string name="app_update_restart">重新啟動應用程式</string>
+    <string name="app_update_message">更新時會停止串流並重新啟動應用程式。</string>
+    <string name="app_update_available">有可用的更新</string>
+    <string name="app_update_download">下載</string>
+    <string name="app_update_downloading">正在下載更新</string>
+    <string name="app_update_install">更新</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">串流通知</string>

@@ -20,9 +20,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.screenstream.core.R
 import io.screenstream.core.capture.ScreenCaptureAccessImpl
@@ -66,16 +64,9 @@ public fun ScreenCaptureConsentHost() {
             )
         }
     }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(access, token, lifecycle) {
-        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) access.onHostResumed(token)
-        val observer = LifecycleEventObserver { _, _ ->
-            if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) access.onHostResumed(token)
-            else access.onHostInactive(token)
-        }
-        lifecycle.addObserver(observer)
-        onDispose {
-            lifecycle.removeObserver(observer)
+    LifecycleResumeEffect(access, token) {
+        access.onHostResumed(token)
+        onPauseOrDispose {
             access.onHostInactive(token)
         }
     }

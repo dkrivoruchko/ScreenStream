@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">اپ ڈیٹ ڈاؤن لوڈ ہو گئی</string>
-    <string name="app_update_message">اپ ڈیٹ انسٹال کرنے کے لیے ایپ دوبارہ شروع کریں۔ اگر کوئی اسٹریم فعال ہے تو وہ رک جائے گا۔</string>
-    <string name="app_update_restart">دوبارہ شروع کریں</string>
+    <string name="app_update_message">اپ ڈیٹ کرنے سے اسٹریم رک جائے گا اور ایپ دوبارہ شروع ہو جائے گی۔</string>
+    <string name="app_update_available">اپ ڈیٹ دستیاب ہے</string>
+    <string name="app_update_download">ڈاؤن لوڈ کریں</string>
+    <string name="app_update_downloading">اپ ڈیٹ ڈاؤن لوڈ ہو رہی ہے</string>
+    <string name="app_update_install">اپ ڈیٹ کریں</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">اسٹریمنگ کی اطلاعات</string>

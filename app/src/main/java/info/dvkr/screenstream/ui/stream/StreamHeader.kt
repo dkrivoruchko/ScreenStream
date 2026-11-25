@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.retain.retain
@@ -68,9 +69,13 @@ internal fun StreamHeader(
         activeModal = modal
     }
 
-    val selectedModuleId = state.instanceIdOrNull?.moduleId
-    val selectedMethod = manager.modules.firstOrNull { it.id == selectedModuleId }?.description
-    val methodSelectionEnabled = state != StreamingModuleManager.State.Switching
+    val selectedModuleId = state.instanceId?.moduleId
+    val isSwitching = state == StreamingModuleManager.State.Switching
+    var lastRenderedModuleId by retain { mutableStateOf<StreamingModule.Id?>(null) }
+    val displayedModuleId = if (isSwitching) lastRenderedModuleId else selectedModuleId
+    val displayedMethod = manager.modules.firstOrNull { it.id == displayedModuleId }?.description
+    if (!isSwitching) SideEffect { lastRenderedModuleId = selectedModuleId }
+    val methodSelectionEnabled = !isSwitching
     val openMethodChooser = dropUnlessResumed { openModal(HeaderModal.MethodChooser) }
 
     Column(modifier.padding(horizontal = 12.dp)) {
@@ -80,7 +85,7 @@ internal fun StreamHeader(
         ) {
             if (inlineMethodSelector) {
                 MethodChooserCard(
-                    selectedMethod = selectedMethod,
+                    selectedMethod = displayedMethod,
                     onClick = openMethodChooser,
                     enabled = methodSelectionEnabled,
                     modifier = Modifier
@@ -113,7 +118,7 @@ internal fun StreamHeader(
         }
         if (!inlineMethodSelector) {
             MethodChooserCard(
-                selectedMethod = selectedMethod,
+                selectedMethod = displayedMethod,
                 onClick = openMethodChooser,
                 enabled = methodSelectionEnabled,
             )

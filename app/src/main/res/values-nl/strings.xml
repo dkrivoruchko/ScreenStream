@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Update gedownload</string>
-    <string name="app_update_message">Start de app opnieuw om de update te installeren. Een eventuele actieve stream wordt gestopt.</string>
-    <string name="app_update_restart">Opnieuw starten</string>
+    <string name="app_update_message">Bij het updaten wordt de stream gestopt en de app opnieuw gestart.</string>
+    <string name="app_update_available">Update beschikbaar</string>
+    <string name="app_update_download">Downloaden</string>
+    <string name="app_update_downloading">Update wordt gedownload</string>
+    <string name="app_update_install">Updaten</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Meldingen voor streaming</string>

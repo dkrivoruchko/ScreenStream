@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Eguneratzea deskargatu da</string>
-    <string name="app_update_message">Berrabiarazi aplikazioa eguneratzea instalatzeko. Transmisio aktiboa badago, geldituko da.</string>
-    <string name="app_update_restart">Berrabiarazi</string>
+    <string name="app_update_message">Eguneratzean, transmisioa geldituko da eta aplikazioa berrabiaraziko da.</string>
+    <string name="app_update_available">Eguneratze bat dago eskuragarri</string>
+    <string name="app_update_download">Deskargatu</string>
+    <string name="app_update_downloading">Eguneratzea deskargatzen</string>
+    <string name="app_update_install">Eguneratu</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Transmisio-jakinarazpenak</string>

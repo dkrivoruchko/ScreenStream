@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -27,7 +29,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.movableContentOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,8 +36,8 @@ import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -53,7 +54,8 @@ import info.dvkr.screenstream.ads.rememberAnchoredAdaptiveBannerState
 import info.dvkr.screenstream.ui.stream.ModuleRecoveryCard
 import info.dvkr.screenstream.ui.stream.ModuleUnavailableContent
 import info.dvkr.screenstream.ui.stream.StreamHeader
-import info.dvkr.screenstream.ui.stream.instanceIdOrNull
+import info.dvkr.screenstream.update.AppUpdate
+import info.dvkr.screenstream.update.AppUpdateBar
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModule.Ui.ModalHost
@@ -63,7 +65,7 @@ import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 @Composable
-internal fun StreamScreen(streamingModulesManager: StreamingModuleManager) {
+internal fun StreamScreen(streamingModulesManager: StreamingModuleManager, appUpdate: AppUpdate) {
     val state = streamingModulesManager.state.collectAsStateWithLifecycle().value
     val isExiting = state == StreamingModuleManager.State.Exiting
     BackHandler(enabled = isExiting) {}
@@ -73,12 +75,12 @@ internal fun StreamScreen(streamingModulesManager: StreamingModuleManager) {
         if (isExiting) return@Surface
 
         // Keep the header and banner mounted when controller content is replaced.
-        val renderLayout = remember(streamingModulesManager) {
+        val renderLayout = remember(streamingModulesManager, appUpdate) {
             movableContentOf<StreamingModuleManager.State, StreamingModule.Ui?> { moduleState, moduleUi ->
-                AdaptiveStreamLayout(streamingModulesManager, moduleState, moduleUi)
+                AdaptiveStreamLayout(streamingModulesManager, appUpdate, moduleState, moduleUi)
             }
         }
-        val instanceId = state.instanceIdOrNull
+        val instanceId = state.instanceId
         if (instanceId == null) {
             renderLayout(state, null)
         } else {
@@ -93,10 +95,11 @@ internal fun StreamScreen(streamingModulesManager: StreamingModuleManager) {
 @Composable
 private fun AdaptiveStreamLayout(
     streamingModulesManager: StreamingModuleManager,
+    appUpdate: AppUpdate,
     state: StreamingModuleManager.State,
     moduleUi: StreamingModule.Ui?,
 ) {
-    val instanceId = state.instanceIdOrNull
+    val instanceId = state.instanceId
     val sections = key(instanceId) {
         moduleUi?.sections.orEmpty().map { section ->
             key(section.id) {
@@ -153,17 +156,21 @@ private fun AdaptiveStreamLayout(
 
         Column(Modifier.inPane(primaryColumnBounds)) {
             Column(if (lowerBounds == null) Modifier else Modifier.height(lowerBounds.top + lowerBannerHeight)) {
-                StreamHeader(
-                    state = state,
-                    manager = streamingModulesManager,
-                    inlineMethodSelector = primaryBounds.width >= WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp,
-                    primaryModalPane = primaryModalPane,
-                    contentModalPane = contentModalPane,
-                    reduceVerticalSpacing = maxHeaderHeight < 68.dp,
-                    modifier = Modifier
+                Column(
+                    Modifier
                         .heightIn(max = maxHeaderHeight)
                         .verticalScroll(rememberScrollState()),
-                )
+                ) {
+                    AppUpdateBar(appUpdate, contentModalPane)
+                    StreamHeader(
+                        state = state,
+                        manager = streamingModulesManager,
+                        inlineMethodSelector = primaryBounds.width >= WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp,
+                        primaryModalPane = primaryModalPane,
+                        contentModalPane = contentModalPane,
+                        reduceVerticalSpacing = maxHeaderHeight < 68.dp,
+                    )
+                }
                 if (lowerBannerHeight > 0.dp) Spacer(Modifier.weight(1f))
                 if (bannerState != null && (upperBannerHeight > 0.dp || lowerBannerHeight > 0.dp)) {
                     AnchoredAdaptiveBanner(bannerState)
@@ -192,19 +199,26 @@ private fun AdaptiveStreamLayout(
                 else -> key(instanceId) {
                     val streamError = (state as? StreamingModuleManager.State.Running)?.status?.error
                     val scrollState = if (sideBounds == null) combinedScrollState else overviewScrollState
-                    var captureActionHeightPx by remember { mutableIntStateOf(0) }
                     ModalHost.Provide(PaneModalHost(contentModalPane)) {
-                        Box(
-                            Modifier
+                        Scaffold(
+                            modifier = Modifier
                                 .weight(1f)
-                                .fillMaxWidth()
-                        ) {
-                            val captureActionHeight = with(density) { captureActionHeightPx.toDp() }
+                                .fillMaxWidth(),
+                            containerColor = Color.Transparent,
+                            contentColor = LocalContentColor.current,
+                            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                            bottomBar = {
+                                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    moduleUi.CaptureActionButton(Modifier.padding(horizontal = 12.dp))
+                                }
+                            },
+                        ) { capturePadding ->
                             Column(
                                 Modifier
                                     .fillMaxSize()
                                     .verticalScroll(scrollState)
-                                    .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 4.dp + captureActionHeight),
+                                    .padding(capturePadding)
+                                    .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 4.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 if (state is StreamingModuleManager.State.Unresponsive || streamError != null) {
@@ -215,12 +229,6 @@ private fun AdaptiveStreamLayout(
                                 }
                                 sections.forEach { if (sideBounds == null || it.role == Role.Overview) it.content() }
                             }
-                            moduleUi.CaptureActionButton(
-                                Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .onSizeChanged { captureActionHeightPx = it.height }
-                                    .padding(horizontal = 12.dp),
-                            )
                         }
                     }
                 }

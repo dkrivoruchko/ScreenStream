@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Güncelleme indirildi</string>
-    <string name="app_update_message">Güncellemeyi yüklemek için uygulamayı yeniden başlatın. Etkin bir yayın varsa durdurulacak.</string>
-    <string name="app_update_restart">Yeniden başlat</string>
+    <string name="app_update_message">Güncelleme, yayını durduracak ve uygulamayı yeniden başlatacak.</string>
+    <string name="app_update_available">Güncelleme mevcut</string>
+    <string name="app_update_download">İndir</string>
+    <string name="app_update_downloading">Güncelleme indiriliyor</string>
+    <string name="app_update_install">Güncelle</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Yayın bildirimleri</string>

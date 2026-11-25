@@ -17,7 +17,6 @@ import info.dvkr.screenstream.settings.AppSettings
 import info.dvkr.screenstream.ui.StreamScreen
 import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
 import info.dvkr.screenstream.update.AppUpdate
-import info.dvkr.screenstream.update.AppUpdateHost
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.compose.RuntimePermissionHost
 import io.screenstream.core.compose.ScreenCaptureConsentHost
@@ -41,7 +40,6 @@ public class SingleActivity : AppCompatActivity() {
     private val log: Logger by inject { parametersOf(this) }
     private val streamingModulesManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
     private val appSettings: AppSettings by inject(mode = LazyThreadSafetyMode.NONE)
-    private val appUpdate = AppUpdate(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -58,6 +56,7 @@ public class SingleActivity : AppCompatActivity() {
             return
         }
 
+        val appUpdate = get<AppUpdate> { parametersOf(this) }
         var waitingForSettings = true
         splashScreen.setKeepOnScreenCondition { waitingForSettings }
 
@@ -78,10 +77,9 @@ public class SingleActivity : AppCompatActivity() {
                         initialRationaleHistory = initialRationaleHistory,
                         onRationaleObserved = appSettings::setPermissionRationaleObserved,
                     ) {
-                        StreamScreen(streamingModulesManager)
+                        StreamScreen(streamingModulesManager, appUpdate)
                     }
 
-                    AppUpdateHost(appUpdate)
                     ScreenCaptureConsentHost()
                 }
             }

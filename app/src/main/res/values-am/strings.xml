@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">ዝማኔ ወርዷል</string>
-    <string name="app_update_message">ዝማኔውን ለመጫን መተግበሪያውን ዳግም ያስጀምሩ። ንቁ ስርጭት ካለ ይቆማል።</string>
-    <string name="app_update_restart">ዳግም አስጀምር</string>
+    <string name="app_update_message">ማዘመን ስርጭቱን ያቆማል፣ መተግበሪያውንም ዳግም ያስጀምራል።</string>
+    <string name="app_update_available">ዝማኔ ይገኛል</string>
+    <string name="app_update_download">አውርድ</string>
+    <string name="app_update_downloading">ዝማኔን በማውረድ ላይ</string>
+    <string name="app_update_install">አዘምን</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">የስርጭት ማሳወቂያዎች</string>

@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">تم تنزيل التحديث</string>
-    <string name="app_update_message">أعِد تشغيل التطبيق لتثبيت التحديث. سيتوقف أي بث نشط.</string>
-    <string name="app_update_restart">إعادة التشغيل</string>
+    <string name="app_update_message">سيؤدي التحديث إلى إيقاف البث وإعادة تشغيل التطبيق.</string>
+    <string name="app_update_available">يتوفّر تحديث</string>
+    <string name="app_update_download">تنزيل</string>
+    <string name="app_update_downloading">جارٍ تنزيل التحديث</string>
+    <string name="app_update_install">تحديث</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">إشعارات البث</string>

@@ -62,22 +62,22 @@ public fun RuntimePermissionHost(
     }
     var requestPhase by rememberSaveable { mutableStateOf(PermissionPhase.Explanation) }
     var permissionsWithObservedRationale by key("permission-rationale-history") {
-        rememberSaveable {
-            mutableStateOf(initialRationaleHistory.toList())
-        }
+        rememberSaveable { mutableStateOf(initialRationaleHistory.toList()) }
     }
     val mutableStateFlows = remember(activity) { mutableMapOf<String, MutableStateFlow<PermissionState>>() }
     val stateFlows = remember(mutableStateFlows) { mutableMapOf<String, StateFlow<PermissionState>>() }
 
     fun readPermissionState(permission: RuntimePermission): PermissionState = when {
-        permission.isGranted(activity) -> PermissionState.Granted
         activePermission?.androidPermission == permission.androidPermission -> PermissionState.Requesting
+        permission.isGranted(activity) -> PermissionState.Granted
         permission.suggestsSettings(activity, permissionsWithObservedRationale) -> PermissionState.SettingsSuggested
         else -> PermissionState.Requestable
     }
 
-    fun publishPermissionState(permission: RuntimePermission) {
-        mutableStateFlows[permission.androidPermission]?.value = readPermissionState(permission)
+    fun refreshPermissionStates() {
+        RuntimePermission.entries.distinctBy(RuntimePermission::androidPermission).forEach { permission ->
+            mutableStateFlows[permission.androidPermission]?.value = readPermissionState(permission)
+        }
     }
 
     fun clearRationaleHistoryIfGranted(permission: RuntimePermission) {
@@ -89,10 +89,8 @@ public fun RuntimePermissionHost(
     }
 
     fun finishRequest() {
-        val permission = activePermission
         activePermission = null
-        requestPhase = PermissionPhase.Explanation
-        permission?.let(::publishPermissionState)
+        refreshPermissionStates()
     }
 
     val runtimePermissions = remember(activity, lifecycle, stateFlows) {
@@ -109,13 +107,12 @@ public fun RuntimePermissionHost(
                 if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return false
                 if (permission.isGranted(activity)) {
                     clearRationaleHistoryIfGranted(permission)
-                    publishPermissionState(permission)
-                    return true
+                } else {
+                    if (activePermission != null) return false
+                    activePermission = permission
+                    requestPhase = PermissionPhase.Explanation
                 }
-                if (activePermission != null) return false
-                activePermission = permission
-                requestPhase = PermissionPhase.Explanation
-                publishPermissionState(permission)
+                refreshPermissionStates()
                 return true
             }
         }
@@ -130,7 +127,8 @@ public fun RuntimePermissionHost(
     }
 
     // Always register: Android can deliver a result to a recreated Activity/root.
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grantResults ->
+    val permissionContract = remember { ActivityResultContracts.RequestMultiplePermissions() }
+    val permissionLauncher = rememberLauncherForActivityResult(permissionContract) { grantResults ->
         val permission = activePermission ?: return@rememberLauncherForActivityResult
         if (requestPhase != PermissionPhase.SystemDialog) return@rememberLauncherForActivityResult
         when (grantResults[permission.androidPermission]) {
@@ -165,13 +163,13 @@ public fun RuntimePermissionHost(
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        val permission = activePermission ?: return@LifecycleEventEffect
-        val returnedFromSettings = requestPhase == PermissionPhase.Settings
-        val grantedDuringExplanation = requestPhase == PermissionPhase.Explanation && permission.isGranted(activity)
-        if (returnedFromSettings || grantedDuringExplanation) {
+        val permission = activePermission
+        if (permission != null && requestPhase != PermissionPhase.SystemDialog &&
+            (requestPhase == PermissionPhase.Settings || permission.isGranted(activity))
+        ) {
             clearRationaleHistoryIfGranted(permission)
             finishRequest()
-        }
+        } else refreshPermissionStates()
     }
 
     CompositionLocalProvider(LocalRuntimePermissions provides runtimePermissions) {

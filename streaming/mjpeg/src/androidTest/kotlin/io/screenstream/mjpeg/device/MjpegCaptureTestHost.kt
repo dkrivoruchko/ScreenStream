@@ -130,7 +130,7 @@ class MjpegCaptureTestActivity : ComponentActivity() {
                                 .weight(1f)
                         ) {
                             val instance = when (val state = managerState) {
-                                is StreamingModuleManager.State.Running -> state.instanceId
+                                is StreamingModuleManager.State.Running,
                                 is StreamingModuleManager.State.Unresponsive -> state.instanceId
                                 else -> null
                             }

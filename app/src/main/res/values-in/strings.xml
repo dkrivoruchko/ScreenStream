@@ -71,9 +71,12 @@
     <string name="app_about_privacy_options_open_error">Tidak dapat membuka opsi privasi</string>
 
     <!-- In-app update -->
-    <string name="app_update_title">Pembaruan didownload</string>
-    <string name="app_update_message">Mulai ulang aplikasi untuk menginstal pembaruan. Streaming yang aktif akan dihentikan.</string>
-    <string name="app_update_restart">Mulai ulang</string>
+    <string name="app_update_title">Update didownload</string>
+    <string name="app_update_message">Mengupdate akan menghentikan streaming dan memulai ulang aplikasi.</string>
+    <string name="app_update_available">Update tersedia</string>
+    <string name="app_update_download">Download</string>
+    <string name="app_update_downloading">Mendownload update</string>
+    <string name="app_update_install">Update</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Notifikasi streaming</string>

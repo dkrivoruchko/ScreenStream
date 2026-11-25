@@ -20,9 +20,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -34,7 +33,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.R
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,31 +60,24 @@ internal fun AdaptiveAppModal(
         initialValue = SheetValue.Hidden,
         enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
     )
-    val sheetScope = rememberCoroutineScope()
-    // Material remembers its fling handler independently of page changes.
-    var sheetDismissAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    // Material can retain the callback across page changes and invoke it when a hide is cancelled.
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    var sheetMounted by remember { mutableStateOf(false) }
     ModalBottomSheet(
-        onDismissRequest = {
-            sheetDismissAction?.invoke() ?: return@ModalBottomSheet
-            // Nested dismissal returns to the list in the same sheet.
-            sheetScope.launch {
-                withFrameNanos { }
-                if (!sheetState.isVisible) sheetState.show()
-            }
-        },
+        onDismissRequest = { if (sheetMounted && !sheetState.isVisible) currentOnDismiss() },
         dragHandle = null,
         sheetMaxWidth = if (hasCompactWidth) Dp.Unspecified else AppDialogMaxWidth,
         sheetState = sheetState,
+        sheetGesturesEnabled = !showBack,
         properties = ModalBottomSheetProperties(shouldDismissOnBackPress = !showBack),
     ) {
         HandleDialogEscape(closeOrGoBack)
         if (onBack != null) BackHandler(onBack = onBack)
         TitledModalContent(title, closeOrGoBack, showBack, actionModifier, content)
     }
-    // Material's hide completion can run when disposal cancels its coroutine.
-    DisposableEffect(closeOrGoBack) {
-        sheetDismissAction = closeOrGoBack
-        onDispose { sheetDismissAction = null }
+    DisposableEffect(Unit) {
+        sheetMounted = true
+        onDispose { sheetMounted = false }
     }
 }
 

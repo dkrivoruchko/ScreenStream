@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">अपडेट डाउनलोड हो गया</string>
-    <string name="app_update_message">अपडेट इंस्टॉल करने के लिए ऐप्लिकेशन रीस्टार्ट करें। अगर कोई स्ट्रीम चालू है, तो वह बंद हो जाएगी।</string>
-    <string name="app_update_restart">रीस्टार्ट करें</string>
+    <string name="app_update_message">अपडेट करने पर स्ट्रीम बंद हो जाएगी और ऐप्लिकेशन रीस्टार्ट हो जाएगा।</string>
+    <string name="app_update_available">अपडेट उपलब्ध है</string>
+    <string name="app_update_download">डाउनलोड करें</string>
+    <string name="app_update_downloading">अपडेट डाउनलोड हो रहा है</string>
+    <string name="app_update_install">अपडेट करें</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">स्ट्रीमिंग सूचनाएँ</string>

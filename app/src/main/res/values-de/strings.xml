@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Update heruntergeladen</string>
-    <string name="app_update_message">Starten Sie die App neu, um das Update zu installieren. Ein eventuell aktiver Stream wird gestoppt.</string>
-    <string name="app_update_restart">Neu starten</string>
+    <string name="app_update_message">Beim Aktualisieren wird der Stream gestoppt und die App neu gestartet.</string>
+    <string name="app_update_available">Update verfügbar</string>
+    <string name="app_update_download">Herunterladen</string>
+    <string name="app_update_downloading">Update wird heruntergeladen</string>
+    <string name="app_update_install">Aktualisieren</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Streaming-Benachrichtigungen</string>

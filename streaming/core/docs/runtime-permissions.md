@@ -15,7 +15,7 @@ Core defines ordinary Android permissions and their checks and provides Activity
 1. The module checks current availability before protected work.
 2. When a permission is missing, a user action in module UI calls `tryRequest`.
 3. If the host admits the request, it shows its explanation. Confirmation opens Android's permission dialog or settings.
-4. When the request ends, the host rechecks the permission and updates its UI state.
+4. When the request ends, the host rechecks permissions the UI has observed and updates their state.
 5. The module checks availability again and decides whether the original action still applies.
 
 Admission to request UI, Android's approval and the module's readiness to act are separate outcomes. A `true` result from `tryRequest` isn't authorization.
@@ -34,7 +34,7 @@ The three audio entries differ only in their explanation; they share one grant, 
 
 `isGranted` answers whether a permission is available now. Protected work needs this check, but it doesn't cover other prerequisites, and the module remains responsible if authority is lost after the check.
 
-`PermissionState` is the host's last-known UI hint: `Granted`, `Requestable`, `SettingsSuggested` or `Requesting`. The host updates it around its own requests, not on independent Android settings changes, so a hint can be stale, and a permission can already be granted while an earlier request is still open. `SettingsSuggested` is inferred from app-wide notification settings or from Android no longer recommending a rationale after it previously did; it suggests, but doesn't prove, permanent denial.
+`PermissionState` is the host's last-known UI hint: `Granted`, `Requestable`, `SettingsSuggested` or `Requesting`. The host refreshes observed hints on Activity resume and when its requests settle. An active request stays `Requesting` until it settles, even if `isGranted` already reports availability. `SettingsSuggested` can reflect disabled app-wide notifications or the disappearance of a previously recommended rationale. Rationale history can suggest permanent denial without establishing it.
 
 ## Request lifetime and outcomes
 

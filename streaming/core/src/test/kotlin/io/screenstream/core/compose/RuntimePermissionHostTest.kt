@@ -114,7 +114,7 @@ internal class RuntimePermissionHostTest {
         compose.onNodeWithText(text(R.string.core_permission_device_audio_title)).assertExists()
     }
 
-    // Cases: CORE-PERM-05, CORE-PERM-06
+    // Cases: CORE-PERM-05, CORE-PERM-06, CORE-PERM-07
     @Test
     fun submittedRequestOutlivesOriginAndRecreationAndUpdatesAllAudioAliases() {
         launchHost(useActivityRegistry = true)
@@ -134,17 +134,33 @@ internal class RuntimePermissionHostTest {
 
         activityScenario.recreate()
         compose.waitForIdle()
-        compose.runOnIdle { assertEquals(PermissionState.Requesting, permissions.state(RuntimePermission.DeviceAudio).value) }
+        val audioState = compose.runOnIdle { permissions.state(RuntimePermission.DeviceAudio) }
+        val notificationState = compose.runOnIdle { permissions.state(RuntimePermission.Notifications) }
+        assertEquals(PermissionState.Requesting, audioState.value)
+        assertEquals(PermissionState.Granted, notificationState.value)
+
+        activityScenario.moveToState(Lifecycle.State.STARTED)
+        shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO)
+        shadowOf(application).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        activityScenario.moveToState(Lifecycle.State.RESUMED)
+        compose.runOnIdle {
+            assertTrue(permissions.isGranted(RuntimePermission.RecordAudio))
+            assertEquals(PermissionState.Requesting, audioState.value)
+            assertEquals(PermissionState.Requestable, notificationState.value)
+            assertFalse(permissions.tryRequest(RuntimePermission.Notifications))
+        }
+
         activityScenario.onActivity {
             assertNotSame(originalRegistry, it.activityResultRegistry)
             assertNull(shadowOf(it).lastRequestedPermission)
-            shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO)
+            shadowOf(application).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
             assertTrue(it.activityResultRegistry.dispatchResult(requestCode, mapOf(Manifest.permission.RECORD_AUDIO to true)))
         }
         compose.waitForIdle()
 
         assertEquals(listOf(Triple(1, Manifest.permission.RECORD_AUDIO, false)), observations)
         compose.runOnIdle {
+            assertEquals(PermissionState.Granted, notificationState.value)
             listOf(RuntimePermission.Microphone, RuntimePermission.DeviceAudio, RuntimePermission.RecordAudio).forEach {
                 assertEquals(PermissionState.Granted, permissions.state(it).value)
                 assertTrue(permissions.isGranted(it))
@@ -219,7 +235,12 @@ internal class RuntimePermissionHostTest {
         compose.onNodeWithText(text(R.string.core_permission_microphone_title)).assertDoesNotExist()
         compose.runOnIdle { assertEquals(PermissionState.Granted, permissions.state(RuntimePermission.DeviceAudio).value) }
         assertTrue(registry.launches.isEmpty())
+        val notificationState = compose.runOnIdle { permissions.state(RuntimePermission.Notifications) }
+        assertEquals(PermissionState.Granted, notificationState.value)
+        activityScenario.moveToState(Lifecycle.State.STARTED)
         shadowOf(application).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        activityScenario.moveToState(Lifecycle.State.RESUMED)
+        compose.runOnIdle { assertEquals(PermissionState.Requestable, notificationState.value) }
         request(RuntimePermission.Notifications)
         compose.onNodeWithText(text(R.string.core_permission_notifications_title)).assertExists()
     }

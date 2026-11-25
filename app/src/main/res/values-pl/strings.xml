@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Pobrano aktualizację</string>
-    <string name="app_update_message">Uruchom aplikację ponownie, aby zainstalować aktualizację. Jeśli trwa transmisja, zostanie zatrzymana.</string>
-    <string name="app_update_restart">Uruchom ponownie</string>
+    <string name="app_update_message">Aktualizacja zatrzyma transmisję i uruchomi ponownie aplikację.</string>
+    <string name="app_update_available">Dostępna aktualizacja</string>
+    <string name="app_update_download">Pobierz</string>
+    <string name="app_update_downloading">Pobieranie aktualizacji</string>
+    <string name="app_update_install">Aktualizuj</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Powiadomienia o transmisji</string>

@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Nganyari wis diundhuh</string>
-    <string name="app_update_message">Wiwiti maneh aplikasi kanggo nginstal nganyari. Streaming sing aktif bakal mandheg.</string>
-    <string name="app_update_restart">Wiwiti maneh</string>
+    <string name="app_update_message">Nganyari bakal mandhegake streaming lan miwiti maneh aplikasi.</string>
+    <string name="app_update_available">Nganyari kasedhiya</string>
+    <string name="app_update_download">Undhuh</string>
+    <string name="app_update_downloading">Ngundhuh nganyari</string>
+    <string name="app_update_install">Anyari</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Kabar streaming</string>

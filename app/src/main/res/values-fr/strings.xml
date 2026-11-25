@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Mise à jour téléchargée</string>
-    <string name="app_update_message">Redémarrez l’application pour installer la mise à jour. Toute diffusion en cours sera arrêtée.</string>
-    <string name="app_update_restart">Redémarrer</string>
+    <string name="app_update_message">La mise à jour arrêtera la diffusion et redémarrera l’application.</string>
+    <string name="app_update_available">Mise à jour disponible</string>
+    <string name="app_update_download">Télécharger</string>
+    <string name="app_update_downloading">Téléchargement de la mise à jour</string>
+    <string name="app_update_install">Mettre à jour</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Notifications de diffusion</string>

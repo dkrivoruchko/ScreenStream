@@ -105,6 +105,10 @@ public interface StreamingModuleManager {
 
     /** One complete, observable process state. */
     public sealed interface State {
+        /** The instance ID reported by this state, including [Failed]. The manager checks admission separately. */
+        public val instanceId: StreamingModule.InstanceId?
+            get() = null
+
         /** Idle state awaiting module selection. */
         public data object NoModule : State
 
@@ -119,13 +123,13 @@ public interface StreamingModuleManager {
 
         /** [status] is the latest accepted report and its heartbeat is fresh. */
         public data class Running(
-            public val instanceId: StreamingModule.InstanceId,
+            override val instanceId: StreamingModule.InstanceId,
             public val status: StreamingModule.Status,
         ) : State
 
         /** The heartbeat is stale; [lastStatus] is the last accepted report. */
         public data class Unresponsive(
-            public val instanceId: StreamingModule.InstanceId,
+            override val instanceId: StreamingModule.InstanceId,
             public val lastStatus: StreamingModule.Status,
         ) : State
 
@@ -134,7 +138,7 @@ public interface StreamingModuleManager {
          * selected, the instance is restarted, or Exit. Null [messageResource] means generic error text.
          */
         public data class Failed(
-            public val instanceId: StreamingModule.InstanceId,
+            override val instanceId: StreamingModule.InstanceId,
             @get:StringRes public val messageResource: Int? = null,
         ) : State
     }

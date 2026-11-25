@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">アップデートをダウンロードしました</string>
-    <string name="app_update_message">アプリを再起動してアップデートをインストールしてください。配信中の場合は停止します。</string>
-    <string name="app_update_restart">再起動</string>
+    <string name="app_update_message">更新すると配信が停止し、アプリが再起動します。</string>
+    <string name="app_update_available">アップデートがあります</string>
+    <string name="app_update_download">ダウンロード</string>
+    <string name="app_update_downloading">アップデートをダウンロード中</string>
+    <string name="app_update_install">更新</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">配信の通知</string>

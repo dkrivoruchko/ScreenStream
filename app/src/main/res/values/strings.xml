@@ -74,8 +74,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Update downloaded</string>
-    <string name="app_update_message">Restart the app to install the update. Any active stream will stop.</string>
-    <string name="app_update_restart">Restart</string>
+    <string name="app_update_message">Updating will stop the stream and restart the app.</string>
+    <string name="app_update_available">Update available</string>
+    <string name="app_update_download">Download</string>
+    <string name="app_update_downloading">Downloading update</string>
+    <string name="app_update_install">Update</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Streaming notifications</string>

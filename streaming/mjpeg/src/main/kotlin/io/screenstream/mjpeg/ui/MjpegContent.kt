@@ -1,11 +1,15 @@
 package io.screenstream.mjpeg.ui
 
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -190,9 +195,19 @@ private fun CaptureButton(action: UiController.Action, modifier: Modifier, onCli
         modifier = modifier.heightIn(min = 48.dp),
     ) {
         when (action) {
-            is UiController.Action.Start -> Text(stringResource(R.string.mjpeg_stream_start_capture), fontSize = 18.sp)
+            is UiController.Action.Start -> {
+                Icon(painterResource(R.drawable.mjpeg_icon_play_arrow), contentDescription = null)
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text(stringResource(R.string.mjpeg_stream_start_capture), fontSize = 18.sp)
+            }
+
             UiController.Action.Busy -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-            is UiController.Action.Stop -> Text(stringResource(R.string.mjpeg_stream_stop_capture), fontSize = 18.sp)
+
+            is UiController.Action.Stop -> {
+                Icon(painterResource(R.drawable.mjpeg_icon_stop), contentDescription = null)
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text(stringResource(R.string.mjpeg_stream_stop_capture), fontSize = 18.sp)
+            }
         }
     }
 }

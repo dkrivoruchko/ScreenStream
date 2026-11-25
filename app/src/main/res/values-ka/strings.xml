@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">განახლება ჩამოტვირთულია</string>
-    <string name="app_update_message">განახლების დასაინსტალირებლად გადატვირთეთ აპი. აქტიური სტრიმი შეწყდება.</string>
-    <string name="app_update_restart">გადატვირთვა</string>
+    <string name="app_update_message">განახლება შეწყვეტს სტრიმს და გადატვირთავს აპს.</string>
+    <string name="app_update_available">ხელმისაწვდომია განახლება</string>
+    <string name="app_update_download">ჩამოტვირთვა</string>
+    <string name="app_update_downloading">მიმდინარეობს განახლების ჩამოტვირთვა</string>
+    <string name="app_update_install">განახლება</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">სტრიმინგის შეტყობინებები</string>

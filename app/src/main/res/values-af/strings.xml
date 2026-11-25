@@ -72,8 +72,11 @@
 
     <!-- In-app update -->
     <string name="app_update_title">Opdatering afgelaai</string>
-    <string name="app_update_message">Herbegin die app om die opdatering te installeer. Enige aktiewe stroom sal stop.</string>
-    <string name="app_update_restart">Herbegin</string>
+    <string name="app_update_message">Die opdatering sal die stroom stop en die app herbegin.</string>
+    <string name="app_update_available">Opdatering beskikbaar</string>
+    <string name="app_update_download">Laai af</string>
+    <string name="app_update_downloading">Laai tans opdatering af</string>
+    <string name="app_update_install">Dateer op</string>
 
     <!-- Notifications -->
     <string name="app_notification_channel_streaming">Stroomkennisgewings</string>
