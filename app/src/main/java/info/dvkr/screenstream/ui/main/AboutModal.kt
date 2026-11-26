@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.ui.about
+package info.dvkr.screenstream.ui.main
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -35,8 +35,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.dropUnlessResumed
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.ads.AdMob
-import info.dvkr.screenstream.ui.AdaptiveAppModal
-import info.dvkr.screenstream.ui.ModalPane
+import info.dvkr.screenstream.ui.modal.AdaptiveAppModal
+import info.dvkr.screenstream.ui.modal.ModalPane
 import kotlinx.coroutines.isActive
 import org.koin.compose.koinInject
 

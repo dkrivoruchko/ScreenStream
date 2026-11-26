@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.ui
+package info.dvkr.screenstream.ui.modal
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,18 +45,25 @@ internal fun AdaptiveAppModal(
     actionModifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val windowSize = LocalWindowInfo.current.containerDpSize
-    val hasCompactWidth = windowSize.width < WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
+    val windowInfo = LocalWindowInfo.current
+    val openedAsDialog = rememberSaveable {
+        pane != null || windowInfo.containerDpSize.let { size ->
+            size.width >= WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp &&
+                    size.height >= WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND.dp
+        }
+    }
     val showBack = onBack != null
     val closeOrGoBack = onBack ?: onDismiss
 
-    if (pane != null || (!hasCompactWidth && windowSize.height >= WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND.dp)) {
+    // A current fold pane requires a dialog even if this modal opened as a sheet.
+    if (pane != null || openedAsDialog) {
         AppDialog(onDismiss = closeOrGoBack, title = title, pane = pane) {
             TitledModalContent(title, closeOrGoBack, showBack, actionModifier, content)
         }
         return
     }
 
+    val hasCompactWidth = windowInfo.containerDpSize.width < WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
     val sheetState = rememberBottomSheetState(
         initialValue = SheetValue.Hidden,
         enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),

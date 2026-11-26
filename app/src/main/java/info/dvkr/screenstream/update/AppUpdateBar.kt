@@ -36,8 +36,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.ui.AppDialog
-import info.dvkr.screenstream.ui.ModalPane
+import info.dvkr.screenstream.ui.modal.AppDialog
+import info.dvkr.screenstream.ui.modal.ModalPane
 import info.dvkr.screenstream.update.AppUpdate.State
 
 @Composable

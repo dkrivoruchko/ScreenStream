@@ -237,9 +237,11 @@ private fun StreamAddressRow(
         ) {
             Text(displayUrl, style = MaterialTheme.typography.titleMedium.copy(textDirection = TextDirection.Ltr))
         }
-        Row(
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = stringResource(
@@ -247,16 +249,13 @@ private fun StreamAddressRow(
                     stringResource(interfaceLabelRes),
                     stringResource(addressScopeLabelRes),
                 ),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 4.dp),
+                modifier = Modifier.padding(end = 4.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             StreamAddressActions(
                 displayUrl = displayUrl,
                 actionUrl = actionUrl,
-                modifier = Modifier.weight(1.5f),
             )
         }
         if (server.isLoopback) {
@@ -289,7 +288,6 @@ private fun StreamAddressRow(
 private fun StreamAddressActions(
     displayUrl: String,
     actionUrl: String,
-    modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -333,7 +331,6 @@ private fun StreamAddressActions(
     }
 
     FlowRow(
-        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         itemVerticalAlignment = Alignment.CenterVertically,

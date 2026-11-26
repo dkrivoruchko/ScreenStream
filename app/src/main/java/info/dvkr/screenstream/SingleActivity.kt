@@ -14,8 +14,8 @@ import androidx.lifecycle.lifecycleScope
 import info.dvkr.screenstream.ads.AdMob
 import info.dvkr.screenstream.review.attachAppReview
 import info.dvkr.screenstream.settings.AppSettings
-import info.dvkr.screenstream.ui.StreamScreen
-import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
+import info.dvkr.screenstream.ui.ScreenStreamTheme
+import info.dvkr.screenstream.ui.main.MainScreen
 import info.dvkr.screenstream.update.AppUpdate
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.compose.RuntimePermissionHost
@@ -77,7 +77,7 @@ public class SingleActivity : AppCompatActivity() {
                         initialRationaleHistory = initialRationaleHistory,
                         onRationaleObserved = appSettings::setPermissionRationaleObserved,
                     ) {
-                        StreamScreen(streamingModulesManager, appUpdate)
+                        MainScreen(streamingModulesManager, appUpdate)
                     }
 
                     ScreenCaptureConsentHost()

@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.ui.theme
+package info.dvkr.screenstream.ui
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

@@ -61,6 +61,11 @@ internal fun ServerPortEditor(
         OutlinedTextField(
             value = currentServerPort,
             onValueChange = { textField ->
+                if (textField.text == currentServerPort.text) {
+                    currentServerPort = textField
+                    return@OutlinedTextField
+                }
+
                 val digitsOnly = textField.text.filter(Char::isDigit).take(5)
                 val filteredTextField = textField.copy(
                     text = digitsOnly,

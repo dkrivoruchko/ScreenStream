@@ -31,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -45,7 +44,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.window.core.layout.WindowSizeClass
 import androidx.window.layout.WindowMetricsCalculator
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.OutputSize
@@ -360,8 +358,6 @@ private fun SizeEditor(
         if (showEnlargementWarning) {
             SettingInfo(stringResource(R.string.mjpeg_pref_image_size_enlargement_warning), iconRes = R.drawable.mjpeg_icon_warning)
         }
-        val windowWidthDp = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
-        val stackSizeValues = windowWidthDp < WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
         Row(
             Modifier
                 .fillMaxWidth()
@@ -374,7 +370,6 @@ private fun SizeEditor(
                 value = if (screenSize.width > 0 && screenSize.height > 0) {
                     stringResource(R.string.mjpeg_pref_image_size_value, screenSize.width, screenSize.height)
                 } else stringResource(R.string.mjpeg_pref_image_size_estimate_unavailable),
-                stacked = stackSizeValues,
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider()
@@ -383,7 +378,6 @@ private fun SizeEditor(
                 value = estimatedImageSize?.let {
                     stringResource(R.string.mjpeg_pref_image_size_value, it.width, it.height)
                 } ?: stringResource(R.string.mjpeg_pref_image_size_estimate_unavailable),
-                stacked = stackSizeValues,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -392,11 +386,10 @@ private fun SizeEditor(
 }
 
 @Composable
-private fun SizeSummary(label: String, value: String, stacked: Boolean, modifier: Modifier = Modifier) {
+private fun SizeSummary(label: String, value: String, modifier: Modifier = Modifier) {
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-        maxItemsInEachRow = if (stacked) 1 else 2,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
         Text(

@@ -56,9 +56,9 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.settings.AppSettings
 import info.dvkr.screenstream.tile.TileActionService
-import info.dvkr.screenstream.ui.AdaptiveAppModal
-import info.dvkr.screenstream.ui.ModalPane
-import info.dvkr.screenstream.ui.theme.dynamicThemeAvailable
+import info.dvkr.screenstream.ui.dynamicThemeAvailable
+import info.dvkr.screenstream.ui.modal.AdaptiveAppModal
+import info.dvkr.screenstream.ui.modal.ModalPane
 import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart

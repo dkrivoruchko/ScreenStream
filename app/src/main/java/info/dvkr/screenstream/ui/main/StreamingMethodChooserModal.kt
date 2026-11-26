@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.ui.stream
+package info.dvkr.screenstream.ui.main
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -43,8 +43,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.ui.AdaptiveAppModal
-import info.dvkr.screenstream.ui.ModalPane
+import info.dvkr.screenstream.ui.modal.AdaptiveAppModal
+import info.dvkr.screenstream.ui.modal.ModalPane
 import io.screenstream.core.module.StreamingModule
 
 @Composable
