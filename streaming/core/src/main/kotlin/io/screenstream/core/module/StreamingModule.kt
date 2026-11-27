@@ -9,6 +9,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import kotlinx.serialization.Serializable
@@ -47,6 +48,7 @@ public interface StreamingModule {
      * @property benefitsRes List of benefits shown in the details body.
      * @property thingsToKnowRes List of requirements and limitations shown in the details body.
      */
+    @Immutable
     public data class Description(
         @get:DrawableRes @param:DrawableRes public val iconRes: Int,
         @get:StringRes @param:StringRes public val titleRes: Int,
@@ -84,6 +86,7 @@ public interface StreamingModule {
      * @property instanceId Launch that owns the capture attempt.
      * @property uuid Unique identity of this attempt within the instance.
      */
+    @Immutable
     public data class CaptureAttemptId(public val instanceId: InstanceId, public val uuid: Uuid = Uuid.random())
 
     /**
@@ -95,6 +98,7 @@ public interface StreamingModule {
      * @property error Current operation error that leaves the instance usable; null when none. A non-null
      * value starts the manager's best-effort generic warning notification.
      */
+    @Immutable
     public data class Status(
         public val isStreaming: Boolean,
         public val hasConsumer: Boolean,
@@ -105,6 +109,7 @@ public interface StreamingModule {
          * Operation error with an optional localized user message; technical diagnostics belong in logs.
          * The module owns the error episode and any recovery token.
          */
+        @Immutable
         public data class Error(public val message: String? = null)
     }
 
@@ -151,11 +156,13 @@ public interface StreamingModule {
          * @property role Placement hint for the app.
          * @property content Module content composed at one placement with access to [ModalHost.current].
          */
+        @Stable
         public data class Section(
             public val id: String,
             public val role: Role,
             public val content: @Composable () -> Unit,
         ) {
+            @Immutable
             public enum class Role { Overview, SettingsSearch, Settings, }
         }
     }

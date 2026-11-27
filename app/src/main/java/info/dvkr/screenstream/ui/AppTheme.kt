@@ -95,7 +95,7 @@ private val AppTypography = Typography()
 internal val dynamicThemeAvailable: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
 @Composable
-internal fun ScreenStreamTheme(
+internal fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     appSettings: AppSettings,
     content: @Composable () -> Unit

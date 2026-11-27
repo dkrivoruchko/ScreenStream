@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.update
+package info.dvkr.screenstream.ui.main
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,19 +33,20 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.ui.modal.AppDialog
-import info.dvkr.screenstream.ui.modal.ModalPane
+import info.dvkr.screenstream.ui.AppDialog
+import info.dvkr.screenstream.update.AppUpdate
 import info.dvkr.screenstream.update.AppUpdate.State
 
 @Composable
-internal fun AppUpdateBar(appUpdate: AppUpdate, modalPane: ModalPane?) {
+internal fun AppUpdateBar(appUpdate: AppUpdate, dialogBounds: DpRect?) {
     val state = appUpdate.state.collectAsStateWithLifecycle().value
     if (state == State.Hidden) return
 
-    val canInstallInModuleState = appUpdate.canInstallInModuleState.collectAsStateWithLifecycle(initialValue = false).value
+    val moduleStateAllowsInstall = appUpdate.moduleStateAllowsInstall.collectAsStateWithLifecycle(initialValue = false).value
     val isDownloading = state == State.Downloading
     val isDownloadPhase = isDownloading || state == State.Available || state == State.Preparing
     val title = stringResource(if (isDownloadPhase) R.string.app_update_available else R.string.app_update_title)
@@ -53,7 +54,8 @@ internal fun AppUpdateBar(appUpdate: AppUpdate, modalPane: ModalPane?) {
     val downloadProgressDescription = if (isDownloading) stringResource(R.string.app_update_downloading) else null
     val updateIcon = painterResource(R.drawable.app_icon_autorenew)
     val updateIconTint = MaterialTheme.colorScheme.primary
-    val stripTextStyle = MaterialTheme.typography.titleMedium
+    val barTextStyle = MaterialTheme.typography.titleMedium
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -62,16 +64,15 @@ internal fun AppUpdateBar(appUpdate: AppUpdate, modalPane: ModalPane?) {
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(updateIcon, contentDescription = null, modifier = Modifier.size(24.dp), tint = updateIconTint)
-            Text(title, Modifier.weight(1f), style = stripTextStyle)
+            Text(title, Modifier.weight(1f), style = barTextStyle)
             TextButton(
                 onClick = if (isDownloadPhase) appUpdate::requestDownload else appUpdate::requestInstall,
-                enabled = state == State.Available || (state == State.Downloaded && canInstallInModuleState),
+                enabled = state == State.Available || (state == State.Downloaded && moduleStateAllowsInstall),
                 modifier = Modifier
                     .heightIn(min = 48.dp)
                     .semantics {
@@ -95,9 +96,9 @@ internal fun AppUpdateBar(appUpdate: AppUpdate, modalPane: ModalPane?) {
                     Text(
                         stringResource(R.string.app_update_download),
                         if (isDownloadPhase && !isDownloading) Modifier else hiddenLabelModifier,
-                        style = stripTextStyle,
+                        style = barTextStyle,
                     )
-                    Text(installLabel, if (isDownloadPhase) hiddenLabelModifier else Modifier, style = stripTextStyle)
+                    Text(installLabel, if (isDownloadPhase) hiddenLabelModifier else Modifier, style = barTextStyle)
                     if (isDownloading) {
                         CircularProgressIndicator(
                             modifier = Modifier
@@ -111,7 +112,11 @@ internal fun AppUpdateBar(appUpdate: AppUpdate, modalPane: ModalPane?) {
         }
 
         if (state == State.ConfirmInstall) {
-            AppDialog(onDismiss = appUpdate::dismissInstallConfirmation, title = installLabel, pane = modalPane) {
+            AppDialog(
+                title = installLabel,
+                onDismissRequest = appUpdate::dismissInstallConfirmation,
+                dialogBounds = dialogBounds,
+            ) {
                 Column(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
@@ -139,7 +144,7 @@ internal fun AppUpdateBar(appUpdate: AppUpdate, modalPane: ModalPane?) {
                         TextButton(onClick = appUpdate::dismissInstallConfirmation) {
                             Text(stringResource(android.R.string.cancel))
                         }
-                        Button(onClick = appUpdate::confirmInstall, enabled = canInstallInModuleState) { Text(installLabel) }
+                        Button(onClick = appUpdate::confirmInstall, enabled = moduleStateAllowsInstall) { Text(installLabel) }
                     }
                 }
             }

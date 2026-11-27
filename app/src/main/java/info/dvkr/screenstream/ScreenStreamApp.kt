@@ -10,7 +10,11 @@ import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -70,22 +74,22 @@ public class ScreenStreamApp : Application() {
     }
 
     private fun observeAppExit() {
-        val log: Logger = get { parametersOf(this) }
-        CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
-            val streamingModuleManager = get<StreamingModuleManager>()
-            val activityManager = getSystemService(ActivityManager::class.java)
+        val streamingModuleManager = get<StreamingModuleManager>()
+        val activityManager = getSystemService(ActivityManager::class.java)
 
-            streamingModuleManager.state.collect { state ->
-                if (state != StreamingModuleManager.State.Exiting) return@collect
-
+        streamingModuleManager.state
+            .map { state -> state == StreamingModuleManager.State.Closing || state == StreamingModuleManager.State.Closed }
+            .distinctUntilChanged()
+            .filter { it }
+            .onEach {
                 activityManager.appTasks.forEach { task ->
                     try {
                         task.finishAndRemoveTask()
                     } catch (failure: IllegalArgumentException) {
+                        val log: Logger = get { parametersOf(this@ScreenStreamApp) }
                         log.d("observeAppExit", "App task was already removed during Exit", failure)
                     }
                 }
-            }
-        }
+            }.launchIn(CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
     }
 }

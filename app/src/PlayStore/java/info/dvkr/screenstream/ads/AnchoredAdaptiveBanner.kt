@@ -100,7 +100,7 @@ internal fun AnchoredAdaptiveBanner(state: AnchoredAdaptiveBannerState) {
                 factory = {
                     log.d("AnchoredAdaptiveBanner", "factory: $unitId")
                     val view = AdView(activity)
-                    if (!state.adMob.canLoadBanner(revision)) return@AndroidView view
+                    if (!state.adMob.canUseBanner(revision)) return@AndroidView view
 
                     val refreshCallback = object : BannerAdRefreshCallback {
                         override fun onAdFailedToRefresh(adError: LoadAdError) {
@@ -126,7 +126,7 @@ internal fun AnchoredAdaptiveBanner(state: AnchoredAdaptiveBannerState) {
                                     if (released.get()) {
                                         // The SDK can still attach an already-dispatched success after release.
                                         view.destroy()
-                                    } else if (!state.adMob.canLoadBanner(revision)) {
+                                    } else if (!state.adMob.canUseBanner(revision)) {
                                         view.unregisterBannerAd()?.destroy()
                                     } else {
                                         log.d("AnchoredAdaptiveBanner", "onAdLoaded: $unitId")

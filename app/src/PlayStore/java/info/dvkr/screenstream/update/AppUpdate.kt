@@ -42,7 +42,7 @@ import com.google.android.play.core.install.model.ActivityResult as PlayActivity
 @Factory
 internal class AppUpdate(
     @InjectedParam private val activity: SingleActivity,
-    private val streamingModulesManager: StreamingModuleManager,
+    private val streamingModuleManager: StreamingModuleManager,
 ) : DefaultLifecycleObserver {
 
     internal enum class State { Hidden, Available, Preparing, Downloading, Downloaded, ConfirmInstall, Installing }
@@ -61,14 +61,14 @@ internal class AppUpdate(
     val state: StateFlow<State>
         field = MutableStateFlow(State.Hidden)
 
-    val canInstallInModuleState: Flow<Boolean> = streamingModulesManager.state
+    val moduleStateAllowsInstall: Flow<Boolean> = streamingModuleManager.state
         .map { it.allowsUpdateInstall }
         .distinctUntilChanged()
 
     private var playUpdateState = State.Hidden
     private var action: Action? = null
     private var updateInfoJob: Job? = null
-    private var recoveryJob: Job? = null
+    private var statusRecheckJob: Job? = null
     private var installRequestToken: Any? = null
     private var verifyInstallOnRetry = false
 
@@ -102,7 +102,7 @@ internal class AppUpdate(
         }
         publishState()
         if (downloadNotObserved && action != Action.Install) requestUpdateInfo()
-        if (action == Action.AwaitDownload) scheduleRecovery()
+        if (action == Action.AwaitDownload) scheduleStatusRecheck()
     }
 
     init {
@@ -113,13 +113,13 @@ internal class AppUpdate(
 
     override fun onResume(owner: LifecycleOwner) {
         requestUpdateInfo()
-        if (needsRecovery) scheduleRecovery()
+        if (needsStatusRecheck) scheduleStatusRecheck()
     }
 
     override fun onPause(owner: LifecycleOwner) {
         // A tap awaiting Play info must not launch anything after the user leaves the Activity.
         updateInfoJob?.cancel()
-        recoveryJob?.cancel()
+        statusRecheckJob?.cancel()
         if (action == Action.CheckDownload || action == Action.CheckInstall || action == Action.ConfirmInstall) {
             action = null
         }
@@ -128,7 +128,7 @@ internal class AppUpdate(
 
     override fun onDestroy(owner: LifecycleOwner) {
         updateInfoJob?.cancel()
-        recoveryJob?.cancel()
+        statusRecheckJob?.cancel()
         installRequestToken = null
         appUpdateManager.unregisterListener(installStateListener)
     }
@@ -153,7 +153,7 @@ internal class AppUpdate(
 
     private fun requestUpdateInfo(
         forDownload: Boolean = false,
-        bounded: Boolean = false,
+        useTimeout: Boolean = false,
         onResult: (AppUpdateInfo?) -> Unit = ::handleUpdateInfo,
     ) {
         if (!canRunForegroundUpdate || action == Action.CheckDownload) return
@@ -162,7 +162,7 @@ internal class AppUpdate(
         publishState()
         // Store the job before a synchronous failure can deliver a result and start another lookup.
         val lookup = activity.lifecycleScope.launch(start = CoroutineStart.LAZY) {
-            val info = if (bounded) withTimeoutOrNull(PLAY_INFO_TIMEOUT) { awaitUpdateInfo() } else awaitUpdateInfo()
+            val info = if (useTimeout) withTimeoutOrNull(PLAY_INFO_TIMEOUT) { awaitUpdateInfo() } else awaitUpdateInfo()
             if (!isActive) return@launch
             updateInfoJob = null
             if (canRunForegroundUpdate) onResult(info)
@@ -197,7 +197,7 @@ internal class AppUpdate(
             if (observedState != State.Downloaded) verifyInstallOnRetry = false
         }
         when (action) {
-            Action.Install -> if (installRequestToken == null) clearRecoveryAction()
+            Action.Install -> if (installRequestToken == null) clearUpdateAction()
             Action.ConfirmInstall -> if (playUpdateState != State.Downloaded) action = null
             Action.CheckDownload -> {
                 action = null
@@ -206,7 +206,7 @@ internal class AppUpdate(
 
             Action.AwaitDownload -> {
                 if (observedState == State.Downloading || observedState == State.Downloaded || observedState == State.Installing) {
-                    clearRecoveryAction()
+                    clearUpdateAction()
                 }
             }
 
@@ -215,25 +215,25 @@ internal class AppUpdate(
         publishState()
     }
 
-    private val needsRecovery: Boolean
+    private val needsStatusRecheck: Boolean
         get() = action == Action.AwaitDownload || (action == Action.Install && installRequestToken == null)
 
-    private fun scheduleRecovery() {
+    private fun scheduleStatusRecheck() {
         if (!canRunForegroundUpdate) return
-        recoveryJob?.cancel()
-        recoveryJob = activity.lifecycleScope.launch {
+        statusRecheckJob?.cancel()
+        statusRecheckJob = activity.lifecycleScope.launch {
             delay(PLAY_STATUS_GRACE)
-            if (needsRecovery) requestUpdateInfo(bounded = true) { updateInfo ->
+            if (needsStatusRecheck) requestUpdateInfo(useTimeout = true) { updateInfo ->
                 // This settles the UI. A retry after an ambiguous install still needs fresh Play status.
                 if (action == Action.Install && playUpdateState == State.Downloaded) verifyInstallOnRetry = true
-                clearRecoveryAction()
+                clearUpdateAction()
                 handleUpdateInfo(updateInfo)
             }
         }
     }
 
-    private fun clearRecoveryAction() {
-        recoveryJob?.cancel()
+    private fun clearUpdateAction() {
+        statusRecheckJob?.cancel()
         action = null
     }
 
@@ -258,7 +258,7 @@ internal class AppUpdate(
         if (reportedState == State.Downloading && playUpdateState == State.Downloaded) return
         if (playUpdateState == State.Installing && (reportedState == State.Downloading || reportedState == State.Downloaded)) return
         updateInfoJob?.cancel()
-        recoveryJob?.cancel()
+        statusRecheckJob?.cancel()
 
         val shouldRefreshUpdateInfo = status == InstallStatus.FAILED || status == InstallStatus.CANCELED
         playUpdateState = reportedState
@@ -288,11 +288,12 @@ internal class AppUpdate(
     }
 
     private val StreamingModuleManager.State.allowsUpdateInstall: Boolean
-        get() = this != StreamingModuleManager.State.Switching && this != StreamingModuleManager.State.Exiting
+        get() = this != StreamingModuleManager.State.Opening &&
+            this != StreamingModuleManager.State.Closing && this != StreamingModuleManager.State.Closed
 
     private fun installDownloadedUpdate(streamInterruptionConfirmed: Boolean) {
         if (!canRunForegroundUpdate || playUpdateState != State.Downloaded) return
-        val moduleState = streamingModulesManager.state.value
+        val moduleState = streamingModuleManager.state.value
         if (!moduleState.allowsUpdateInstall) return
         val isStreaming = when (moduleState) {
             is StreamingModuleManager.State.Running -> moduleState.status.isStreaming
@@ -307,7 +308,7 @@ internal class AppUpdate(
 
         if (verifyInstallOnRetry) {
             action = Action.CheckInstall
-            requestUpdateInfo(bounded = true) { updateInfo ->
+            requestUpdateInfo(useTimeout = true) { updateInfo ->
                 action = null
                 if (updateInfo?.toUpdateState() == State.Downloaded) {
                     verifyInstallOnRetry = false
@@ -333,7 +334,7 @@ internal class AppUpdate(
                     handleInstallRequestFailure(task.exception)
                 } else {
                     updateInfoJob?.cancel()
-                    if (playUpdateState == State.Installing) clearRecoveryAction() else scheduleRecovery()
+                    if (playUpdateState == State.Installing) clearUpdateAction() else scheduleStatusRecheck()
                     publishState()
                 }
             }
@@ -350,7 +351,7 @@ internal class AppUpdate(
             playUpdateState = State.Hidden
         }
         if (cause != null) log.w("completeUpdate", "Failed: $cause", cause)
-        clearRecoveryAction()
+        clearUpdateAction()
         verifyInstallOnRetry = playUpdateState == State.Downloaded
         publishState()
         requestUpdateInfo()

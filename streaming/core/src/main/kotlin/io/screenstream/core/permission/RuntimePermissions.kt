@@ -11,6 +11,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import androidx.annotation.MainThread
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.core.net.toUri
 import kotlinx.coroutines.flow.StateFlow
 
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
  * Runtime permissions used by streaming modules. Each entry selects a request explanation; entries sharing
  * [androidPermission] share one grant, [PermissionState], and request slot.
  */
+@Stable
 @SuppressLint("InlinedApi")
 public enum class RuntimePermission(public val androidPermission: String) {
     /** POST_NOTIFICATIONS on API 33+; availability also requires app-wide enablement on every API. */
@@ -87,6 +90,7 @@ public enum class RuntimePermission(public val androidPermission: String) {
 }
 
 /** Last-known request UI hint; check current availability before protected work. */
+@Immutable
 public enum class PermissionState {
     /** The last published check found availability. */
     Granted,

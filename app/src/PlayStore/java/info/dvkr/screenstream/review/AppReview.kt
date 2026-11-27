@@ -38,7 +38,7 @@ internal fun attachAppReview(activity: ComponentActivity) {
     val log: Logger = activity.get { parametersOf(activity) }
     activity.lifecycleScope.launch {
         activity.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            eligibility.requestPending.collect { pending ->
+            eligibility.hasPendingReviewWhileIdle.collect { pending ->
                 if (pending) eligibility.requestMutex.withLock { requestReview(activity, eligibility, log) }
             }
         }
@@ -64,14 +64,14 @@ private suspend fun requestReview(activity: ComponentActivity, eligibility: Revi
     } catch (failure: CancellationException) {
         throw failure
     } catch (failure: Exception) {
-        eligibility.retryReviewRequest()
+        eligibility.markReviewRequestPending()
         log.d("AppReview.requestReview", "Error: $failure")
     }
 }
 
 /** Process-owned accounting and preferences. Never retains an Activity, launcher, or UI callback. */
 @Singleton(createdAtStart = true)
-internal class ReviewEligibility(context: Context, private val manager: StreamingModuleManager) : KoinComponent {
+internal class ReviewEligibility(context: Context, private val streamingModuleManager: StreamingModuleManager) : KoinComponent {
     private val log: Logger by inject { parametersOf(this) }
 
     private companion object {
@@ -92,14 +92,14 @@ internal class ReviewEligibility(context: Context, private val manager: Streamin
         ),
     )
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val mutableRequestPending = MutableStateFlow(false)
-    val requestPending: StateFlow<Boolean> = mutableRequestPending.asStateFlow()
+    private val mutablePendingReviewWhileIdle = MutableStateFlow(false)
+    val hasPendingReviewWhileIdle: StateFlow<Boolean> = mutablePendingReviewWhileIdle.asStateFlow()
 
     // Other resumed presenters wait cancellably, without requiring a new pending-state emission.
     val requestMutex: Mutex = Mutex()
 
     init {
-        manager.state.onEach { state ->
+        streamingModuleManager.state.onEach { state ->
             updateHistory { policy.observe(state, SystemClock.uptimeMillis(), System.currentTimeMillis()) }
         }.catch { failure ->
             log.e("observe", "Review eligibility observation failed", failure)
@@ -113,11 +113,11 @@ internal class ReviewEligibility(context: Context, private val manager: Streamin
         updateHistory { policy.recordReviewRequested(System.currentTimeMillis()) }
     }
 
-    fun retryReviewRequest() {
-        updateHistory { policy.retryReviewRequest() }
+    fun markReviewRequestPending() {
+        updateHistory { policy.markReviewRequestPending() }
     }
 
-    private fun isCaptureKnownIdle(): Boolean = when (val state = manager.state.value) {
+    private fun isCaptureKnownIdle(): Boolean = when (val state = streamingModuleManager.state.value) {
         is StreamingModuleManager.State.Running -> !state.status.isStreaming && state.status.captureAttempt == null
         StreamingModuleManager.State.NoModule -> true
         else -> false
@@ -135,7 +135,7 @@ internal class ReviewEligibility(context: Context, private val manager: Streamin
                 putBoolean(PENDING_REVIEW_REQUEST, history.pendingReviewRequest)
             }
         }
-        mutableRequestPending.value = history.pendingReviewRequest && isCaptureKnownIdle()
+        mutablePendingReviewWhileIdle.value = history.pendingReviewRequest && isCaptureKnownIdle()
     }
 }
 
@@ -175,8 +175,9 @@ private class ReviewEligibilityPolicy(initialHistory: History) {
                 if (captureAttempt?.instanceId != state.instanceId) finishSession() else null
             }
 
-            StreamingModuleManager.State.Switching,
-            StreamingModuleManager.State.Exiting -> {
+            StreamingModuleManager.State.Opening,
+            StreamingModuleManager.State.Closing,
+            StreamingModuleManager.State.Closed -> {
                 closeUsefulSegment(nowUptimeMs)
                 finishSession()
             }
@@ -200,7 +201,7 @@ private class ReviewEligibilityPolicy(initialHistory: History) {
         history = history.copy(lastReviewRequestMillis = nowMillis, pendingReviewRequest = false)
     }
 
-    fun retryReviewRequest() {
+    fun markReviewRequestPending() {
         history = history.copy(pendingReviewRequest = true)
     }
 
@@ -258,6 +259,6 @@ private class ReviewEligibilityPolicy(initialHistory: History) {
         ) return
 
         val lastRequest = history.lastReviewRequestMillis
-        if (lastRequest <= 0 || nowMillis - lastRequest >= REVIEW_REQUEST_COOLDOWN_MS) retryReviewRequest()
+        if (lastRequest <= 0 || nowMillis - lastRequest >= REVIEW_REQUEST_COOLDOWN_MS) markReviewRequestPending()
     }
 }

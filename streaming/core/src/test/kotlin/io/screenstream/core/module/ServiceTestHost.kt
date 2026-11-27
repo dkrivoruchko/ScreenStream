@@ -64,14 +64,13 @@ internal class ServiceTestHost(directory: File) : AutoCloseable {
         private set
 
     init {
-        runBlocking { withTimeout(5.seconds) { settings.initialize() } }
         manager = StreamingModuleManagerImpl(listOf(ServiceDescriptor), context, settings, notifications, StandardTestDispatcher(scheduler))
         loadKoinModules(module {
             single { manager }
             single<StreamingModuleNotifications> { notifications }
         })
         CoreServiceHost.factory = { handle -> ServiceControllerProbe(handle).also { controller = it } }
-        manager.selectModule(ServiceDescriptor.id)
+        runBlocking { withTimeout(5.seconds) { manager.selectModule(ServiceDescriptor.id) } }
         scheduler.runCurrent()
         lifecycle = Robolectric.buildService(CoreServiceHost::class.java, starts.removeFirst()).create().startCommand(0, 1)
         scheduler.runCurrent()

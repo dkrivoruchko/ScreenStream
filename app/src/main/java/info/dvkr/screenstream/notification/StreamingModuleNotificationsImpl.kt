@@ -5,8 +5,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -35,23 +37,41 @@ internal class StreamingModuleNotificationsImpl(context: Context) : StreamingMod
 
     init {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            with(localizedContext) {
-                for (channel in StreamingModuleNotifications.Channel.entries) {
-                    val name = getString(
-                        when (channel) {
-                            StreamingModuleNotifications.Channel.Streaming -> R.string.app_notification_channel_streaming
-                            StreamingModuleNotifications.Channel.Error -> R.string.app_notification_channel_error
-                        }
-                    )
-                    val notificationChannel = NotificationChannel(channel.id, name, channel.defaultImportance).apply {
-                        setSound(null, null)
-                        enableLights(false)
-                        enableVibration(false)
-                        setShowBadge(false)
+            ContextCompat.registerReceiver(
+                appContext,
+                object : BroadcastReceiver() {
+                    override fun onReceive(context: Context, intent: Intent) {
+                        if (intent.action == Intent.ACTION_LOCALE_CHANGED) syncNotificationChannels(localizedContext)
                     }
-                    notificationManager.createNotificationChannel(notificationChannel)
+                },
+                IntentFilter(Intent.ACTION_LOCALE_CHANGED),
+                ContextCompat.RECEIVER_EXPORTED,
+            )
+            syncNotificationChannels(localizedContext)
+        }
+    }
+
+    internal fun syncNotificationChannels(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+        for (channel in StreamingModuleNotifications.Channel.entries) {
+            val name = context.getString(
+                when (channel) {
+                    StreamingModuleNotifications.Channel.Streaming -> R.string.app_notification_channel_streaming
+                    StreamingModuleNotifications.Channel.Error -> R.string.app_notification_channel_error
                 }
+            )
+            val existing = notificationManager.getNotificationChannel(channel.id)
+            if (existing?.name == name) continue
+
+            val notificationChannel = existing ?: NotificationChannel(channel.id, name, channel.defaultImportance).apply {
+                setSound(null, null)
+                enableLights(false)
+                enableVibration(false)
+                setShowBadge(false)
             }
+            notificationChannel.name = name
+            notificationManager.createNotificationChannel(notificationChannel)
         }
     }
 
@@ -143,7 +163,7 @@ internal class StreamingModuleNotificationsImpl(context: Context) : StreamingMod
         PendingIntent.getActivity(
             appContext,
             0,
-            SingleActivity.getIntent(appContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            SingleActivity.createLaunchIntent(appContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE,
         )
 

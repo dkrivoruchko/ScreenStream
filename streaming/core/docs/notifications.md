@@ -42,7 +42,7 @@ The provider builds foreground content even while delivery is blocked. On API 33
 
 The manager and the Controller each own one error notification, and both can be visible at once.
 
-The manager derives its notification from `state`. An operation error in the current status, or `Unresponsive` health, starts one warning episode for that instance with a single delivery attempt. Message changes, moving between error and unresponsive, and re-enabled delivery don't post it again. `Failed` replaces the warning with failure content, using the failure's message resource or generic text. Every other state, including responsive control without an error, a transition and Exit, cancels it. A provider failure is logged and isn't retried within the episode.
+The manager derives its notification from `state`. An operation error in the current status, or `Unresponsive` health, starts one warning episode for that instance with a single delivery attempt. Message changes, moving between error and unresponsive, and re-enabled delivery don't post it again. `Failed` replaces the warning with failure content, using the failure's message resource or generic text. Every other state, including responsive control without an error, `Opening`, `Closing` and `Closed`, cancels it. A provider failure is logged and isn't retried within the episode.
 
 The Controller chooses which operation errors to present in detail (`ErrorContent.Text`), can attach a recovery action for its current error episode, and clears its notification when the error resolves or the instance shuts down. Recovery stays within the same instance ([Capture Start, Stop, and recovery](module-contract-and-manager.md#capture-start-stop-and-recovery)).
 
@@ -52,11 +52,11 @@ The Controller chooses which operation errors to present in detail (`ErrorConten
 
 | Button | Target | Effect |
 | --- | --- | --- |
-| Exit | The instance whose Service showed it | `exit(instanceId)`, which applies only while that instance is admitted |
+| Exit | The instance whose Service showed it | `exit(instanceId)`, which applies only while that instance is admitted. The receiver ignores its result |
 | Stop | One confirmed capture attempt | `requestStreamStop(attempt, fromNotification = true)`; the Controller matches the attempt |
 | Recovery | An instance and its error-episode token | `requestRecovery`; the Controller validates the token |
 
-A button keeps its original target after replacement or a later capture attempt, so it can't act on a newer instance or attempt.
+A button keeps its original target after replacement or a later capture attempt, so it can't act on a newer instance or attempt. The Exit action only requests the manager's Exit; app UI and task changes stay outside Core.
 
 ## Delivery and permissions
 

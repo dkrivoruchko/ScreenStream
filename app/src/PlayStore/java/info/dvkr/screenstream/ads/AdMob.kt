@@ -87,7 +87,7 @@ internal class AdMob(private val context: Context) : KoinComponent {
         private set
 
     // Lifecycle, consent, and banner state are owned by the main thread.
-    private var refreshRequested = true
+    private var consentInfoUpdatePending = true
     private var consentPhase = ConsentPhase.IDLE
     private var pendingForm: ConsentForm? = null
     private var formToken: Any? = null
@@ -112,7 +112,7 @@ internal class AdMob(private val context: Context) : KoinComponent {
 
     @MainThread
     fun beginAppLaunch() {
-        refreshRequested = true
+        consentInfoUpdatePending = true
         if (pendingForm != null) {
             pendingForm = null
             consentPhase = ConsentPhase.IDLE
@@ -122,7 +122,7 @@ internal class AdMob(private val context: Context) : KoinComponent {
 
     @MainThread
     fun showPrivacyOptionsForm(activity: Activity, onFailure: () -> Unit) {
-        if (refreshRequested || sdkState == SdkState.STARTING || consentPhase != ConsentPhase.IDLE || activity.isFinishing || activity.isDestroyed) {
+        if (consentInfoUpdatePending || sdkState == SdkState.STARTING || consentPhase != ConsentPhase.IDLE || activity.isFinishing || activity.isDestroyed) {
             onFailure()
             return
         }
@@ -135,7 +135,7 @@ internal class AdMob(private val context: Context) : KoinComponent {
     fun attach(activity: ComponentActivity) {
         log.d("init", "${activity.hashCode()}")
         // Adding the observer can immediately deliver ON_RESUME.
-        requestConsent(activity)
+        requestConsentInfoUpdate(activity)
         activity.lifecycle.addObserver(LifecycleEventObserver { _, event ->
             when (event) {
                 ON_RESUME -> {
@@ -155,14 +155,14 @@ internal class AdMob(private val context: Context) : KoinComponent {
         activity.window.decorView.doOnAttach { advanceConsent() }
     }
 
-    private fun requestConsent(activity: Activity) {
-        if (!refreshRequested || activity.isFinishing || activity.isDestroyed) return
+    private fun requestConsentInfoUpdate(activity: Activity) {
+        if (!consentInfoUpdatePending || activity.isFinishing || activity.isDestroyed) return
         if (consentPhase != ConsentPhase.IDLE || sdkState == SdkState.STARTING) {
             log.d("init", "Pending consent request. Ignoring")
             return
         }
 
-        refreshRequested = false
+        consentInfoUpdatePending = false
         consentPhase = ConsentPhase.STARTUP
         publishAvailability()
 
@@ -179,21 +179,21 @@ internal class AdMob(private val context: Context) : KoinComponent {
             },
             { error -> scope.launch(Dispatchers.Main.immediate) { completeConsent(error) } },
         )
-        updatePrivacyOptions()
+        updatePrivacyOptionsRequirement()
     }
 
     private fun loadFormIfRequired() {
-        if (refreshRequested || consent.canRequestAds() || !consent.isConsentFormAvailable) {
+        if (consentInfoUpdatePending || consent.canRequestAds() || !consent.isConsentFormAvailable) {
             completeConsent()
             return
         }
 
-        updatePrivacyOptions()
+        updatePrivacyOptionsRequirement()
         UserMessagingPlatform.loadConsentForm(
             context.applicationContext,
             { form ->
                 scope.launch(Dispatchers.Main.immediate) {
-                    if (refreshRequested || consent.canRequestAds()) {
+                    if (consentInfoUpdatePending || consent.canRequestAds()) {
                         completeConsent()
                     } else {
                         pendingForm = form
@@ -206,8 +206,8 @@ internal class AdMob(private val context: Context) : KoinComponent {
     }
 
     private fun advanceConsent() {
-        if (refreshRequested) {
-            currentResumedHost()?.let(::requestConsent)
+        if (consentInfoUpdatePending) {
+            currentResumedHost()?.let(::requestConsentInfoUpdate)
             return
         }
         val form = pendingForm ?: return
@@ -264,21 +264,21 @@ internal class AdMob(private val context: Context) : KoinComponent {
         pendingForm = null
         startupFormHost = null
         formToken = null
-        updatePrivacyOptions()
+        updatePrivacyOptionsRequirement()
         initializeMobileAds()
         advanceConsent()
         publishAvailability()
     }
 
-    private fun updatePrivacyOptions() {
+    private fun updatePrivacyOptionsRequirement() {
         isPrivacyOptionsRequired = consent.privacyOptionsRequirementStatus == REQUIRED
     }
 
     // Opening Privacy options does not invalidate an eligible creative. Reconcile on dismissal.
-    private fun awaitingConsent(): Boolean = refreshRequested || consentPhase == ConsentPhase.STARTUP
+    private fun awaitingConsent(): Boolean = consentInfoUpdatePending || consentPhase == ConsentPhase.STARTUP
 
     @MainThread
-    fun canLoadBanner(revision: Int): Boolean =
+    fun canUseBanner(revision: Int): Boolean =
         revision == bannerRevision && availability == Availability.READY && !awaitingConsent() && consent.canRequestAds()
 
     private fun publishAvailability() {
@@ -295,7 +295,7 @@ internal class AdMob(private val context: Context) : KoinComponent {
     }
 
     private fun initializeMobileAds() {
-        if (refreshRequested || !consent.canRequestAds()) return
+        if (consentInfoUpdatePending || !consent.canRequestAds()) return
         if (sdkState == SdkState.READY) {
             log.d("initializeMobileAds", "Already initialized. Ignoring")
             return
@@ -354,7 +354,7 @@ internal class AdMob(private val context: Context) : KoinComponent {
     }
 
     fun retainBanner(activity: Activity, size: AdSize, ad: BannerAd, revision: Int): Boolean {
-        if (!canLoadBanner(revision)) return false
+        if (!canUseBanner(revision)) return false
         if (activity.isFinishing || activity.isDestroyed) return false
         if ((activity as? LifecycleOwner)?.lifecycle?.currentState == DESTROYED) return false
 

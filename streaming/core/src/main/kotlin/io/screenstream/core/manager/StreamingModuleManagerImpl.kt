@@ -24,7 +24,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -47,8 +49,9 @@ import kotlin.uuid.Uuid
  *
  * The first status must be applied within three seconds of launch. A heartbeat older than three seconds
  * marks control unresponsive; a fresh one restores it. Heartbeat age uses uptime, excluding deep sleep.
- * Startup and shutdown deadlines use elapsed realtime, including deep sleep; each shutdown transition
- * waits at most three seconds for the previous cleanup. Scheduling can delay observing a deadline.
+ * Startup and shutdown deadlines use elapsed realtime, including deep sleep. Each instance gets one shutdown
+ * deadline, three seconds after the manager first requests its shutdown, and later transitions reuse it. Scheduling can
+ * delay observing a deadline.
  *
  * @param modules Registered modules in any order.
  * @param streamingSettings Saved module selection.
@@ -92,7 +95,10 @@ internal class StreamingModuleManagerImpl internal constructor(
     private var selectedModuleId: StreamingModule.Id? = null
     private var currentInstance: LaunchRecord? = null
     private var transitionJob: Job? = null
-    private var isExiting: Boolean = false
+    private var hasAcceptedExit: Boolean = false
+
+    /** Advanced by each accepted Exit; a selection resuming after settings compares it. */
+    private var exitGeneration: Long = 0L
     private val deadlineWake = Channel<Unit>(Channel.CONFLATED)
     private var lastSettingsWrite: Job? = null
 
@@ -100,38 +106,61 @@ internal class StreamingModuleManagerImpl internal constructor(
         field = MutableStateFlow<StreamingModuleManager.State>(StreamingModuleManager.State.NoModule)
 
     @MainThread
-    override fun selectModule(moduleId: StreamingModule.Id?) {
-        if (transitionJob != null) return
+    override suspend fun selectModule(moduleId: StreamingModule.Id?): Boolean {
+        if (transitionJob != null) return false
         if (moduleId != null && moduleId !in moduleById) {
             log.w("Select", "Unknown streaming module ID=$moduleId")
-            return
+            return false
         }
-        if (selectedModuleId != null && currentInstance?.instanceId?.moduleId == (moduleId ?: selectedModuleId)) return
-        beginPreparation(moduleId)
+        if (hasAcceptedExit && moduleId != null) return false
+
+        val generation = exitGeneration
+        if (selectedModuleId == null) {
+            streamingSettings.initialize()
+            currentCoroutineContext().ensureActive()
+            if (transitionJob != null || generation != exitGeneration) return false
+        }
+
+        val currentChoice = selectedModuleId
+        val savedChoice = if (currentChoice == null) streamingSettings.data.value.selectedModuleId else null
+        val automaticTarget = currentChoice ?: savedChoice?.takeIf { it in moduleById } ?: modules.first().id
+        val target = moduleId ?: automaticTarget
+        if (currentInstance?.instanceId?.moduleId == target) return false
+
+        selectedModuleId = target
+        val firstChoice = currentChoice == null && savedChoice == null
+        if (target != automaticTarget) {
+            persistSettings { copy(selectedModuleId = target) }
+        } else if (firstChoice) {
+            persistSettings { if (selectedModuleId == null) copy(selectedModuleId = target) else this }
+        }
+        beginPreparation(target)
+        return firstChoice && moduleId == null
     }
 
     @MainThread
     override fun restartModule(expectedInstanceId: StreamingModule.InstanceId) {
-        if (transitionJob != null || selectedModuleId == null) return
+        if (transitionJob != null) return
         val instance = currentInstance ?: return
         if (instance.instanceId != expectedInstanceId || (!instance.hasLiveStatus() && instance.state !is LaunchState.Failed)) return
         beginPreparation(expectedInstanceId.moduleId)
     }
 
     @MainThread
-    override fun exit(expectedInstanceId: StreamingModule.InstanceId?) {
+    override fun exit(expectedInstanceId: StreamingModule.InstanceId?): Boolean {
         if (expectedInstanceId != null) {
-            val instance = currentInstance ?: return
-            if (instance.instanceId != expectedInstanceId || !instance.isAdmitted()) return
+            val instance = currentInstance ?: return false
+            if (instance.instanceId != expectedInstanceId || !instance.isAdmitted()) return false
         }
-        if (!isExiting) beginExit()
+        val accepted = !hasAcceptedExit
+        if (accepted) beginExit()
         wakeTransitionWaiter()
+        return accepted
     }
 
     /** Install the transition before publication to give synchronous callers the active transition. */
-    private fun beginPreparation(requestedModuleId: StreamingModule.Id?) {
-        isExiting = false
-        val loadedTarget = selectedModuleId?.let { requestedModuleId ?: it }
+    private fun beginPreparation(target: StreamingModule.Id) {
+        hasAcceptedExit = false
         val previous = currentInstance
         val previousDeadline = previous?.takeUnless { it.isFinishReported }?.let {
             it.shutdownDeadlineElapsedMillis ?: shutdownDeadline()
@@ -139,23 +168,6 @@ internal class StreamingModuleManagerImpl internal constructor(
         lateinit var opening: Job
         opening = scope.launch(start = CoroutineStart.LAZY) {
             try {
-                if (selectedModuleId == null) {
-                    streamingSettings.initialize()
-                    if (transitionJob !== opening) return@launch
-                    val saved = streamingSettings.data.value.selectedModuleId
-                    val resolved = saved?.takeIf { it in moduleById } ?: modules.first().id
-                    selectedModuleId = resolved
-                    if (saved == null) persistSettings {
-                        if (selectedModuleId == null) copy(selectedModuleId = resolved) else this
-                    }
-                }
-                if (transitionJob !== opening) return@launch
-                val selected = checkNotNull(selectedModuleId)
-                val target = loadedTarget ?: (requestedModuleId ?: selected)
-                if (loadedTarget == null) {
-                    if (target != selected) persistSettings { copy(selectedModuleId = target) }
-                    selectedModuleId = target
-                }
                 if (previous != null && previousDeadline != null) {
                     awaitUntil(previous.cleanupSettled, previousDeadline)
                 }
@@ -176,11 +188,6 @@ internal class StreamingModuleManagerImpl internal constructor(
             }
         }
         transitionJob = opening
-        if (loadedTarget != null) {
-            val changed = loadedTarget != selectedModuleId
-            selectedModuleId = loadedTarget
-            if (changed) persistSettings { copy(selectedModuleId = loadedTarget) }
-        }
         if (previous != null && previousDeadline != null) {
             previous.beginClosing()
             previous.requestModuleShutdown(previousDeadline)
@@ -192,8 +199,12 @@ internal class StreamingModuleManagerImpl internal constructor(
         }
     }
 
-    /** Install Exit before cancelling an opening; instance cleanup continues independently. */
+    /**
+     * Install Exit before cancelling an opening or requesting shutdown, so reentrant callers see it. Without a
+     * remaining wait, publish Closed directly; instance cleanup continues independently.
+     */
     private fun beginExit() {
+        exitGeneration++
         val previousTransition = transitionJob
         val instance = currentInstance
         lateinit var exiting: Job
@@ -203,23 +214,32 @@ internal class StreamingModuleManagerImpl internal constructor(
                     awaitUntil(instance.cleanupSettled, checkNotNull(instance.shutdownDeadlineElapsedMillis))
                 }
             } finally {
-                if (transitionJob === exiting) {
-                    currentInstance = null
-                    transitionJob = null
-                    publishState()
-                }
+                finishExit(exiting)
             }
         }
-        isExiting = true
+        hasAcceptedExit = true
         transitionJob = exiting
         previousTransition?.cancel()
         instance?.beginClosing()
         instance?.requestModuleShutdown(instance.shutdownDeadlineElapsedMillis ?: shutdownDeadline())
+        val deadline = instance?.takeUnless { it.isFinishReported }?.shutdownDeadlineElapsedMillis
+        if (deadline == null || deadline < SystemClock.elapsedRealtime()) {
+            exiting.cancel()
+            finishExit(exiting)
+            return
+        }
         try {
             publishState()
         } finally {
             exiting.start()
         }
+    }
+
+    private fun finishExit(exiting: Job) {
+        if (transitionJob !== exiting) return
+        currentInstance = null
+        transitionJob = null
+        publishState()
     }
 
     /** Wait against elapsed time, recomputing after reports and deep-sleep wake-ups. */
@@ -356,8 +376,8 @@ internal class StreamingModuleManagerImpl internal constructor(
 
     private fun publishState() {
         state.value = when {
-            isExiting -> StreamingModuleManager.State.Exiting
-            transitionJob != null -> StreamingModuleManager.State.Switching
+            hasAcceptedExit -> if (transitionJob != null) StreamingModuleManager.State.Closing else StreamingModuleManager.State.Closed
+            transitionJob != null -> StreamingModuleManager.State.Opening
             else -> currentInstance?.let { instance ->
                 when (val launch = instance.state) {
                     is LaunchState.Running -> StreamingModuleManager.State.Running(instance.instanceId, launch.status)

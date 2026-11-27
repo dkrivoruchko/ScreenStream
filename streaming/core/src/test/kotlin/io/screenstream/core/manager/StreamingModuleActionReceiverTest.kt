@@ -139,8 +139,9 @@ internal class StreamingModuleActionReceiverTest {
         val commands = mutableListOf<Action>()
         override val modules = emptyList<StreamingModule>()
         override val state = MutableStateFlow<StreamingModuleManager.State>(StreamingModuleManager.State.NoModule)
-        override fun exit(expectedInstanceId: StreamingModule.InstanceId?) {
+        override fun exit(expectedInstanceId: StreamingModule.InstanceId?): Boolean {
             commands.add(Action.Exit(expectedInstanceId))
+            return true
         }
 
         override fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId, fromNotification: Boolean) {
@@ -151,7 +152,7 @@ internal class StreamingModuleActionReceiverTest {
             commands.add(Action.Recover(instanceId, errorToken))
         }
 
-        override fun selectModule(moduleId: StreamingModule.Id?) = error("Unexpected selection")
+        override suspend fun selectModule(moduleId: StreamingModule.Id?): Boolean = error("Unexpected selection")
         override fun restartModule(expectedInstanceId: StreamingModule.InstanceId) = error("Unexpected restart")
         override fun requestStreamStart(instanceId: StreamingModule.InstanceId) = error("Unexpected Start")
 

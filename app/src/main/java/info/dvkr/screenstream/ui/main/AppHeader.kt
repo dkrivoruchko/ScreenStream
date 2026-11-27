@@ -31,37 +31,36 @@ import info.dvkr.screenstream.R
 import io.screenstream.core.module.StreamingModule
 
 @Composable
-internal fun StreamHeader(
-    displayedMethod: StreamingModule.Description?,
+internal fun AppHeader(
+    streamingModuleDescription: StreamingModule.Description?,
     methodSelectionEnabled: Boolean,
     inlineMethodSelector: Boolean,
-    reduceVerticalSpacing: Boolean,
     onChooseMethod: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     onRequestExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.padding(horizontal = 12.dp)) {
+    Column(modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (inlineMethodSelector) {
-                MethodChooserCard(
-                    selectedMethod = displayedMethod,
+                StreamingMethodCard(
+                    streamingModuleDescription = streamingModuleDescription,
                     onClick = onChooseMethod,
                     enabled = methodSelectionEnabled,
                     modifier = Modifier
                         .weight(1f)
                         .padding(end = 12.dp),
-                    inlineWithActions = true,
-                    reduceVerticalSpacing = reduceVerticalSpacing,
+                    inlineWithActions = true
                 )
             } else {
                 Text(
                     text = stringResource(R.string.app_name),
                     modifier = Modifier
+                        .padding(start = 16.dp)
                         .weight(1f)
                         .semantics { heading() },
                     style = MaterialTheme.typography.titleMedium,
@@ -80,9 +79,10 @@ internal fun StreamHeader(
                 Icon(painterResource(R.drawable.app_icon_power_settings_new), stringResource(R.string.app_action_exit))
             }
         }
+
         if (!inlineMethodSelector) {
-            MethodChooserCard(
-                selectedMethod = displayedMethod,
+            StreamingMethodCard(
+                streamingModuleDescription = streamingModuleDescription,
                 onClick = onChooseMethod,
                 enabled = methodSelectionEnabled,
             )
@@ -91,13 +91,12 @@ internal fun StreamHeader(
 }
 
 @Composable
-private fun MethodChooserCard(
-    selectedMethod: StreamingModule.Description?,
+private fun StreamingMethodCard(
+    streamingModuleDescription: StreamingModule.Description?,
     onClick: () -> Unit,
     enabled: Boolean,
     modifier: Modifier = Modifier,
     inlineWithActions: Boolean = false,
-    reduceVerticalSpacing: Boolean = false,
 ) {
     val chooseLabel = stringResource(R.string.app_method_choose)
 
@@ -120,15 +119,15 @@ private fun MethodChooserCard(
                 .heightIn(min = 48.dp)
                 .padding(
                     horizontal = if (inlineWithActions) 8.dp else 16.dp,
-                    vertical = if (reduceVerticalSpacing) 4.dp else 12.dp,
+                    vertical = 12.dp,
                 ),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val methodColor = if (enabled) MaterialTheme.colorScheme.primary else LocalContentColor.current
-            if (selectedMethod != null) {
+            if (streamingModuleDescription != null) {
                 Icon(
-                    painter = painterResource(selectedMethod.iconRes),
+                    painter = painterResource(streamingModuleDescription.iconRes),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
                     tint = methodColor,
@@ -138,9 +137,9 @@ private fun MethodChooserCard(
             val supportingColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(if (reduceVerticalSpacing) 0.dp else 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                if (inlineWithActions || selectedMethod != null) {
+                if (inlineWithActions || streamingModuleDescription != null) {
                     Text(
                         text = stringResource(R.string.app_method_label),
                         style = MaterialTheme.typography.labelMedium,
@@ -150,9 +149,9 @@ private fun MethodChooserCard(
                     )
                 }
                 Text(
-                    text = selectedMethod?.let { stringResource(it.titleRes) } ?: chooseLabel,
+                    text = streamingModuleDescription?.let { stringResource(it.titleRes) } ?: chooseLabel,
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (selectedMethod != null) methodColor else LocalContentColor.current,
+                    color = if (streamingModuleDescription != null) methodColor else LocalContentColor.current,
                     maxLines = if (inlineWithActions) 1 else 2,
                     overflow = TextOverflow.Ellipsis,
                 )

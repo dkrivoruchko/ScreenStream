@@ -1,6 +1,6 @@
-package info.dvkr.screenstream.ui.main
+package info.dvkr.screenstream.ui
 
-import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
@@ -31,11 +31,13 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.nonInteractiveScrollbar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
@@ -53,59 +55,79 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.ads.AnchoredAdaptiveBanner
 import info.dvkr.screenstream.ads.rememberAnchoredAdaptiveBannerState
-import info.dvkr.screenstream.ui.modal.AdaptiveAppModal
-import info.dvkr.screenstream.ui.modal.AppDialog
-import info.dvkr.screenstream.ui.modal.ModalPane
+import info.dvkr.screenstream.ui.main.AppUpdateBar
+import info.dvkr.screenstream.ui.main.ModuleRecoveryCard
+import info.dvkr.screenstream.ui.main.ModuleUnavailableContent
+import info.dvkr.screenstream.ui.main.PrimaryPaneHeader
 import info.dvkr.screenstream.update.AppUpdate
-import info.dvkr.screenstream.update.AppUpdateBar
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.module.StreamingModule
-import io.screenstream.core.module.StreamingModule.Ui.ModalHost
-import io.screenstream.core.module.StreamingModule.Ui.Section
-import io.screenstream.core.module.StreamingModule.Ui.Section.Role
 import io.screenstream.foundation.logging.Logger
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 @Composable
-internal fun MainScreen(streamingModulesManager: StreamingModuleManager, appUpdate: AppUpdate) {
-    val state = streamingModulesManager.state.collectAsStateWithLifecycle().value
-    val isExiting = state == StreamingModuleManager.State.Exiting
-    BackHandler(enabled = isExiting) {}
+internal fun AppScreen(
+    streamingModuleManager: StreamingModuleManager,
+    appUpdate: AppUpdate,
+    moduleStateAtEntry: StreamingModuleManager.State,
+) {
+    val state = streamingModuleManager.state.collectAsStateWithLifecycle().value
+    val activity = LocalActivity.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val initialMethodChooserPending = retain { mutableStateOf(false) }
+    LaunchedEffect(streamingModuleManager, lifecycle) {
+        if (moduleStateAtEntry != StreamingModuleManager.State.NoModule &&
+            moduleStateAtEntry != StreamingModuleManager.State.Closed
+        ) return@LaunchedEffect
+
+        var completed = false
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            if (completed) return@repeatOnLifecycle
+            if (activity?.isFinishing == false && streamingModuleManager.state.value == moduleStateAtEntry && streamingModuleManager.selectModule()) {
+                initialMethodChooserPending.value = true
+            }
+            completed = true
+        }
+    }
 
     val colors = MaterialTheme.colorScheme
     Surface(Modifier.fillMaxSize(), color = colors.background, contentColor = colors.onBackground) {
-        if (isExiting) return@Surface
+        if (state == StreamingModuleManager.State.Closing || state == StreamingModuleManager.State.Closed) return@Surface
 
         // Keep the header and banner mounted when controller content is replaced.
-        val renderLayout = remember(streamingModulesManager, appUpdate) {
+        val movableLayout = remember(streamingModuleManager, appUpdate) {
             movableContentOf<StreamingModuleManager.State, StreamingModule.Ui?> { moduleState, moduleUi ->
-                AdaptiveMainScreenLayout(streamingModulesManager, appUpdate, moduleState, moduleUi)
+                AdaptiveAppScreenLayout(streamingModuleManager, appUpdate, moduleState, moduleUi, initialMethodChooserPending)
             }
         }
         val instanceId = state.instanceId
         if (instanceId == null) {
-            renderLayout(state, null)
+            movableLayout(state, null)
         } else {
             // Compose the controller before the adaptive layout subcomposes.
-            streamingModulesManager.InstanceContent(instanceId, fallback = { renderLayout(state, null) }) { moduleUi ->
-                renderLayout(state, moduleUi)
+            streamingModuleManager.InstanceContent(instanceId, fallback = { movableLayout(state, null) }) { moduleUi ->
+                movableLayout(state, moduleUi)
             }
         }
     }
 }
 
 @Composable
-private fun AdaptiveMainScreenLayout(
-    streamingModulesManager: StreamingModuleManager,
+private fun AdaptiveAppScreenLayout(
+    streamingModuleManager: StreamingModuleManager,
     appUpdate: AppUpdate,
     state: StreamingModuleManager.State,
     moduleUi: StreamingModule.Ui?,
+    initialMethodChooserPending: MutableState<Boolean>,
 ) {
     val instanceId = state.instanceId
     val sections = key(instanceId) {
@@ -113,10 +135,7 @@ private fun AdaptiveMainScreenLayout(
             val sectionId = section.id
             key(sectionId) {
                 val movableSectionContent = remember {
-                    movableContentOf<@Composable () -> Unit> { content ->
-                        // A movable lambda starts a new positional scope for saved and retained state.
-                        key(instanceId, sectionId) { content() }
-                    }
+                    movableContentOf<@Composable () -> Unit> { content -> key(instanceId, sectionId) { content() } }
                 }
                 section.copy(content = { movableSectionContent(section.content) })
             }
@@ -139,8 +158,10 @@ private fun AdaptiveMainScreenLayout(
             )
         }
     }
+
     val density = LocalDensity.current
     var viewportOriginPx by remember { mutableStateOf(Offset.Zero) }
+
     BoxWithConstraints(
         Modifier
             .windowInsetsPadding(WindowInsets.safeDrawing)
@@ -148,54 +169,66 @@ private fun AdaptiveMainScreenLayout(
             .onGloballyPositioned { viewportOriginPx = it.positionInWindow() },
         contentAlignment = AbsoluteAlignment.TopLeft,
     ) {
-        val placement = density.calculateMainPanePlacement(
+        val placement = density.calculateAppPanePlacement(
             viewportSizePx = IntSize(constraints.maxWidth, constraints.maxHeight),
             viewportOriginPx = viewportOriginPx,
             hinges = hinges,
-            splitFlatWindow = windowInfo.windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND),
+            allowWidthBasedSplit = windowInfo.windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND),
         )
 
         // Keep the primary pane at this call site as the layout changes.
-        PrimaryStreamPane(
-            streamingModulesManager = streamingModulesManager,
+        PrimaryPane(
+            streamingModuleManager = streamingModuleManager,
             appUpdate = appUpdate,
-            state = state,
-            moduleUi = moduleUi,
-            sections = sections,
-            scrollState = if (placement.settings == null) combinedScrollState else overviewScrollState,
+            streamingModuleManagerState = state,
+            streamingModuleUi = moduleUi,
+            streamingModuleUiSections = sections,
+            scrollState = if (placement.secondaryBounds == null) combinedScrollState else overviewScrollState,
             placement = placement,
+            initialMethodChooserPending = initialMethodChooserPending,
         )
-        val settingsBounds = placement.settings
-        if (settingsBounds != null && moduleUi != null) {
-            SettingsStreamPane(
-                sections = sections,
+
+        val secondaryBounds = placement.secondaryBounds
+        if (secondaryBounds != null && moduleUi != null) {
+            SecondaryPane(
+                streamingModuleUiSections = sections,
                 scrollState = settingsScrollState,
-                pane = if (placement.isFolded) ModalPane(settingsBounds) else null,
-                modifier = Modifier.inPane(settingsBounds),
+                dialogBounds = if (placement.usesHingeBounds) secondaryBounds else null,
+                modifier = Modifier
+                    .absolutePadding(left = secondaryBounds.left, top = secondaryBounds.top)
+                    .size(secondaryBounds.width, secondaryBounds.height),
             )
         }
-        placement.divider?.let { VerticalDivider(Modifier.inPane(it)) }
+
+        placement.dividerBounds?.let {
+            VerticalDivider(
+                Modifier
+                    .absolutePadding(left = it.left, top = it.top)
+                    .size(it.width, it.height)
+            )
+        }
     }
 }
 
 @Composable
-private fun PrimaryStreamPane(
-    streamingModulesManager: StreamingModuleManager,
+private fun PrimaryPane(
+    streamingModuleManager: StreamingModuleManager,
     appUpdate: AppUpdate,
-    state: StreamingModuleManager.State,
-    moduleUi: StreamingModule.Ui?,
-    sections: List<Section>,
+    streamingModuleManagerState: StreamingModuleManager.State,
+    streamingModuleUi: StreamingModule.Ui?,
+    streamingModuleUiSections: List<StreamingModule.Ui.Section>,
     scrollState: ScrollState,
-    placement: MainPanePlacement,
+    placement: AppPanePlacement,
+    initialMethodChooserPending: MutableState<Boolean>,
 ) {
-    val instanceId = state.instanceId
-    val primaryWidth = placement.primary.width
-    val primaryHeight = placement.primary.height
+    val instanceId = streamingModuleManagerState.instanceId
+    val primaryWidth = placement.primaryBounds.width
+    val primaryHeight = placement.primaryBounds.height
     val tabletopGap = placement.tabletopGap
-    val primaryModalPane = if (placement.isFolded) ModalPane(placement.primary) else null
-    val contentModalPane = placement.lower?.let { ModalPane(it, imeFallbackBounds = placement.primary) } ?: primaryModalPane
+    val headerDialogBounds = if (placement.usesHingeBounds) placement.primaryBounds else null
+    val contentDialogBounds = placement.lowerBounds ?: headerDialogBounds
     val shortPrimary = primaryHeight < WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND.dp
-    val scrollHeaderWithBody = shortPrimary && tabletopGap == null && instanceId != null && moduleUi != null
+    val scrollHeaderWithBody = shortPrimary && tabletopGap == null && instanceId != null && streamingModuleUi != null
     val bannerState = rememberAnchoredAdaptiveBannerState(primaryWidth)?.takeUnless { shortPrimary }
     val availableHeaderHeight = primaryHeight - (bannerState?.reservedHeight ?: 0.dp)
     val maxHeaderHeight = if (tabletopGap == null) availableHeaderHeight / 2 else availableHeaderHeight
@@ -203,19 +236,23 @@ private fun PrimaryStreamPane(
     val movableHeader = remember { movableContentOf<@Composable () -> Unit> { it() } }
     val header: @Composable () -> Unit = {
         Column {
-            AppUpdateBar(appUpdate, contentModalPane)
-            MainScreenHeader(
-                state = state,
-                manager = streamingModulesManager,
+            AppUpdateBar(appUpdate, contentDialogBounds)
+            PrimaryPaneHeader(
+                streamingModuleManager = streamingModuleManager,
+                streamingModuleManagerState = streamingModuleManagerState,
                 inlineMethodSelector = primaryWidth >= WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp,
-                reduceVerticalSpacing = shortPrimary,
-                primaryModalPane = primaryModalPane,
-                contentModalPane = contentModalPane,
+                headerDialogBounds = headerDialogBounds,
+                contentDialogBounds = contentDialogBounds,
+                initialMethodChooserPending = initialMethodChooserPending,
             )
         }
     }
 
-    Column(Modifier.inPane(placement.primaryFrame)) {
+    Column(
+        Modifier
+            .absolutePadding(left = placement.primaryLayoutBounds.left, top = placement.primaryLayoutBounds.top)
+            .size(placement.primaryLayoutBounds.width, placement.primaryLayoutBounds.height)
+    ) {
         if (!scrollHeaderWithBody) {
             Column(if (tabletopGap == null) Modifier else Modifier.height(primaryHeight)) {
                 Box(
@@ -228,32 +265,34 @@ private fun PrimaryStreamPane(
                 if (bannerState != null) AnchoredAdaptiveBanner(bannerState)
             }
         }
+
         if (tabletopGap != null) {
             Spacer(Modifier.height(tabletopGap))
         }
 
         when {
-            instanceId == null -> if (state == StreamingModuleManager.State.Switching) {
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(stringResource(R.string.app_stream_switching_modes))
+            instanceId == null ->
+                if (streamingModuleManagerState == StreamingModuleManager.State.Opening) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(stringResource(R.string.app_stream_switching_modes))
+                    }
                 }
-            }
 
-            moduleUi == null -> ModuleUnavailableContent(
-                onRestart = { streamingModulesManager.restartModule(instanceId) },
-                message = (state as? StreamingModuleManager.State.Failed)?.messageResource?.let { stringResource(it) },
+            streamingModuleUi == null -> ModuleUnavailableContent(
+                onRestart = { streamingModuleManager.restartModule(instanceId) },
+                message = (streamingModuleManagerState as? StreamingModuleManager.State.Failed)?.messageResource?.let { stringResource(it) },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
             )
 
             else -> key(instanceId) {
-                val streamError = (state as? StreamingModuleManager.State.Running)?.status?.error
+                val streamError = (streamingModuleManagerState as? StreamingModuleManager.State.Running)?.status?.error
                 val scrollbar = scrollState.scrollIndicatorState?.let { indicator ->
                     Modifier.nonInteractiveScrollbar(
                         state = indicator,
@@ -262,7 +301,7 @@ private fun PrimaryStreamPane(
                         crossAxisTrackInset = 4.dp,
                     )
                 } ?: Modifier
-                ModalHost.Provide(PaneModalHost(contentModalPane)) {
+                StreamingModule.Ui.ModalHost.Provide(PaneModalHost(contentDialogBounds)) {
                     Scaffold(
                         modifier = Modifier
                             .weight(1f)
@@ -276,23 +315,19 @@ private fun PrimaryStreamPane(
                             Box(
                                 Modifier
                                     .fillMaxWidth()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(background.copy(alpha = 0f), background.copy(alpha = 0.9f)),
-                                        ),
-                                    )
+                                    .background(Brush.verticalGradient(colors = listOf(background.copy(alpha = 0f), background.copy(alpha = 0.9f))))
                                     .padding(vertical = 12.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                moduleUi.CaptureActionButton(Modifier.padding(horizontal = 12.dp))
+                                streamingModuleUi.CaptureActionButton(Modifier.padding(horizontal = 12.dp))
                             }
                         },
-                    ) { capturePadding ->
+                    ) { innerPadding ->
                         Column(
                             Modifier
                                 .fillMaxSize()
                                 .verticalScroll(scrollState)
-                                .padding(capturePadding),
+                                .padding(innerPadding),
                         ) {
                             if (scrollHeaderWithBody) movableHeader(header)
                             Column(
@@ -306,13 +341,15 @@ private fun PrimaryStreamPane(
                                     ),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                if (state is StreamingModuleManager.State.Unresponsive || streamError != null) {
+                                if (streamingModuleManagerState is StreamingModuleManager.State.Unresponsive || streamError != null) {
                                     ModuleRecoveryCard(
-                                        { streamingModulesManager.restartModule(instanceId) },
+                                        { streamingModuleManager.restartModule(instanceId) },
                                         streamError?.message,
                                     )
                                 }
-                                sections.forEach { if (placement.settings == null || it.role == Role.Overview) it.content() }
+                                streamingModuleUiSections.forEach {
+                                    if (placement.secondaryBounds == null || it.role == StreamingModule.Ui.Section.Role.Overview) it.content()
+                                }
                             }
                         }
                     }
@@ -323,10 +360,10 @@ private fun PrimaryStreamPane(
 }
 
 @Composable
-private fun SettingsStreamPane(
-    sections: List<Section>,
+private fun SecondaryPane(
+    streamingModuleUiSections: List<StreamingModule.Ui.Section>,
     scrollState: ScrollState,
-    pane: ModalPane?,
+    dialogBounds: DpRect?,
     modifier: Modifier,
 ) {
     val scrollbar = scrollState.scrollIndicatorState?.let { indicator ->
@@ -337,12 +374,13 @@ private fun SettingsStreamPane(
             crossAxisTrackInset = 4.dp,
         )
     } ?: Modifier
-    ModalHost.Provide(PaneModalHost(pane)) {
+
+    StreamingModule.Ui.ModalHost.Provide(PaneModalHost(dialogBounds)) {
         Column(
             modifier.padding(start = 12.dp, top = 4.dp, end = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            sections.forEach { if (it.role == Role.SettingsSearch) it.content() }
+            streamingModuleUiSections.forEach { if (it.role == StreamingModule.Ui.Section.Role.SettingsSearch) it.content() }
             Column(
                 Modifier
                     .fillMaxSize()
@@ -351,24 +389,21 @@ private fun SettingsStreamPane(
                     .padding(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                sections.forEach { if (it.role == Role.Settings) it.content() }
+                streamingModuleUiSections.forEach { if (it.role == StreamingModule.Ui.Section.Role.Settings) it.content() }
             }
         }
     }
 }
 
-private data class PaneModalHost(val pane: ModalPane?) : ModalHost {
+private data class PaneModalHost(val dialogBounds: DpRect?) : StreamingModule.Ui.ModalHost {
     @Composable
     override fun Modal(title: String?, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
         if (title == null) {
-            AppDialog(onDismiss = onDismissRequest, title = null, pane = pane, content = content)
+            AppDialog(title = null, onDismissRequest = onDismissRequest, dialogBounds = dialogBounds, content = content)
         } else {
-            AdaptiveAppModal(title = title, onDismiss = onDismissRequest, pane = pane) {
+            AdaptiveAppModal(title = title, onDismissRequest = onDismissRequest, dialogBounds = dialogBounds) {
                 Box(Modifier.fillMaxWidth()) { content() }
             }
         }
     }
 }
-
-private fun Modifier.inPane(bounds: DpRect): Modifier =
-    absolutePadding(left = bounds.left, top = bounds.top).size(bounds.width, bounds.height)

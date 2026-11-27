@@ -50,27 +50,30 @@ A fake Controller shows how the manager responds to that Controller's behavior. 
 
 **Owner.** [Selection and restart](../../docs/module-contract-and-manager.md#selection-and-restart) and [StreamingModuleManager.selectModule](../../src/main/kotlin/io/screenstream/core/StreamingModuleManager.kt).
 
-**History.** In separate runs, make the first request `selectModule(null)` with no saved choice, with a saved registered ID and with a saved ID that isn't in the catalog. Then make the first request an explicit ID that differs from the saved one. In each run, deliver the Service start and report a first status. Finally, select a different module explicitly, Exit, and request `selectModule(null)` again.
+**History.** In separate runs, make the first request `selectModule(null)` with no saved choice, with a saved registered ID and with a saved ID that isn't in the catalog. Also select an explicit ID that differs from the saved one, and explicitly select the highest-priority module with no ID stored. In each run, deliver the Service start and report a fresh first status. Finally, hold settings work and advance it only until a first `selectModule(null)` claims its opening. With the settings writes kept queued, complete that opening with a fresh status, then complete an explicit replacement with a different module. Exit, let cleanup settle and reopen with `selectModule(null)`. Release the queued writes after that reopening.
 
 **Expected.**
 
 - **Resolution.** A saved registered ID opens that module. No saved choice, or an unavailable one, opens the first catalog entry. An explicit ID opens that module.
-- **Transition.** State is `Switching` while settings initialize and until the first status arrives, then `Running` with an instance of the resolved module.
+- **Result.** The automatic selection with no stored ID returns `true`. All other selections in this history return `false` even when they claim an opening.
+- **Transition.** State is `Opening` after the selection claims the opening and until the first status arrives, then `Running` with an instance of the resolved module when that status is fresh.
 - **Service.** The manager asks Android to start the resolved module's Service class.
-- **Persistence.** After its write settles, the store holds a changed explicit choice. The request returns before that write is confirmed.
-- **Later null requests.** After Exit, `selectModule(null)` opens the module selected last in this process.
+- **Persistence.** After its asynchronous write settles, the store holds the first selection when there was no stored ID or the explicit choice when it differs from the automatic choice.
+- **Later null requests.** While the explicit choice's write is still queued, the null reopening uses the in-memory choice and opens the explicitly selected module. After the queued writes are released, the store holds the explicit ID.
 
 <a id="core-mgr-03"></a>
 
-### CORE-MGR-03: Dropped selection requests
+### CORE-MGR-03: Selection admission and cancellation
 
 **Owner.** [Selection and restart](../../docs/module-contract-and-manager.md#selection-and-restart).
 
-**History.** Request selection with an unknown ID. Request selection while settings initialize, while an opening awaits its first status and during a replacement. With a module running, select it again by ID and with null. Fail that instance, then select the same module again. After the transition ends, select another module.
+**History.** Request selection with an unknown ID. Hold the first settings load and request two different modules. Release the load and hold the winning opening's first status until both calls return. Then report a fresh first status, Exit, let cleanup finish and select with null. In a separate run, cancel a waiting selection before releasing the load, retry selection and cancel the caller after it has claimed the opening and before the Service start is requested. Request selection while an opening awaits its first status and during a replacement. With a module running, select it again by ID and with null. Fail that instance, then select the same module again. After the transition ends, select another module.
 
 **Expected.**
 
-- **Ignored requests.** Unknown IDs and requests during initialization or a transition change nothing: state and the current instance stay the same, and no Service start is requested.
+- **Settings wait.** The requests suspend under `NoModule`. After loading, one request claims the opening. The other returns `false` while the transition is active. Only the winning module's Service is requested. After Exit, the null request reopens the winner; the rejected choice doesn't displace it.
+- **Cancellation.** Cancelling the waiting request leaves `NoModule`, requests no Service and leaves the shared load available to the retry. Cancelling the retry's caller after its claim doesn't cancel the opening: the manager still requests the Service, and a fresh first status publishes `Running`.
+- **Ignored requests.** Unknown IDs and requests during an active transition return `false` and leave state, the current instance and Service dispatch unchanged.
 - **Same module.** Selecting the current module keeps its instance, including a `Failed` instance, which stays `Failed`.
 - **After the transition.** A later selection of another module opens it.
 
@@ -195,7 +198,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 
 - **Delivered.** The Controller receives Start and recovery after the manager's dispatcher runs, with the original error token. It receives Stop before `requestStreamStop` returns, with the original attempt and `fromNotification` value.
 - **Unresponsive is eligible.** Commands reach an `Unresponsive` instance.
-- **Dropped.** Stale identities, startup without a status, transitions, `Failed` and `Exiting` deliver nothing to any Controller.
+- **Dropped.** Stale identities, startup without a status, `Opening`, `Failed`, `Closing` and `Closed` deliver nothing to any Controller.
 - **Isolated failure.** A throwing Controller command leaves manager state unchanged, and later commands still route.
 - **Controller decides.** The manager doesn't validate the attempt or error token beyond the instance; the Controller does.
 
@@ -231,7 +234,7 @@ After a supplied Android startup rejection, permit the next request and restart 
 
 **Expected.**
 
-- **Closed at once.** When the request returns, A's `isCurrent()` is false, A's Controller has received `requestModuleShutdown`, and state is `Switching`.
+- **Closed at once.** When the request returns, A's `isCurrent()` is false, A's Controller has received `requestModuleShutdown`, and state is `Opening`.
 - **Waits for cleanup or deadline.** B's Service start is requested after A's cleanup settles, or after the shutdown deadline if cleanup is still held, whichever comes first. Restarting a failed A keeps the deadline set at its failure.
 - **Old reports are scoped.** A's late reports and cleanup completion don't change B's state.
 - **Existing Controller keeps its Service.** A start for B delivered to a Service that still hosts A's Controller fails B with generic presentation. The Service doesn't stop itself, and A's Controller keeps it and its cleanup.
@@ -247,19 +250,21 @@ After a supplied Android startup rejection, permit the next request and restart 
 **History.** In separate runs, Exit with no identity:
 
 - from `Running`, with cleanup held
-- while settings initialize
+- while an initial selection waits for settings
 - during a replacement, before the new instance starts
 - after ordinary Service dispatch but before fresh Service delivery, then deliver that start
 
-Exit with the exact identity during startup, and with a stale identity or that of a `Failed` instance. During a held Exit wait, repeat Exit, select a module and send Start, Stop and recovery. Then let the wait end, and select a module.
+Exit with the exact identity during startup, and with a stale identity or that of a `Failed` instance. During a held Exit wait, repeat Exit, select a module and send Start, Stop and recovery. Then let the wait end. In `Closed`, repeat Exit and select a module by ID, then select without an ID and let the old cleanup settle.
 
 **Expected.**
 
-- **Closed at once.** State is `Exiting` when the request returns, `isCurrent()` is false, and any installed Controller receives `requestModuleShutdown`.
+- **Acceptance.** Each accepted Exit returns `true`. A repeated Exit during `Closing` or `Closed`, and an exact Exit with a stale or `Failed` identity, return `false` without starting another Exit. A rejected exact Exit leaves state unchanged.
+- **Closed at once.** When an accepted request returns, `isCurrent()` is false and any installed Controller has received `requestModuleShutdown`. State is `Closing` while the manager waits for cleanup, and `Closed` directly when no instance is current, as while the selection waits for settings.
+- **Settings wait superseded.** After settings are ready, the waiting selection returns `false` and makes no Service request, even after a later selection has reopened a module. That automatic reopening still resolves from the original saved choice or the default, and returns `true` when it claims the first opening with no stored ID.
 - **Opening cancelled.** Exit before dispatch requests no new Service start. A start already handed to Android can still arrive; a fresh delivery after closure neither promotes nor invokes the factory, and conditionally stops the unowned Service.
-- **Instance-scoped Exit.** The exact identity applies during startup. A stale or failed identity changes nothing.
+- **Instance-scoped Exit.** The exact identity applies during startup, and a later status from that instance is ignored.
 - **Shared wait.** A repeated Exit doesn't extend the wait. Selection and commands during the wait are dropped, as in [CORE-MGR-09](#core-mgr-09).
-- **Afterward.** `Exiting` stays visible after the wait ends, with cleanup still held. A later selection publishes `Switching` before it returns and opens a new instance.
+- **Afterward.** `Closing` lasts until cleanup settles or the original shutdown deadline passes. `Closed` is then published even with cleanup still held. In `Closed`, a selection by ID returns `false` and requests no Service. A selection without an ID publishes `Opening` before it returns and opens a new instance. Old cleanup that settles later doesn't change that opening.
 
 <a id="core-mgr-13"></a>
 
@@ -298,7 +303,7 @@ Exit with the exact identity during startup, and with a stale identity or that o
 
 - **Reports inside start apply.** A status reported inside `startModule` produces `Running`. A failure produces `Failed` with generic presentation, and the Controller receives `requestModuleShutdown`, possibly while still inside `startModule`.
 - **Reports after closure are ignored.** Reports made inside `requestModuleShutdown` change nothing.
-- **Provider reentrancy settles.** The final state is `Exiting`, and the provider's last call clears the problem presentation.
+- **Provider reentrancy settles.** The provider's `exit()` returns `true`. State is `Closing` until cleanup settles, then `Closed`, and the provider's last call clears the problem presentation.
 - **Completion.** Every call returns without deadlock.
 
 <a id="core-mgr-15"></a>

@@ -12,6 +12,7 @@ import android.os.IBinder
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.SingleActivity
 import io.screenstream.core.StreamingModuleManager
@@ -33,7 +34,7 @@ public class TileActionService : TileService() {
 
     internal companion object {
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        internal fun showAddTileRequest(context: Context, log: Logger, onResult: (Int) -> Unit) {
+        internal fun requestAddTile(context: Context, log: Logger, onResult: (Int) -> Unit) {
             val statusBarManager = context.getSystemService(StatusBarManager::class.java)
             statusBarManager.requestAddTileService(
                 ComponentName(context, TileActionService::class.java),
@@ -48,7 +49,7 @@ public class TileActionService : TileService() {
     }
 
     private val log: Logger by inject { parametersOf(this) }
-    private var streamingModulesManager: StreamingModuleManager? = null
+    private var streamingModuleManager: StreamingModuleManager? = null
     private var coroutineScope: CoroutineScope? = null
 
     override fun onBind(intent: Intent?): IBinder? = runCatching { super.onBind(intent) }.getOrNull()
@@ -57,7 +58,7 @@ public class TileActionService : TileService() {
         super.onStartListening()
 
         val manager = runCatching { get<StreamingModuleManager>() }.getOrNull() ?: return
-        streamingModulesManager = manager
+        streamingModuleManager = manager
         manager.state
             .map { state ->
                 when (state) {
@@ -69,13 +70,12 @@ public class TileActionService : TileService() {
             .distinctUntilChanged()
             .onEach { isStreaming ->
                 qsTile?.apply {
-                    val tileLabel = getString(
-                        when (isStreaming) {
-                            null -> R.string.app_name
-                            true -> R.string.app_tile_stop
-                            false -> R.string.app_tile_open
-                        }
-                    )
+                    val tileLabel = if (isStreaming == null) {
+                        getString(R.string.app_name)
+                    } else {
+                        val labelRes = if (isStreaming) R.string.app_tile_stop else R.string.app_tile_open
+                        ContextCompat.getString(this@TileActionService, labelRes)
+                    }
                     icon = Icon.createWithResource(this@TileActionService, R.drawable.ic_tile_24dp)
                     state = if (isStreaming == null) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
                     label = tileLabel
@@ -103,20 +103,20 @@ public class TileActionService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val status = when (val state = streamingModulesManager?.state?.value) {
+        val status = when (val state = streamingModuleManager?.state?.value) {
             is StreamingModuleManager.State.Running -> state.status
             is StreamingModuleManager.State.Unresponsive -> state.lastStatus
             else -> null
         }
         val attempt = status?.captureAttempt
-        if (status?.isStreaming == true && attempt != null) streamingModulesManager?.requestStreamStop(attempt)
+        if (status?.isStreaming == true && attempt != null) streamingModuleManager?.requestStreamStop(attempt)
         else startSingleActivity()
     }
 
     @Suppress("DEPRECATION")
     @SuppressLint("StartActivityAndCollapseDeprecated")
     private fun startSingleActivity() {
-        val intent = SingleActivity.getIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val intent = SingleActivity.createLaunchIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             val pendingIntent = PendingIntent.getActivity(applicationContext, 0, intent, PendingIntent.FLAG_IMMUTABLE)
             startActivityAndCollapse(pendingIntent)

@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.res.Resources
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
@@ -80,7 +79,6 @@ private fun LanguageRow(
             .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
             .padding(vertical = 4.dp)
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 48.dp)
             .minimumInteractiveComponentSize(),
         verticalAlignment = Alignment.CenterVertically
     ) {

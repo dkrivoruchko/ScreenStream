@@ -138,7 +138,7 @@ internal class StreamingModuleInstanceContentTest {
     @Test
     fun controllerFactoryFailureLeavesExactFailedIdentityOnFallback() {
         compose.runOnIdle {
-            manager.selectModule()
+            runBlocking { withTimeout(5.seconds) { manager.selectModule() } }
             scheduler.runCurrent()
             manager.onServiceStart(ContentService(), null, checkNotNull(startIntent)) { error("Fixture factory failure") }
             scheduler.runCurrent()
@@ -245,7 +245,7 @@ internal class StreamingModuleInstanceContentTest {
 
     private fun open(): ContentController {
         compose.runOnIdle {
-            manager.selectModule()
+            runBlocking { withTimeout(5.seconds) { manager.selectModule() } }
             scheduler.runCurrent()
         }
         return deliver()

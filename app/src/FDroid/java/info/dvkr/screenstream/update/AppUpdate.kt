@@ -13,7 +13,7 @@ internal class AppUpdate(@InjectedParam activity: SingleActivity) {
     internal enum class State { Hidden, Available, Preparing, Downloading, Downloaded, ConfirmInstall, Installing }
 
     val state: StateFlow<State> = MutableStateFlow(State.Hidden)
-    val canInstallInModuleState: Flow<Boolean> = flowOf(false)
+    val moduleStateAllowsInstall: Flow<Boolean> = flowOf(false)
 
     fun requestDownload() {}
 

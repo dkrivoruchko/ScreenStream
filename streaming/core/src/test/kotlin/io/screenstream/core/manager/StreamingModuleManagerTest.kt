@@ -30,6 +30,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -147,14 +148,17 @@ internal class StreamingModuleManagerTest {
         scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.NoModule, manager.state.value)
         assertNull(nextStart())
-        manager.selectModule(StreamingModule.Id("missing"))
+        assertFalse(selectModule(StreamingModule.Id("missing")))
         assertEquals(StreamingModuleManager.State.NoModule, manager.state.value)
         assertNull(shadowOf(app).nextStartedService)
-        val controller = open()
+        assertTrue(selectModule())
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
+        val controller = deliverSelection()
         assertEquals(first.id, controller.instanceId.moduleId)
         assertEquals(StreamingModuleManager.State.Running(controller.instanceId, IDLE), manager.state.value)
-        manager.selectModule(first.id)
-        manager.selectModule()
+        runBlocking { withTimeout(5.seconds) { settings.data.first { it.selectedModuleId == first.id } } }
+        assertFalse(selectModule(first.id))
+        assertFalse(selectModule())
         scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.Running(controller.instanceId, IDLE), manager.state.value)
         assertTrue(controller.handle.isCurrent())
@@ -171,7 +175,7 @@ internal class StreamingModuleManagerTest {
                 settings.data.first { it.selectedModuleId == first.id }
             }
         }
-        manager.selectModule(second.id)
+        assertFalse(selectModule(second.id))
         scheduler.runCurrent()
         val controller = deliver(checkNotNull(nextStart()))
         assertEquals(second.id, controller.instanceId.moduleId)
@@ -188,7 +192,8 @@ internal class StreamingModuleManagerTest {
                 settings.data.first { it.selectedModuleId == second.id }
             }
         }
-        assertEquals(second.id, open().instanceId.moduleId)
+        assertFalse(selectModule())
+        assertEquals(second.id, deliverSelection().instanceId.moduleId)
     }
 
     // Cases: CORE-MGR-02
@@ -200,15 +205,16 @@ internal class StreamingModuleManagerTest {
                 settings.data.first { it.selectedModuleId == StreamingModule.Id("removed") }
             }
         }
-        assertEquals(first.id, open().instanceId.moduleId)
+        assertFalse(selectModule())
+        assertEquals(first.id, deliverSelection().instanceId.moduleId)
     }
 
     // Cases: CORE-MGR-03, CORE-MGR-04, CORE-MGR-05, CORE-MGR-09
     @Test
     fun startupWaitsForStatusAndDropsBusySelectionRestartAndCommands() {
         val controller = open(report = false)
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
-        manager.selectModule(second.id)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
+        assertFalse(selectModule(second.id))
         manager.restartModule(controller.instanceId)
         manager.requestStreamStart(controller.instanceId)
         manager.requestRecovery(controller.instanceId, Uuid.random())
@@ -221,7 +227,7 @@ internal class StreamingModuleManagerTest {
         assertEquals(StreamingModuleManager.State.Running(controller.instanceId, IDLE), manager.state.value)
     }
 
-    // Cases: CORE-MGR-05
+    // Cases: CORE-MGR-02, CORE-MGR-05
     @Test
     fun openingUsesOrdinaryDispatchAndPromotesBeforeControllerFactory() {
         var ordinaryStarts = 0
@@ -238,12 +244,12 @@ internal class StreamingModuleManagerTest {
             }
         }
         manager = newManager(listOf(first, second), context)
-        manager.selectModule(first.id)
+        assertFalse(selectModule(first.id))
         scheduler.runCurrent()
         // Production catches dispatch failures, so assert the observed boundary outside that call.
         assertEquals(1, ordinaryStarts)
         assertEquals(0, foregroundStarts)
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertTrue(controllers.isEmpty())
         assertTrue(notifications.foregroundActions.isEmpty())
         val start = checkNotNull(nextStart())
@@ -270,18 +276,19 @@ internal class StreamingModuleManagerTest {
         assertEquals(StreamingModuleManager.State.Running(controller.instanceId, IDLE), manager.state.value)
         assertEquals(1, ordinaryStarts)
         assertEquals(0, foregroundStarts)
+        runBlocking { withTimeout(5.seconds) { settings.data.first { it.selectedModuleId == first.id } } }
     }
 
     // Cases: CORE-MGR-05
     @Test
     fun duplicateAndMalformedServiceDeliveriesDoNotCreateAnotherController() {
-        manager.selectModule()
+        selectModule()
         scheduler.runCurrent()
         val intent = checkNotNull(nextStart())
         createHost(Intent("unrelated")).startCommand(0, 1)
         createHost(Intent(intent).replaceExtras(null as android.os.Bundle?)).startCommand(0, 1)
         assertTrue(controllers.isEmpty())
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         val host = createHost(intent)
         host.startCommand(0, 1)
         val controller = controllers.single()
@@ -297,7 +304,7 @@ internal class StreamingModuleManagerTest {
     // Cases: CORE-MGR-06
     @Test
     fun wrongServiceRejectsBeforeFactoryAndFailsOpening() {
-        manager.selectModule()
+        selectModule()
         scheduler.runCurrent()
         val intent = checkNotNull(nextStart())
         val host = Robolectric.buildService(OtherManagerHost::class.java, intent).create().also { services.add(it) }
@@ -311,7 +318,7 @@ internal class StreamingModuleManagerTest {
     @Test
     fun factoryFailureUsesGenericFailure() {
         ManagerHost.factory = { throw IllegalStateException("factory") }
-        manager.selectModule()
+        selectModule()
         scheduler.runCurrent()
         createHost(checkNotNull(nextStart())).startCommand(0, 1)
         scheduler.runCurrent()
@@ -358,7 +365,7 @@ internal class StreamingModuleManagerTest {
         withTimeout(5.seconds) {
             withContext(Dispatchers.Default) { controller.handle.reportRunning(IDLE, SystemClock.uptimeMillis()) }
         }
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         scheduler.runCurrent()
         val running = StreamingModuleManager.State.Running(controller.instanceId, IDLE)
         assertEquals(running, manager.state.value)
@@ -379,11 +386,11 @@ internal class StreamingModuleManagerTest {
         scheduler.runCurrent()
         assertTrue(controller.commands.isEmpty())
         assertEquals(StreamingModuleManager.State.Failed(controller.instanceId, 123), manager.state.value)
-        manager.exit(controller.instanceId)
+        assertFalse(manager.exit(controller.instanceId))
         scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.Failed(controller.instanceId, 123), manager.state.value)
         assertNull(nextStart())
-        manager.selectModule(first.id)
+        assertFalse(manager.selectModule(first.id))
         scheduler.runCurrent()
         assertNull(nextStart())
         manager.restartModule(StreamingModule.InstanceId(first.id))
@@ -430,16 +437,16 @@ internal class StreamingModuleManagerTest {
         val old = open()
         manager.requestStreamStart(old.instanceId)
         manager.requestRecovery(old.instanceId, Uuid.random())
-        manager.selectModule(second.id)
+        selectModule(second.id)
         assertFalse(old.handle.isCurrent())
         assertTrue(old.shutdown.isCompleted)
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
-        manager.selectModule(competing.id)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
+        assertFalse(selectModule(competing.id))
         manager.requestStreamStart(old.instanceId)
         manager.requestStreamStop(StreamingModule.CaptureAttemptId(old.instanceId))
         manager.requestRecovery(old.instanceId, Uuid.random())
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertTrue(old.commands.isEmpty())
         assertNull(nextStart())
         settleCleanup(old)
@@ -450,28 +457,31 @@ internal class StreamingModuleManagerTest {
         old.handle.reportFailed(456)
         scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.Running(replacement.instanceId, IDLE), manager.state.value)
-        manager.exit(old.instanceId)
+        assertFalse(manager.exit(old.instanceId))
         assertTrue(replacement.handle.isCurrent())
     }
 
     // Cases: CORE-MGR-09, CORE-MGR-12
     @Test
-    fun exitRevokesAdmissionImmediatelyAndStaysExitingAfterCleanupThenReopens() {
+    fun exitRevokesAdmissionImmediatelyAndAllowsAutomaticReopenAfterCleanup() {
         val old = open()
-        manager.exit(old.instanceId)
+        assertTrue(manager.exit(old.instanceId))
         assertFalse(old.handle.isCurrent())
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
-        manager.exit()
+        assertEquals(StreamingModuleManager.State.Closing, manager.state.value)
         settleCleanup(old)
         manager.requestStreamStart(old.instanceId)
         manager.requestStreamStop(StreamingModule.CaptureAttemptId(old.instanceId))
         manager.requestRecovery(old.instanceId, Uuid.random())
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
         assertTrue(old.commands.isEmpty())
+        assertFalse(manager.exit())
+        assertFalse(selectModule(second.id))
+        assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
+        scheduler.runCurrent()
         assertNull(nextStart())
-        manager.selectModule()
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertFalse(selectModule())
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         val replacement = deliver(awaitStartedService())
         assertNotEquals(old.instanceId, replacement.instanceId)
         assertTrue(replacement.commands.isEmpty())
@@ -480,7 +490,7 @@ internal class StreamingModuleManagerTest {
     // Cases: CORE-MGR-07
     @Test
     fun elapsedStartupDeadlineExpiresAfterDeepSleepBeforeLateServiceDelivery() {
-        manager.selectModule()
+        selectModule()
         scheduler.runCurrent()
         val intent = checkNotNull(nextStart())
         val uptime = SystemClock.uptimeMillis()
@@ -503,7 +513,7 @@ internal class StreamingModuleManagerTest {
     // Cases: CORE-MGR-07
     @Test
     fun deadlineDuringWaitingNotificationPreventsPromotionAndExactRestartSucceeds() {
-        manager.selectModule(first.id)
+        selectModule(first.id)
         val host = createHost(awaitStartedService())
         val before = SystemClock.elapsedRealtime()
         notifications.onForegroundBuilt = { ShadowSystemClock.advanceBy(Duration.ofMillis(3001)) }
@@ -608,13 +618,13 @@ internal class StreamingModuleManagerTest {
         ShadowSystemClock.advanceBy(Duration.ofMillis(3000))
         scheduler.advanceTimeBy(3000.milliseconds)
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertTrue(controller.handle.isCurrent())
         assertFalse(controller.shutdown.isCompleted)
 
         ShadowSystemClock.advanceBy(Duration.ofMillis(1))
         assertFalse(controller.handle.isCurrent())
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         scheduler.advanceTimeBy(1.milliseconds)
         scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.Failed(controller.instanceId), manager.state.value)
@@ -630,7 +640,7 @@ internal class StreamingModuleManagerTest {
         ShadowSystemClock.advanceBy(Duration.ofMillis(3001))
         controller.handle.reportRunning(IDLE, SystemClock.uptimeMillis())
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         scheduler.advanceTimeBy(3001.milliseconds)
         scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.Failed(controller.instanceId), manager.state.value)
@@ -644,7 +654,7 @@ internal class StreamingModuleManagerTest {
         val replacementModule = second.copy(slot = 401, service = OtherManagerHost::class.java)
         manager = newManager(listOf(first, replacementModule))
         val old = open()
-        manager.selectModule(replacementModule.id)
+        selectModule(replacementModule.id)
         scheduler.runCurrent()
         ShadowSystemClock.simulateDeepSleep(Duration.ofMillis(3000))
         scheduler.advanceTimeBy(3000.milliseconds)
@@ -701,7 +711,7 @@ internal class StreamingModuleManagerTest {
         scheduler.runCurrent()
         manager.restartModule(old.instanceId)
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertEquals(1, ordinaryStarts)
         assertNull(nextStart())
 
@@ -720,7 +730,7 @@ internal class StreamingModuleManagerTest {
         assertEquals(0, foregroundStarts)
         assertFalse(old.cleanup.isCompleted)
         assertFalse(old.handle.isCurrent())
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
     }
 
     // Cases: CORE-MGR-13
@@ -734,18 +744,19 @@ internal class StreamingModuleManagerTest {
         assertEquals(0, controller.startCalls)
         assertTrue(controller.shutdown.isCompleted)
         assertFalse(controller.handle.isCurrent())
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closing, manager.state.value)
         settleCleanup(controller)
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
     }
 
     // Cases: CORE-MGR-12, CORE-MGR-13
     @Test
     fun exitBeforeServiceDeliveryPreventsFactory() {
-        manager.selectModule()
+        selectModule()
         scheduler.runCurrent()
         val stale = checkNotNull(nextStart())
-        manager.exit()
+        assertTrue(manager.exit())
+        assertEquals(StreamingModuleManager.State.Closing, manager.state.value)
         val host = createHost(stale)
         host.startCommand(0, 1)
         scheduler.runCurrent()
@@ -755,7 +766,7 @@ internal class StreamingModuleManagerTest {
         assertNull(service.lastForegroundNotification)
         assertTrue(service.isStoppedBySelf)
         assertEquals(1, service.stopSelfResultId)
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        awaitCheckpoint(testScope.async { manager.state.first { it == StreamingModuleManager.State.Closed } })
     }
 
     // Cases: CORE-MGR-05, CORE-MGR-12, CORE-MGR-13
@@ -763,7 +774,7 @@ internal class StreamingModuleManagerTest {
     @Test
     @Config(shadows = [PendingStartServiceShadow::class])
     fun rejectedOlderStartRetainsHostForNewerPendingDelivery() {
-        manager.selectModule(first.id)
+        selectModule(first.id)
         scheduler.runCurrent()
         val stale = checkNotNull(nextStart())
         manager.exit()
@@ -771,8 +782,8 @@ internal class StreamingModuleManagerTest {
         ShadowSystemClock.advanceBy(Duration.ofMillis(3001))
         scheduler.advanceTimeBy(3001.milliseconds)
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
-        manager.selectModule(first.id)
+        assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
+        selectModule()
         scheduler.runCurrent()
         val current = checkNotNull(nextStart())
         val host = createHost(stale)
@@ -785,7 +796,7 @@ internal class StreamingModuleManagerTest {
         assertNull(service.lastForegroundNotification)
         assertTrue(notifications.foregroundActions.isEmpty())
         assertTrue(controllers.isEmpty())
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         // Deliver the newer start to the same Service.
         host.withIntent(current).startCommand(0, 2)
         val controller = controllers.single()
@@ -805,21 +816,22 @@ internal class StreamingModuleManagerTest {
     // Cases: CORE-MGR-02, CORE-MGR-12
     @Test
     fun explicitSelectionPersistsAndNullAfterExitUsesProcessSelection() {
-        val controller = open()
-        manager.selectModule(second.id)
+        val settingsScheduler = holdSettingsInitialization()
+        val initial = testScope.async { manager.selectModule() }
+        assertTrue(awaitCheckpoint(initial) { settingsScheduler.runCurrent() })
+        val controller = deliverSelection()
+        assertFalse(selectModule(second.id))
         settleCleanup(controller)
         val selected = deliver(checkNotNull(nextStart()))
         assertEquals(second.id, selected.instanceId.moduleId)
-        runBlocking { withTimeout(5.seconds) { settings.data.first { it.selectedModuleId == second.id } } }
-        runBlocking {
-            withTimeout(5.seconds) {
-                settings.updateData { copy(selectedModuleId = first.id) }
-                settings.data.first { it.selectedModuleId == first.id }
-            }
-        }
+        assertNotEquals(second.id, settings.data.value.selectedModuleId)
         manager.exit()
         settleCleanup(selected)
-        assertEquals(second.id, open().instanceId.moduleId)
+        assertFalse(selectModule())
+        assertEquals(second.id, deliverSelection().instanceId.moduleId)
+
+        val saved = testScope.async { settings.data.first { it.selectedModuleId == second.id } }
+        awaitCheckpoint(saved) { settingsScheduler.runCurrent() }
     }
 
     // Cases: CORE-MGR-14
@@ -873,7 +885,7 @@ internal class StreamingModuleManagerTest {
         ShadowSystemClock.advanceBy(Duration.ofMillis(2999))
         controller.handle.reportRunning(IDLE, SystemClock.uptimeMillis())
         assertTrue(controller.handle.isCurrent())
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         ShadowSystemClock.simulateDeepSleep(Duration.ofMillis(2))
         scheduler.runCurrent()
         assertEquals(StreamingModuleManager.State.Failed(controller.instanceId), manager.state.value)
@@ -947,12 +959,12 @@ internal class StreamingModuleManagerTest {
             shutdownCalls++
             throw IllegalStateException("shutdown")
         }
-        manager.selectModule(second.id)
+        selectModule(second.id)
         awaitCheckpoint(old.cleanupEntered)
         assertTrue(shutdownCalls > 0)
         assertFalse(old.handle.isCurrent())
         assertFalse(old.cleanup.isCompleted)
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertNull(nextStart())
         settleCleanup(old)
         val replacement = deliver(checkNotNull(nextStart()))
@@ -971,11 +983,11 @@ internal class StreamingModuleManagerTest {
             old.handle.reportFailed(123)
             reported = true
         }
-        manager.selectModule(second.id)
+        selectModule(second.id)
         assertTrue(reported)
         scheduler.runCurrent()
         assertFalse(old.handle.isCurrent())
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertNull(nextStart())
         settleCleanup(old)
         val replacement = deliver(checkNotNull(nextStart()))
@@ -984,62 +996,101 @@ internal class StreamingModuleManagerTest {
         assertEquals(StreamingModuleManager.State.Running(replacement.instanceId, IDLE), manager.state.value)
     }
 
-    // Cases: CORE-MGR-02, CORE-MGR-03, CORE-MGR-04, CORE-MGR-09
+    // Cases: CORE-MGR-02, CORE-MGR-03
     @Test
-    fun competingCommandsDuringSettingsInitializationKeepOriginalSelection() {
+    fun competingSelectionsWaitForSettingsAndOnlyOneClaimsOpening() {
         val settingsScheduler = holdSettingsInitialization()
-        val initialized = testScope.async { settings.initialize() }
-        manager.selectModule(first.id)
+        val initial = testScope.async { manager.selectModule() }
         scheduler.runCurrent()
-        assertFalse(initialized.isCompleted)
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertFalse(initial.isCompleted)
+        assertEquals(StreamingModuleManager.State.NoModule, manager.state.value)
         assertNull(nextStart())
-        val unavailable = StreamingModule.InstanceId(first.id)
-        manager.selectModule(second.id)
-        manager.restartModule(unavailable)
-        manager.requestStreamStart(unavailable)
-        manager.requestStreamStop(StreamingModule.CaptureAttemptId(unavailable))
-        manager.requestRecovery(unavailable, Uuid.random())
+        val competing = testScope.async { manager.selectModule(second.id) }
         scheduler.runCurrent()
-        assertTrue(controllers.isEmpty())
+        assertFalse(competing.isCompleted)
+        assertEquals(StreamingModuleManager.State.NoModule, manager.state.value)
         assertNull(nextStart())
-        awaitCheckpoint(initialized) { settingsScheduler.runCurrent() }
-        val controller = deliver(checkNotNull(nextStart()))
+        val usedDefault = awaitCheckpoint(initial) { settingsScheduler.runCurrent() }
+        assertFalse(awaitCheckpoint(competing))
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
+        val controller = deliverSelection()
+        val winner = if (usedDefault) first.id else second.id
+        assertEquals(winner, controller.instanceId.moduleId)
+        assertNull(nextStart())
+
+        manager.exit()
+        services.removeAt(0).destroy()
+        settleCleanup(controller)
+        assertFalse(selectModule())
+        assertEquals(winner, deliverSelection().instanceId.moduleId)
+    }
+
+    // Cases: CORE-MGR-02, CORE-MGR-03
+    @Test
+    fun callerCancellationLeavesSettingsLoadingAndAnAdmittedOpeningIndependent() {
+        val settingsScheduler = holdSettingsInitialization()
+        val waiting = testScope.async { manager.selectModule(second.id) }
+        scheduler.runCurrent()
+        assertFalse(waiting.isCompleted)
+        waiting.cancel()
+        scheduler.runCurrent()
+        assertTrue(waiting.isCancelled)
+        assertEquals(StreamingModuleManager.State.NoModule, manager.state.value)
+        assertNull(nextStart())
+
+        val result = CompletableDeferred<Boolean>()
+        var startBeforeCancellation: Intent? = null
+        val retry = testScope.launch {
+            val claimed = manager.selectModule()
+            startBeforeCancellation = nextStart()
+            cancel()
+            result.complete(claimed)
+        }
+        assertTrue(awaitCheckpoint(result) { settingsScheduler.runCurrent() })
+        assertNull(startBeforeCancellation)
+        assertTrue(retry.isCancelled)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
+        val controller = deliverSelection()
         assertEquals(first.id, controller.instanceId.moduleId)
-        assertTrue(controller.commands.isEmpty())
+        assertEquals(StreamingModuleManager.State.Running(controller.instanceId, IDLE), manager.state.value)
         assertNull(nextStart())
     }
 
     // Cases: CORE-MGR-02, CORE-MGR-12
     @Test
-    fun exitDuringSettingsInitializationCancelsOpeningAfterSettingsBecomeReady() {
+    fun exitDuringSettingsInitializationRejectsWaitingSelectionEvenAfterReopen() {
         val settingsScheduler = holdSettingsInitialization()
-        val initialized = testScope.async { settings.initialize() }
-        manager.selectModule(first.id)
-        scheduler.runCurrent()
-        assertFalse(initialized.isCompleted)
-        manager.exit()
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
-        scheduler.runCurrent()
-        awaitCheckpoint(initialized) { settingsScheduler.runCurrent() }
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
-        assertTrue(controllers.isEmpty())
+        // Let the new session reach Running before resuming the old request.
+        val waitingDispatcher = StandardTestDispatcher(TestCoroutineScheduler())
+        val waiting = testScope.async(waitingDispatcher) { manager.selectModule(second.id) }
+        waitingDispatcher.scheduler.runCurrent()
+        assertFalse(waiting.isCompleted)
+        assertTrue(manager.exit())
+        assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
         assertNull(nextStart())
-        assertEquals(first.id, open().instanceId.moduleId)
+
+        val reopening = testScope.async { manager.selectModule() }
+        assertTrue(awaitCheckpoint(reopening) { settingsScheduler.runCurrent() })
+        val current = deliverSelection()
+        assertEquals(first.id, current.instanceId.moduleId)
+
+        assertFalse(awaitCheckpoint(waiting) { waitingDispatcher.scheduler.runCurrent() })
+        assertEquals(StreamingModuleManager.State.Running(current.instanceId, IDLE), manager.state.value)
+        assertNull(nextStart())
     }
 
     // Cases: CORE-MGR-11, CORE-MGR-12
     @Test
     fun exitDuringHeldReplacementPreventsItsServiceStart() {
         val old = open()
-        manager.selectModule(second.id)
+        selectModule(second.id)
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertNull(nextStart())
         manager.exit()
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closing, manager.state.value)
         settleCleanup(old)
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
         assertNull(nextStart())
         assertEquals(second.id, open().instanceId.moduleId)
     }
@@ -1048,39 +1099,40 @@ internal class StreamingModuleManagerTest {
     @Test
     fun heldExitDropsCommandsAndRepeatedExitDoesNotExtendOriginalDeadline() {
         val old = open()
-        manager.exit()
+        assertTrue(manager.exit())
         scheduler.runCurrent()
         ShadowSystemClock.simulateDeepSleep(Duration.ofMillis(2000))
         scheduler.advanceTimeBy(2000.milliseconds)
         scheduler.runCurrent()
-        manager.exit()
-        manager.selectModule(second.id)
+        assertFalse(manager.exit())
+        assertFalse(selectModule())
         manager.requestStreamStart(old.instanceId)
         manager.requestStreamStop(StreamingModule.CaptureAttemptId(old.instanceId))
         manager.requestRecovery(old.instanceId, Uuid.random())
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closing, manager.state.value)
         assertTrue(old.commands.isEmpty())
         assertNull(nextStart())
         ShadowSystemClock.simulateDeepSleep(Duration.ofMillis(1000))
         scheduler.advanceTimeBy(1000.milliseconds)
         scheduler.runCurrent()
-        manager.selectModule(second.id)
-        scheduler.runCurrent()
+        assertEquals(StreamingModuleManager.State.Closing, manager.state.value)
+        assertFalse(selectModule(second.id))
         assertNull(nextStart())
         ShadowSystemClock.simulateDeepSleep(Duration.ofMillis(1))
         scheduler.advanceTimeBy(1.milliseconds)
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
         assertFalse(old.cleanup.isCompleted)
-        manager.selectModule(second.id)
+        assertNull(nextStart())
+        selectModule()
         scheduler.runCurrent()
         val start = checkNotNull(nextStart())
-        assertEquals(ComponentName(app, second.serviceClass), start.component)
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(ComponentName(app, first.serviceClass), start.component)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertEquals(listOf(old), controllers)
         settleCleanup(old)
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertNull(nextStart())
     }
 
@@ -1158,7 +1210,7 @@ internal class StreamingModuleManagerTest {
         }
         manager = newManager(listOf(first, second), context)
         val before = SystemClock.elapsedRealtime()
-        manager.selectModule(first.id)
+        selectModule(first.id)
         scheduler.runCurrent()
         val failed = assertIs<StreamingModuleManager.State.Failed>(manager.state.value)
         assertEquals(1, ordinaryStarts)
@@ -1181,15 +1233,14 @@ internal class StreamingModuleManagerTest {
 
     // Cases: CORE-MGR-14
     @Test
-    fun notificationProviderCanExitDuringPublicationAndReturnsToExiting() {
+    fun notificationProviderCanExitDuringPublication() {
         val controller = open()
         val updates = mutableListOf<StreamingModuleNotifications.ErrorContent?>()
         var exitReturned = false
         notifications.onErrorUpdate = { content ->
             updates.add(content)
             if (content != null) {
-                manager.exit()
-                exitReturned = true
+                exitReturned = manager.exit()
             }
         }
         controller.handle.reportRunning(
@@ -1198,13 +1249,13 @@ internal class StreamingModuleManagerTest {
         )
         scheduler.runCurrent()
         assertTrue(exitReturned)
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closing, manager.state.value)
         assertFalse(controller.handle.isCurrent())
         assertTrue(controller.shutdown.isCompleted)
         assertTrue(updates.any { it != null })
         assertNull(updates.last())
         settleCleanup(controller)
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
         assertNull(nextStart())
     }
 
@@ -1292,7 +1343,7 @@ internal class StreamingModuleManagerTest {
         original.handle.reportRunning(IDLE.copy(error = StreamingModule.Status.Error("old")), SystemClock.uptimeMillis())
         scheduler.runCurrent()
         notifications.errorUpdates.clear()
-        manager.selectModule(second.id)
+        selectModule(second.id)
         assertEquals(listOf<Pair<Int, StreamingModuleNotifications.ErrorContent?>>(1000 to null), notifications.errorUpdates)
         settleCleanup(original)
         val replacement = deliver(checkNotNull(nextStart()))
@@ -1316,7 +1367,7 @@ internal class StreamingModuleManagerTest {
     }
 
     private fun assertWaitingForegroundFailure(buildFailure: Boolean) {
-        manager.selectModule(first.id)
+        selectModule(first.id)
         scheduler.runCurrent()
         val host = createHost(checkNotNull(nextStart()))
         val failure = IllegalStateException("waiting foreground")
@@ -1342,15 +1393,15 @@ internal class StreamingModuleManagerTest {
     @Test
     fun exactExitDuringStartupClosesAdmissionBeforeLateStatus() {
         val controller = open(report = false)
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
-        manager.exit(controller.instanceId)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
+        assertTrue(manager.exit(controller.instanceId))
         assertFalse(controller.handle.isCurrent())
         assertTrue(controller.shutdown.isCompleted)
         controller.handle.reportRunning(IDLE, SystemClock.uptimeMillis())
         scheduler.runCurrent()
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closing, manager.state.value)
         settleCleanup(controller)
-        assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
         assertNull(nextStart())
     }
 
@@ -1379,8 +1430,16 @@ internal class StreamingModuleManagerTest {
     private fun createHost(intent: Intent): ServiceController<ManagerHost> =
         Robolectric.buildService(ManagerHost::class.java, intent).create().also { services.add(it) }
 
+    // Settings are ready in setUp. Histories that hold loading drive the suspending call directly.
+    private fun selectModule(moduleId: StreamingModule.Id? = null): Boolean =
+        runBlocking { withTimeout(5.seconds) { manager.selectModule(moduleId) } }
+
     private fun open(report: Boolean = true): FakeController {
-        manager.selectModule()
+        selectModule()
+        return deliverSelection(report)
+    }
+
+    private fun deliverSelection(report: Boolean = true): FakeController {
         scheduler.runCurrent()
         return deliver(checkNotNull(nextStart()), report)
     }
@@ -1397,7 +1456,7 @@ internal class StreamingModuleManagerTest {
         val originalIdentity = original.instanceId
         val originalService = services.single()
         manager.restartModule(originalIdentity.copy())
-        assertEquals(StreamingModuleManager.State.Switching, manager.state.value)
+        assertEquals(StreamingModuleManager.State.Opening, manager.state.value)
         assertFalse(original.handle.isCurrent())
         assertTrue(original.shutdown.isCompleted)
         scheduler.runCurrent()
@@ -1430,7 +1489,7 @@ internal class StreamingModuleManagerTest {
     private fun assertUnsuccessfulCleanupSettles(exit: Boolean, failure: Exception? = null) {
         val old = open()
         val before = SystemClock.elapsedRealtime()
-        if (exit) manager.exit() else manager.selectModule(second.id)
+        if (exit) manager.exit() else selectModule(second.id)
         scheduler.runCurrent()
         assertFalse(old.handle.isCurrent())
         assertFalse(old.cleanup.isCompleted)
@@ -1438,7 +1497,7 @@ internal class StreamingModuleManagerTest {
         settleCleanup(old, completed = false, failure = failure)
         assertEquals(before, SystemClock.elapsedRealtime())
         val replacement = if (exit) {
-            assertEquals(StreamingModuleManager.State.Exiting, manager.state.value)
+            assertEquals(StreamingModuleManager.State.Closed, manager.state.value)
             assertNull(nextStart())
             open()
         } else deliver(checkNotNull(nextStart()))

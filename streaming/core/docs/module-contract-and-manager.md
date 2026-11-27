@@ -68,19 +68,23 @@ sequenceDiagram
     C-->>M: Cleanup outcome if the manager is still waiting
 ```
 
-Replacement and Exit wait a bounded time for the previous instance's cleanup. The manager records one shutdown deadline per instance, and later waits reuse it. Repeated requests therefore don't extend the wait, and restarting an instance that failed earlier may find its deadline already past. When the wait ends, the manager moves on: old cleanup can continue alongside a replacement, and older resources may still be releasing. Cleanup completion follows the guarantees of the module's resource owners.
+Replacement and Exit wait a bounded time for the previous instance's cleanup. The manager records one shutdown deadline per instance, and later waits reuse it. Repeated requests therefore don't extend the wait, and restarting an instance that failed earlier may find its deadline already past. When the wait ends, the manager moves on: old cleanup can continue after `Closed` or alongside a replacement, and older resources may still be releasing. Cleanup completion follows the guarantees of the module's resource owners.
 
 A replacement that uses a different Service component can open while the old Service is still alive. One that reuses the same component needs the old Service destroyed first: a start delivered to a Service that still hosts a Controller fails the new instance, and the old Controller keeps its Service.
 
 ## Manager commands
 
-Commands are requests. The manager drops unknown, stale and ill-timed requests, and returning confirms nothing; observe `state` for outcomes.
+Commands are requests. The manager drops unknown, stale and ill-timed requests. Observe `state` for lifecycle outcomes.
 
 ### Selection and restart
 
-`selectModule(id)` opens a registered module. Without an ID, the first selection uses the saved choice if that module is still registered, otherwise the highest-priority module; later requests without an ID use the choice made in this process. A changed explicit choice is saved asynchronously.
+`selectModule(id)` is a suspending main-thread call. An explicit registered ID selects that module. A first request without an ID uses the saved module if it is still registered, otherwise the highest-priority module. Later requests without an ID use the in-memory choice. The manager saves the choice asynchronously on the first opening when no ID is stored and when an explicit selection changes the automatic choice.
 
-Selecting the current module keeps its instance, even a failed one. `restartModule` replaces that exact instance with a new opening of the same module. While another transition is in progress, including the first settings load, selection and restart are dropped.
+The first selection may suspend until settings are ready. Competing requests can wait for the same load and check admission when they resume. A request that resumes while a transition is still active, or after an Exit was accepted during its wait, returns `false`. The Exit case applies even when a later selection has already reopened a module. Cancelling the caller during the wait abandons its request. Settings loading and a claimed opening continue independently of the caller.
+
+The result only tells the app whether to offer its module chooser. It is `true` only when a request without an ID claims the first opening and there is no stored ID. A saved ID for an unavailable module still counts as a stored ID. Other selections return `false`, including accepted explicit choices, remembered choices, and ignored requests. The result doesn't report acceptance or startup, so observe `state` for those.
+
+Selecting the current module keeps its instance, even a failed one. `restartModule` replaces that exact instance with a new opening of the same module. An active transition, `Opening` or `Closing`, blocks selection and restart. In `Closed`, only a request without an ID claims a new opening, of the remembered module. Explicit IDs and restart are ignored.
 
 Android can reject the ordinary Service start or the later waiting-foreground promotion, for example when the app leaves the foreground during preparation. A request from UI doesn't guarantee permission at either later call, and leaving the foreground doesn't always cause rejection. Any startup failure, a missing first status, or a start delivered to a Service that still hosts the previous Controller publishes generic `Failed`. The manager doesn't retry: return to foreground UI and restart that exact failed instance.
 
@@ -94,22 +98,31 @@ The manager forwards these commands only while the target is the current admitte
 
 ### Exit
 
-Exit closes new work, cancels a pending opening and returns while shutdown proceeds. Unlike selection, it is accepted during a transition. `exit()` applies regardless of the current instance; `exit(instanceId)` applies only while that instance is admitted, including during startup.
+Exit closes new work, cancels a pending opening and returns while shutdown proceeds. It can also supersede a selection still waiting for settings. `exit()` applies regardless of the current instance, including before any module has opened. `exit(instanceId)` applies only while that instance is the current admitted instance, including during startup before its first status. Stale, replaced, closing and failed identities are ignored.
 
-While Exit's bounded wait is pending, selection, restart and commands are dropped. `Exiting` stays published after the wait ends, until a later selection. The host app removes its tasks; task removal and media cleanup complete independently.
+`exit` returns `true` only for the request that accepts Exit. Ignored exact requests and any request during `Closing` or `Closed` return `false` without starting another Exit.
+
+When nothing remains to wait for, because no instance is current, its cleanup is already reported or its shutdown deadline has passed, the manager publishes `Closed` before `exit` returns, without `Closing`. Otherwise it publishes `Closing` until cleanup is reported or the instance's existing shutdown deadline passes, then `Closed`. Later requests don't extend that deadline. During `Closing`, selection, restart and commands are dropped. `Closed` means only that the bounded wait has ended and no instance is current. Cleanup can continue. `Closed` stays published until `selectModule()` without an ID claims `Opening`.
+
+The host app owns any UI or task changes that follow an accepted Exit. Task removal and media cleanup complete independently.
 
 ## Observable process and instance health
 
-`StreamingModuleManager.state` publishes one snapshot of the manager lifecycle and the current instance's control health. Collectors see only the latest snapshot and can skip intermediate states.
+`StreamingModuleManager.state` publishes one snapshot of the manager lifecycle and the current instance's control health, in one of seven states.
 
 | State | Meaning |
 | --- | --- |
-| `NoModule` | Nothing is open; awaiting selection. |
-| `Switching` | An opening is in progress: the settings load, the previous instance's bounded wait, or the new instance's first status. |
+| `NoModule` | No opening is claimed. This initial state differs from `Closed`. A first selection may already be waiting for settings. |
+| `Opening` | A selection or restart has claimed an opening. It may be waiting for the previous instance's bounded shutdown or the new instance's first status, and ends in `Running`, `Unresponsive` or `Failed` unless Exit supersedes it. |
 | `Running` | The current Controller reports fresh progress. |
 | `Unresponsive` | Progress is stale; the last accepted status is retained. |
 | `Failed` | Terminal failure. Admission is closed and cleanup proceeds. Remains until another module is selected, a restart or Exit. |
-| `Exiting` | Exit has closed admission. Remains after the bounded wait. |
+| `Closing` | Exit has closed admission and waits, until the instance's shutdown deadline at most, for its cleanup. |
+| `Closed` | Exit's bounded wait has ended and no instance is current. Earlier cleanup may continue. Remains until a selection without an ID claims `Opening`. |
+
+`Opening` and `Closing` are the active transitions, and at most one is active. Exit supersedes `Opening`. Nothing supersedes `Closing`, which always ends in `Closed`. Only Exit leads to `Closing` or `Closed`, and only `selectModule()` without an ID leaves `Closed`.
+
+The manager sets its internal transition before synchronous callbacks run, such as a Controller's shutdown request. Reentrant calls therefore follow that transition's admission rules even before the published snapshot changes. Collectors see only the latest snapshot and can skip intermediate states. An Exit with nothing to wait for publishes `Closed` without `Closing`, and a selection can replace `Closed` with `Opening` before a collector runs.
 
 Health shows whether Controller work is progressing, not whether capture or the network is ready; an idle Controller is healthy while it keeps reporting. `Running` and `Unresponsive` refer to the same instance, commands reach both, and a fresh report restores `Running`.
 

@@ -1,6 +1,7 @@
 package info.dvkr.screenstream
 
 import android.app.UiModeManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -12,10 +13,11 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import info.dvkr.screenstream.ads.AdMob
+import info.dvkr.screenstream.notification.StreamingModuleNotificationsImpl
 import info.dvkr.screenstream.review.attachAppReview
 import info.dvkr.screenstream.settings.AppSettings
-import info.dvkr.screenstream.ui.ScreenStreamTheme
-import info.dvkr.screenstream.ui.main.MainScreen
+import info.dvkr.screenstream.ui.AppScreen
+import info.dvkr.screenstream.ui.AppTheme
 import info.dvkr.screenstream.update.AppUpdate
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.compose.RuntimePermissionHost
@@ -34,26 +36,30 @@ import kotlin.coroutines.cancellation.CancellationException
 public class SingleActivity : AppCompatActivity() {
 
     internal companion object {
-        internal fun getIntent(context: Context): Intent = Intent(context, SingleActivity::class.java)
+        internal fun createLaunchIntent(context: Context): Intent =
+            Intent.makeMainActivity(ComponentName(context, SingleActivity::class.java))
     }
 
     private val log: Logger by inject { parametersOf(this) }
-    private val streamingModulesManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
     private val appSettings: AppSettings by inject(mode = LazyThreadSafetyMode.NONE)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
-        val moduleState = streamingModulesManager.state.value
-        if (savedInstanceState == null || moduleState == StreamingModuleManager.State.NoModule || moduleState == StreamingModuleManager.State.Exiting) {
-            streamingModulesManager.selectModule()
+        val streamingModuleManager = get<StreamingModuleManager>()
+        val moduleStateAtEntry = streamingModuleManager.state.value
+        if (moduleStateAtEntry == StreamingModuleManager.State.Closing ||
+            (moduleStateAtEntry == StreamingModuleManager.State.Closed && savedInstanceState != null)
+        ) {
+            if (isTaskRoot) finishAndRemoveTask() else finish()
+            return
         }
 
-        if (streamingModulesManager.state.value == StreamingModuleManager.State.Exiting) {
-            finishAndRemoveTask()
-            return
+        enableEdgeToEdge()
+
+        if (Build.VERSION.SDK_INT in Build.VERSION_CODES.O until Build.VERSION_CODES.TIRAMISU) {
+            get<StreamingModuleNotificationsImpl>().syncNotificationChannels(this)
         }
 
         val appUpdate = get<AppUpdate> { parametersOf(this) }
@@ -72,12 +78,12 @@ public class SingleActivity : AppCompatActivity() {
             if (savedInstanceState == null && isTaskRoot) adMob.beginAppLaunch()
             val initialRationaleHistory = appSettings.data.value.permissionsWithObservedRationale
             setContent {
-                ScreenStreamTheme(appSettings = appSettings) {
+                AppTheme(appSettings = appSettings) {
                     RuntimePermissionHost(
                         initialRationaleHistory = initialRationaleHistory,
                         onRationaleObserved = appSettings::setPermissionRationaleObserved,
                     ) {
-                        MainScreen(streamingModulesManager, appUpdate)
+                        AppScreen(streamingModuleManager, appUpdate, moduleStateAtEntry)
                     }
 
                     ScreenCaptureConsentHost()

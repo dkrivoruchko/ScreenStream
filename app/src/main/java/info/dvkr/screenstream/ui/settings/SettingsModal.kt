@@ -46,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
@@ -56,9 +57,8 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.settings.AppSettings
 import info.dvkr.screenstream.tile.TileActionService
+import info.dvkr.screenstream.ui.AdaptiveAppModal
 import info.dvkr.screenstream.ui.dynamicThemeAvailable
-import info.dvkr.screenstream.ui.modal.AdaptiveAppModal
-import info.dvkr.screenstream.ui.modal.ModalPane
 import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -78,8 +78,8 @@ private enum class SettingsRow { LANGUAGE, DARK_THEME }
 
 @Composable
 internal fun SettingsModal(
-    onDismiss: () -> Unit,
-    pane: ModalPane?,
+    onDismissRequest: () -> Unit,
+    dialogBounds: DpRect?,
     appSettings: AppSettings = koinInject(),
     scope: CoroutineScope = rememberCoroutineScope()
 ) {
@@ -148,9 +148,9 @@ internal fun SettingsModal(
 
     AdaptiveAppModal(
         title = stringResource(if (showLanguages) R.string.app_pref_language else R.string.app_settings_title),
-        onDismiss = onDismiss,
-        pane = pane,
+        onDismissRequest = onDismissRequest,
         onBack = if (showLanguages) ({ returnToSettings() }) else null,
+        dialogBounds = dialogBounds,
     ) {
         val body = Modifier
             .fillMaxWidth()
@@ -231,7 +231,7 @@ internal fun SettingsModal(
                     title = stringResource(R.string.app_pref_add_tile),
                     summary = stringResource(R.string.app_pref_add_tile_summary),
                     onClick = dropUnlessResumed {
-                        TileActionService.showAddTileRequest(context, log) { result ->
+                        TileActionService.requestAddTile(context, log) { result ->
                             when (result) {
                                 StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ->
                                     showMessage(R.string.app_pref_tile_already_added)

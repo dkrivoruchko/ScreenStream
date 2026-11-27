@@ -10,7 +10,7 @@ Local tests exercise production Core with controlled collaborators. The catalogu
 
 | Area / permanent IDs | Test source | Boundary |
 | --- | --- | --- |
-| Manager · `CORE-MGR-01–15` | [StreamingModuleManagerTest](../../src/test/kotlin/io/screenstream/core/manager/StreamingModuleManagerTest.kt) | Catalog, selection, startup, admission, commands, health, cleanup waits and problem episodes |
+| Manager · `CORE-MGR-01–15` | [StreamingModuleManagerTest](../../src/test/kotlin/io/screenstream/core/manager/StreamingModuleManagerTest.kt) | Catalog, selection, startup, admission, commands, health, cleanup waits, Exit and problem episodes |
 | Consent · `CORE-CAP-01–10,12–13` | [ScreenCaptureAccessTest](../../src/test/kotlin/io/screenstream/core/capture/ScreenCaptureAccessTest.kt) | Correlation, cancellation, grants, acquisition, reuse and observer fault isolation; `CAP-11` stays retired |
 | Base Service · `CORE-SVC-01–06` | [StreamingModuleServiceTest](../../src/test/kotlin/io/screenstream/core/module/StreamingModuleServiceTest.kt) | Foreground ownership/presentation, supplied failures, refresh, stop/destruction and defensive timeout input |
 | Notification actions · `CORE-ACT-01–03` | [StreamingModuleActionReceiverTest](../../src/test/kotlin/io/screenstream/core/manager/StreamingModuleActionReceiverTest.kt) | Factory PendingIntents delivered through Core's declared receiver, target identity and direct malformed-input rejection |
@@ -52,7 +52,7 @@ Drive Core through the inputs its real collaborators use, and assert what those 
 
 | Inputs a test controls | Results a test asserts |
 | --- | --- |
-| Manager commands: `selectModule`, `restartModule`, `exit`, `requestStreamStart`, `requestStreamStop`, `requestRecovery` | Snapshots of `StreamingModuleManager.state` |
+| Manager commands: `selectModule`, `restartModule`, `exit`, `requestStreamStart`, `requestStreamStop`, `requestRecovery` | The Boolean results of selection and Exit, and snapshots of `StreamingModuleManager.state` |
 | Module catalog, including invalid catalogs | Catalog order and construction failures |
 | Service start delivery, through the Robolectric Service controller | Services the manager asked Android to start, and the Service's foreground state |
 | A test Controller factory: return, throw or return a mismatched identity | Calls the fake Controller receives: `startModule`, commands, `requestModuleShutdown` and `awaitCleanup` |
@@ -82,7 +82,7 @@ A deadline history therefore advances both: move the Android clock past the dead
 
 - **Use explicit checkpoints.** Hold fakes with `CompletableDeferred` gates or latches, for example a Controller whose `awaitCleanup` waits until the test releases it. Assert state only after a checkpoint you can name. Delays and incidental call counts are not checkpoints.
 - **Keep waits bounded.** Every wait on real-thread work needs a timeout that fails the test with a message. `runTest` has its own default timeout; don't rely on it as the assertion.
-- **Remember `StateFlow` conflation.** The manager's state keeps only the latest snapshot, and collectors may skip intermediate states. Assert the snapshot at a checkpoint, or record a sequence only where the contract guarantees each value is published.
+- **Remember `StateFlow` conflation.** The manager's state keeps only the latest snapshot, and collectors may skip intermediate states. An Exit with nothing to wait for publishes `Closed` without `Closing`. Assert the snapshot at a checkpoint, or record a sequence only where the contract guarantees each value is published.
 - **State which outcomes are allowed.** A race history needs entry and completion barriers and a statement of every permitted outcome.
 - **Clean up.** The manager lives for the process and has no close operation, so confine its dispatcher to the test. After each test, release held fakes, stop Robolectric Services the test started, stop Koin and reset a replaced Main dispatcher. Give each settings store its own preferences directory; a store left running keeps its file active.
 
