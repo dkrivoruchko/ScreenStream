@@ -25,6 +25,10 @@ import io.screenstream.mjpeg.MjpegStreamingModuleService
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
 import io.screenstream.mjpeg.settings.ImageSettings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.Closeable
 import java.io.File
 import java.net.HttpURLConnection
@@ -34,7 +38,6 @@ import java.net.ServerSocket
 import java.net.URL
 import java.util.UUID
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -64,7 +67,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         try {
             host.start()
             scenario = ActivityScenario.launch(MjpegCaptureTestActivity::class.java)
-            scenario.onActivity { host.manager.selectModule(StreamingModule.Id("MJPEG")) }
+            selectModule(host, StreamingModule.Id("MJPEG"))
             awaitHostCondition(host, "module startup") { runningModule(host) != null }
             awaitHostCondition(host, "inactive HTTP listener") { canConnect(port) }
             assertTrue(serviceIsRunning(), "The production Service must be running")
@@ -76,6 +79,14 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
                 failure.addSuppressed(cleanupFailure)
             }
             throw failure
+        }
+    }
+
+    fun selectModule(host: MjpegCaptureTestHost, moduleId: StreamingModule.Id? = null) {
+        runBlocking {
+            withTimeout(15_000) {
+                withContext(Dispatchers.Main) { host.manager.selectModule(moduleId) }
+            }
         }
     }
 
@@ -204,7 +215,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         stream?.assertClosedByServer()
         awaitHostCondition(host, "listener closure") { !canConnect(host.port) }
         assertPortReusable(host.port)
-        assertIs<StreamingModuleManager.State.Exiting>(host.manager.state.value)
+        awaitHostCondition(host, "manager exit completion") { host.manager.state.value == StreamingModuleManager.State.Closed }
         assertTrue(host.notificationErrors.isEmpty(), "Unexpected module errors: ${host.notificationErrors}")
     }
 

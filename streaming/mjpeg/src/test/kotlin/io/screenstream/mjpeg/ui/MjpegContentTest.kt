@@ -87,6 +87,70 @@ internal class MjpegContentTest {
     }
 
     @Test
+    fun collapsedStatisticsHeaderLabelsTheConnectionCountAndStillExpands() {
+        val controller = RecordingUiController()
+        val resources = compose.activity.resources
+        val header = hasText(resources.getString(R.string.mjpeg_stats_title)) and hasClickAction()
+        val connectionCount = resources.getString(R.string.mjpeg_stats_connected_clients_count, "0")
+
+        setStatisticsContent(controller)
+        compose.onNode(
+            header and hasText(connectionCount, substring = true) and
+                SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, resources.getString(R.string.mjpeg_collapsed)),
+        ).performClick()
+        compose.onNode(
+            header and SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, resources.getString(R.string.mjpeg_expanded)),
+        ).assertExists()
+    }
+
+    @Test
+    fun expandedStatisticsDistinguishesUnrecordedTrafficFromMeasuredZero() {
+        val controller = RecordingUiController()
+        val statistics = UiController.Statistics(
+            currentFps = 18.0,
+            history = listOf(
+                UiController.HistoryPoint(atElapsedRealtimeMillis = 1000, fps = 12.0, outgoingBytesPerSecond = null),
+                UiController.HistoryPoint(atElapsedRealtimeMillis = 2000, fps = 18.0, outgoingBytesPerSecond = null),
+            ),
+        )
+        controller.state.value = controller.state.value.copy(statistics = statistics)
+        val resources = compose.activity.resources
+        val unavailableTraffic = resources.getString(
+            R.string.mjpeg_stats_chart_title,
+            resources.getString(R.string.mjpeg_stats_outgoing_traffic),
+            resources.getString(R.string.mjpeg_stats_unavailable),
+        )
+        val trafficWithRecordedZero = resources.getString(
+            R.string.mjpeg_stats_chart_recorded_range,
+            unavailableTraffic,
+            "0",
+            resources.getString(R.string.mjpeg_stats_mbps_value, "0"),
+        )
+        val currentFps = resources.getString(R.string.mjpeg_stats_fps_value, "18")
+        val frameRateWithRange = resources.getString(
+            R.string.mjpeg_stats_chart_recorded_range,
+            resources.getString(R.string.mjpeg_stats_chart_title, resources.getString(R.string.mjpeg_stats_frame_rate), currentFps),
+            "12",
+            currentFps,
+        )
+
+        setStatisticsContent(controller)
+        compose.onNode(hasText(resources.getString(R.string.mjpeg_stats_title)) and hasClickAction()).performClick()
+        compose.onNodeWithText(unavailableTraffic).assertExists()
+        compose.onNodeWithText(frameRateWithRange).assertExists()
+
+        compose.runOnIdle {
+            val history = statistics.history + listOf(
+                UiController.HistoryPoint(atElapsedRealtimeMillis = 3000, fps = 18.0, outgoingBytesPerSecond = 0.0),
+                UiController.HistoryPoint(atElapsedRealtimeMillis = 4000, fps = 18.0, outgoingBytesPerSecond = null),
+            )
+            controller.state.value = controller.state.value.copy(statistics = statistics.copy(history = history))
+        }
+        compose.onNodeWithText(trafficWithRecordedZero).assertExists()
+        compose.onNodeWithText(frameRateWithRange).assertExists()
+    }
+
+    @Test
     fun portDraftSurvivesMovingTheSettingsSectionBetweenPanes() {
         val controller = RecordingUiController()
         controller.state.value = controller.state.value.copy(editPolicy = MjpegSettings.EditPolicy.All)
@@ -96,7 +160,14 @@ internal class MjpegContentTest {
         val destinationTag = "Destination pane modal"
         val destinationHost = object : ModalHost {
             @Composable
-            override fun Modal(title: String?, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+            override fun ContentDialog(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+                TestMjpegModalHost.ContentDialog(onDismissRequest) {
+                    Box(Modifier.testTag(destinationTag)) { content() }
+                }
+            }
+
+            @Composable
+            override fun Modal(title: String, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
                 TestMjpegModalHost.Modal(title, onDismissRequest) {
                     Box(Modifier.testTag(destinationTag)) { content() }
                 }
@@ -154,6 +225,17 @@ internal class MjpegContentTest {
         compose.runOnIdle { visible.value = false }
         field.assertDoesNotExist()
         assertEquals(original, compose.awaitSavedMjpegSettings(settings).network.httpPort)
+    }
+
+    private fun setStatisticsContent(controller: UiController) {
+        val settings = MjpegSettings(IsolatedSettingsContext(compose.activity, temporaryFolder.newFolder()))
+        compose.setContent {
+            MjpegTestTheme {
+                MjpegContent(controller, settings) { ui ->
+                    ui.sections.single { it.id == "statistics" }.content()
+                }
+            }
+        }
     }
 
     private fun openPortEditor(): SemanticsNodeInteraction {

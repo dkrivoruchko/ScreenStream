@@ -69,10 +69,7 @@ internal class StreamingModuleModalHostTest {
         val visible = mutableStateOf(true)
         val section = Section("preview", Section.Role.Overview) {
             if (visible.value) {
-                ModalHost.current.Modal(
-                    title = null,
-                    onDismissRequest = { visible.value = false },
-                ) {
+                ModalHost.current.ContentDialog(onDismissRequest = { visible.value = false }) {
                     Text("preview content")
                 }
             }
@@ -98,9 +95,13 @@ internal class StreamingModuleModalHostTest {
 
     private class InlineModalHost(val label: String) : ModalHost {
         @Composable
-        override fun Modal(title: String?, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+        override fun ContentDialog(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
             Text(label)
             content()
         }
+
+        @Composable
+        override fun Modal(title: String, onDismissRequest: () -> Unit, content: @Composable () -> Unit) =
+            ContentDialog(onDismissRequest, content)
     }
 }

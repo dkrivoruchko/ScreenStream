@@ -172,22 +172,23 @@ class MjpegCaptureTestActivity : ComponentActivity() {
 
 private object DeviceModalHost : StreamingModule.Ui.ModalHost {
     @Composable
-    override fun Modal(title: String?, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
-        Dialog(onDismissRequest = onDismissRequest) {
-            if (title == null) {
-                content()
-            } else {
-                Surface(shape = MaterialTheme.shapes.large) {
-                    Column(Modifier.fillMaxWidth()) {
-                        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-                            val close = stringResource(R.string.mjpeg_action_close)
-                            TextButton(onClick = onDismissRequest, modifier = Modifier.semantics { contentDescription = close }) {
-                                Text(close)
-                            }
+    override fun ContentDialog(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+        Dialog(onDismissRequest = onDismissRequest, content = content)
+    }
+
+    @Composable
+    override fun Modal(title: String, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+        ContentDialog(onDismissRequest) {
+            Surface(shape = MaterialTheme.shapes.large) {
+                Column(Modifier.fillMaxWidth()) {
+                    Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                        val close = stringResource(R.string.mjpeg_action_close)
+                        TextButton(onClick = onDismissRequest, modifier = Modifier.semantics { contentDescription = close }) {
+                            Text(close)
                         }
-                        Box(Modifier.weight(1f, fill = false)) { content() }
                     }
+                    Box(Modifier.weight(1f, fill = false)) { content() }
                 }
             }
         }

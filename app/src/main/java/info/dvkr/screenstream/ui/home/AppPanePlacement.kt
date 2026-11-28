@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.ui
+package info.dvkr.screenstream.ui.home
 
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.adaptive.HingeInfo
@@ -16,10 +16,7 @@ internal data class AppPanePlacement(
     val secondaryBounds: DpRect? = null,
     val dividerBounds: DpRect? = null,
     val usesHingeBounds: Boolean = false,
-) {
-    val primaryLayoutBounds = lowerBounds?.let { primaryBounds.copy(bottom = it.bottom) } ?: primaryBounds
-    val tabletopGap = lowerBounds?.let { it.top - primaryBounds.bottom }
-}
+)
 
 internal fun Density.calculateAppPanePlacement(
     viewportSizePx: IntSize,

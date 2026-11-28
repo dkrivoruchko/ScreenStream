@@ -12,7 +12,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Until
 import io.screenstream.core.StreamingModuleManager
-import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.device.MjpegDeviceTestSupport.MultipartViewer
 import io.screenstream.mjpeg.settings.ImageSettings
@@ -92,14 +91,14 @@ internal class MjpegLifecycleDeviceTest {
                 }
                 val observationEnd = SystemClock.elapsedRealtime() + 2_000
                 awaitHostCondition(host, "bounded non-resurrection after actual old result receipt") {
-                    assertIs<StreamingModuleManager.State.Exiting>(host.manager.state.value, "Late result changed the exited module state")
+                    assertIs<StreamingModuleManager.State.Closed>(host.manager.state.value, "Late result changed the exited module state")
                     assertFalse(serviceIsRunning(), "Late result restarted the Service")
                     assertFalse(canConnect(host.port), "Late result reopened the listener")
                     SystemClock.elapsedRealtime() >= observationEnd
                 }
                 assertPortReusable(host.port)
+                selectModule(host)
                 awaitHostCondition(host, "new instance after completed Exit") {
-                    compose.runOnUiThread { host.manager.selectModule(StreamingModule.Id("MJPEG")) }
                     runningModule(host)?.instanceId?.let { it != pending.attempt.instanceId } == true
                 }
                 awaitHostCondition(host, "reopened listener") { canConnect(host.port) }

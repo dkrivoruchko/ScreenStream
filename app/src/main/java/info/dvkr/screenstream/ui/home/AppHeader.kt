@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.ui.main
+package info.dvkr.screenstream.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

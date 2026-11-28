@@ -120,20 +120,21 @@ internal fun MjpegTestLayout(ui: StreamingModule.Ui) {
 
 internal object TestMjpegModalHost : ModalHost {
     @Composable
-    override fun Modal(title: String?, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
-        Dialog(onDismissRequest = onDismissRequest) {
-            if (title == null) {
-                content()
-            } else {
-                Surface {
-                    Column(Modifier.fillMaxWidth()) {
-                        Text(title)
-                        val close = stringResource(R.string.mjpeg_action_close)
-                        TextButton(onClick = onDismissRequest, modifier = Modifier.semantics { contentDescription = close }) {
-                            Text(close)
-                        }
-                        Box(Modifier.weight(1f, fill = false)) { content() }
+    override fun ContentDialog(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+        Dialog(onDismissRequest = onDismissRequest, content = content)
+    }
+
+    @Composable
+    override fun Modal(title: String, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+        ContentDialog(onDismissRequest) {
+            Surface {
+                Column(Modifier.fillMaxWidth()) {
+                    Text(title)
+                    val close = stringResource(R.string.mjpeg_action_close)
+                    TextButton(onClick = onDismissRequest, modifier = Modifier.semantics { contentDescription = close }) {
+                        Text(close)
                     }
+                    Box(Modifier.weight(1f, fill = false)) { content() }
                 }
             }
         }

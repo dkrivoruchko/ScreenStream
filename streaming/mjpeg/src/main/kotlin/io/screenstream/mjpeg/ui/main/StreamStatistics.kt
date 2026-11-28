@@ -1,5 +1,6 @@
 package io.screenstream.mjpeg.ui.main
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.computedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -75,23 +78,25 @@ import kotlin.time.DurationUnit
 
 @Composable
 internal fun StreamStatisticsContent(
-    statistics: UiController.Statistics,
+    uiState: State<UiController.State>,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    onShowFullList: () -> Unit,
+    onShowClientConnections: () -> Unit,
 ) {
     var showEngineStatistics by retain { mutableStateOf(false) }
     val integerFormat = statisticsNumberFormat(0)
     val decimalFormat = statisticsNumberFormat(1)
-    val unavailable = stringResource(R.string.mjpeg_stats_unavailable)
     val colors = MaterialTheme.colorScheme
-    val connectedClients = integerFormat.format(statistics.clients.count { it.state == HttpDelivery.ClientInfo.State.Active })
-    val currentFrameRate = statistics.currentFps?.let {
-        stringResource(R.string.mjpeg_stats_fps_value, integerFormat.format(it))
-    } ?: unavailable
-    val outgoingTraffic = statistics.outgoingBytesPerSecond?.let {
-        stringResource(R.string.mjpeg_stats_mbps_value, decimalFormat.format(it * 8 / 1_000_000))
-    } ?: unavailable
+    val summaryValues by remember(uiState) {
+        computedStateOf {
+            val statistics = uiState.value.statistics
+            Triple(
+                statistics.currentFps ?: 0.0,
+                statistics.clients.count { it.state == HttpDelivery.ClientInfo.State.Active },
+                statistics.outgoingBytesPerSecond ?: 0.0,
+            )
+        }
+    }
 
     ExpandableCard(
         expanded = expanded,
@@ -117,25 +122,24 @@ internal fun StreamStatisticsContent(
                 ) {
                     Text(stringResource(R.string.mjpeg_stats_title), style = MaterialTheme.typography.titleMedium)
                     if (!expanded) {
-                        val frameRateNumber = integerFormat.format(statistics.currentFps ?: 0.0)
-                        val trafficNumber = decimalFormat.format((statistics.outgoingBytesPerSecond ?: 0.0) * 8 / 1_000_000)
+                        val (fps, activeClients, bytesPerSecond) = summaryValues
+                        val frameRateNumber = integerFormat.format(fps)
+                        val connectedClients = integerFormat.format(activeClients)
+                        val trafficNumber = decimalFormat.format(bytesPerSecond * 8 / 1_000_000)
                         val frameRate = stringResource(R.string.mjpeg_stats_fps_value, frameRateNumber)
                         val traffic = stringResource(R.string.mjpeg_stats_mbps_value, trafficNumber)
-                        val summary = "$frameRate · $connectedClients · $traffic"
-                        val styledSummary = buildAnnotatedString {
-                            append(summary)
-                            var searchStart = 0
-                            for (number in listOf(frameRateNumber, connectedClients, trafficNumber)) {
-                                val numberStart = summary.indexOf(number, searchStart)
-                                if (numberStart >= 0) {
-                                    addStyle(SpanStyle(fontWeight = FontWeight.Bold), numberStart, numberStart + number.length)
-                                    searchStart = numberStart + number.length
-                                }
-                            }
-                        }
+                        val activeConnections = stringResource(R.string.mjpeg_stats_connected_clients_count, connectedClients)
                         Box(Modifier.weight(1F), contentAlignment = Alignment.CenterEnd) {
                             Text(
-                                styledSummary,
+                                "$frameRate · $connectedClients · $traffic".highlightValues(
+                                    SpanStyle(fontWeight = FontWeight.Bold),
+                                    frameRateNumber,
+                                    connectedClients,
+                                    trafficNumber,
+                                ),
+                                modifier = Modifier.clearAndSetSemantics {
+                                    text = AnnotatedString("$frameRate · $activeConnections · $traffic")
+                                },
                                 color = colors.onSurfaceVariant,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Normal,
@@ -147,25 +151,40 @@ internal fun StreamStatisticsContent(
             }
         },
     ) {
+        val statistics = uiState.value.statistics
+        val unavailable = stringResource(R.string.mjpeg_stats_unavailable)
+        val currentFrameRate = statistics.currentFps?.let {
+            stringResource(R.string.mjpeg_stats_fps_value, integerFormat.format(it))
+        } ?: unavailable
+        val outgoingTraffic = statistics.outgoingBytesPerSecond?.let {
+            stringResource(R.string.mjpeg_stats_mbps_value, decimalFormat.format(it * 8 / 1_000_000))
+        } ?: unavailable
+        val frameRateSample: (UiController.HistoryPoint) -> Double? = { it.fps }
+        val trafficSample: (UiController.HistoryPoint) -> Double? = { it.outgoingBytesPerSecond?.times(8)?.div(1_000_000) }
+        val (frameRateHistory, frameRateHasRecordedZero) = chartHistory(statistics.history, frameRateSample)
+        val (trafficHistory, trafficHasRecordedZero) = chartHistory(statistics.history, trafficSample)
+
         Spacer(Modifier.height(8.dp))
         StatisticsChart(
             label = stringResource(R.string.mjpeg_stats_frame_rate),
             currentValue = currentFrameRate,
             valueNumberFormat = integerFormat,
-            formatValue = { stringResource(R.string.mjpeg_stats_fps_value, it) },
-            history = statistics.history,
+            valueFormatResId = R.string.mjpeg_stats_fps_value,
+            history = frameRateHistory,
+            flatHistoryHasRecordedZero = frameRateHasRecordedZero,
             color = colors.primary,
-            value = { it.fps },
+            value = frameRateSample,
         )
         Spacer(Modifier.height(16.dp))
         StatisticsChart(
             label = stringResource(R.string.mjpeg_stats_outgoing_traffic),
             currentValue = outgoingTraffic,
             valueNumberFormat = decimalFormat,
-            formatValue = { stringResource(R.string.mjpeg_stats_mbps_value, it) },
-            history = statistics.history,
+            valueFormatResId = R.string.mjpeg_stats_mbps_value,
+            history = trafficHistory,
+            flatHistoryHasRecordedZero = trafficHasRecordedZero,
             color = colors.tertiary,
-            value = { it.outgoingBytesPerSecond?.times(8)?.div(1_000_000) },
+            value = trafficSample,
         )
         Spacer(Modifier.height(16.dp))
         Column(Modifier.padding(horizontal = 16.dp)) {
@@ -195,7 +214,7 @@ internal fun StreamStatisticsContent(
             if (hiddenClientCount > 0) {
                 val viewAllConnectionsLabel = stringResource(R.string.mjpeg_stats_view_all_connections)
                 TextButton(
-                    onClick = onShowFullList,
+                    onClick = onShowClientConnections,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
@@ -237,17 +256,24 @@ internal fun StreamStatisticsContent(
             Spacer(Modifier.height(8.dp))
         }
     }
-    if (showEngineStatistics && statistics.engineStats != null) {
-        EngineStatisticsEditor(statistics.engineStats, integerFormat, decimalFormat) { showEngineStatistics = false }
+    if (showEngineStatistics) {
+        val engineStats by remember(uiState) { computedStateOf { uiState.value.statistics.engineStats } }
+        engineStats?.let { stats ->
+            EngineStatisticsEditor(stats, integerFormat, decimalFormat) { showEngineStatistics = false }
+        }
     }
 }
 
 @Composable
-internal fun ClientConnectionsEditor(statistics: UiController.Statistics, onDismiss: () -> Unit) {
+internal fun ClientConnectionsEditor(
+    clients: List<HttpDelivery.ClientInfo>,
+    clientBytesPerSecond: Map<Long, Double>,
+    onDismiss: () -> Unit,
+) {
     val integerFormat = statisticsNumberFormat(0)
     val decimalFormat = statisticsNumberFormat(1)
     val colors = MaterialTheme.colorScheme
-    val (connected, disconnected) = statistics.clients.partition { it.state == HttpDelivery.ClientInfo.State.Active }
+    val (connected, disconnected) = clients.partition { it.state == HttpDelivery.ClientInfo.State.Active }
     val listState = rememberLazyListState()
     SettingEditor(
         title = stringResource(R.string.mjpeg_stats_connections_title),
@@ -264,7 +290,7 @@ internal fun ClientConnectionsEditor(statistics: UiController.Statistics, onDism
             }
             itemsIndexed(connected, key = { _, client -> client.id }, contentType = { _, _ -> "client" }) { index, client ->
                 if (index > 0) HorizontalDivider(thickness = 0.5.dp, color = colors.outlineVariant)
-                StatisticsClient(client, statistics.clientBytesPerSecond[client.id], decimalFormat)
+                StatisticsClient(client, clientBytesPerSecond[client.id], decimalFormat)
             }
             if (disconnected.isNotEmpty()) {
                 item(key = "recently-disconnected", contentType = "section-header") {
@@ -313,17 +339,32 @@ private fun StatisticsRow(label: String, value: String) {
     }
 }
 
+private fun chartHistory(
+    history: List<UiController.HistoryPoint>,
+    value: (UiController.HistoryPoint) -> Double?,
+): Pair<List<UiController.HistoryPoint>, Boolean> {
+    var hasRecordedZero = false
+    for (point in history) {
+        val sample = value(point) ?: continue
+        if (sample != 0.0) return history to false
+        hasRecordedZero = true
+    }
+    // The flat path needs no timestamps. A measured zero still contributes to the accessible range.
+    return emptyList<UiController.HistoryPoint>() to hasRecordedZero
+}
+
 @Composable
 private fun StatisticsChart(
     label: String,
     currentValue: String,
     valueNumberFormat: NumberFormat,
-    formatValue: @Composable (String) -> String,
+    @StringRes valueFormatResId: Int,
     history: List<UiController.HistoryPoint>,
+    flatHistoryHasRecordedZero: Boolean,
     color: Color,
     value: (UiController.HistoryPoint) -> Double?,
 ) {
-    var recordedMinimum: Double? = null
+    var recordedMinimum: Double? = if (flatHistoryHasRecordedZero) 0.0 else null
     var observedMaximum = 0.0
     for (point in history) {
         val sampleValue = value(point) ?: continue
@@ -344,16 +385,11 @@ private fun StatisticsChart(
             R.string.mjpeg_stats_chart_recorded_range,
             title,
             rangeNumberFormat.format(minimum),
-            formatValue(rangeNumberFormat.format(observedMaximum)),
+            stringResource(valueFormatResId, rangeNumberFormat.format(observedMaximum)),
         )
     } ?: title
-    val styledTitle = buildAnnotatedString {
-        append(title)
-        val valueStart = title.indexOf(currentValue)
-        if (valueStart >= 0) addStyle(SpanStyle(fontWeight = FontWeight.Bold), valueStart, valueStart + currentValue.length)
-    }
     Text(
-        styledTitle,
+        title.highlightValues(SpanStyle(fontWeight = FontWeight.Bold), currentValue),
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
@@ -385,6 +421,7 @@ private fun StatisticsChart(
                     .height(100.dp)
                     .clipToBounds()
                     .drawWithCache {
+                        val width = size.width
                         val top = 6.dp.toPx()
                         val bottom = size.height - top
                         val gradient = Brush.verticalGradient(
@@ -395,46 +432,43 @@ private fun StatisticsChart(
                         )
                         val stroke = Stroke(width = 1.25.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
                         val strokePath = Path()
-                        val areaPath = Path()
+                        val latestTimeMillis = history.lastOrNull()?.atElapsedRealtimeMillis ?: 0L
+                        var previousPosition = Offset(0F, bottom)
+                        var previousTimeMillis: Long? = null
+                        strokePath.moveTo(0F, bottom)
+                        for (point in history) {
+                            val sampleValue = value(point) ?: 0.0
+                            val position = Offset(
+                                ((point.atElapsedRealtimeMillis - latestTimeMillis + historyMillis).toFloat() / historyMillis * width).coerceIn(0F, width),
+                                top + (1 - sampleValue / maximum).toFloat() * (bottom - top),
+                            )
+                            val previousTime = previousTimeMillis
+                            if (previousTime == null || point.atElapsedRealtimeMillis / intervalMillis - previousTime / intervalMillis > 1L) {
+                                // Unknown intervals stay at zero instead of bridging measured values.
+                                strokePath.lineTo(previousPosition.x, bottom)
+                                strokePath.lineTo(position.x, bottom)
+                                strokePath.lineTo(position.x, position.y)
+                            } else {
+                                // Horizontal endpoint tangents keep the curve within the two measured values.
+                                val middleX = (previousPosition.x + position.x) / 2
+                                strokePath.cubicTo(middleX, previousPosition.y, middleX, position.y, position.x, position.y)
+                            }
+                            previousPosition = position
+                            previousTimeMillis = point.atElapsedRealtimeMillis
+                        }
+                        if (history.isEmpty()) strokePath.lineTo(width, bottom)
+                        val areaPath = Path().apply {
+                            addPath(strokePath)
+                            lineTo(width, bottom)
+                            lineTo(0F, bottom)
+                            close()
+                        }
+                        val gridLines = FloatArray(3) { index -> top + index / 2F * (bottom - top) }
+                        val gridStrokeWidth = 0.75.dp.toPx()
                         onDrawBehind {
-                            strokePath.rewind()
-                            repeat(3) { index ->
-                                val y = top + index / 2F * (bottom - top)
-                                drawLine(gridColor, Offset(0F, y), Offset(size.width, y), strokeWidth = 0.75.dp.toPx())
+                            for (y in gridLines) {
+                                drawLine(gridColor, Offset(0F, y), Offset(width, y), strokeWidth = gridStrokeWidth)
                             }
-                            val latestTimeMillis = history.lastOrNull()?.atElapsedRealtimeMillis ?: 0L
-                            var previousPosition = Offset(0F, bottom)
-                            var previousTimeMillis: Long? = null
-                            strokePath.moveTo(0F, bottom)
-                            for (point in history) {
-                                val sampleValue = value(point) ?: 0.0
-                                val position = Offset(
-                                    ((point.atElapsedRealtimeMillis - latestTimeMillis + historyMillis).toFloat() / historyMillis * size.width).coerceIn(
-                                        0F,
-                                        size.width
-                                    ),
-                                    top + (1 - sampleValue / maximum).toFloat() * (bottom - top),
-                                )
-                                val previousTime = previousTimeMillis
-                                if (previousTime == null || point.atElapsedRealtimeMillis / intervalMillis - previousTime / intervalMillis > 1L) {
-                                    // Unknown intervals stay at zero instead of bridging measured values.
-                                    strokePath.lineTo(previousPosition.x, bottom)
-                                    strokePath.lineTo(position.x, bottom)
-                                    strokePath.lineTo(position.x, position.y)
-                                } else {
-                                    // Horizontal endpoint tangents keep the curve within the two measured values.
-                                    val middleX = (previousPosition.x + position.x) / 2
-                                    strokePath.cubicTo(middleX, previousPosition.y, middleX, position.y, position.x, position.y)
-                                }
-                                previousPosition = position
-                                previousTimeMillis = point.atElapsedRealtimeMillis
-                            }
-                            if (history.isEmpty()) strokePath.lineTo(size.width, bottom)
-                            areaPath.rewind()
-                            areaPath.addPath(strokePath)
-                            areaPath.lineTo(size.width, bottom)
-                            areaPath.lineTo(0F, bottom)
-                            areaPath.close()
                             drawPath(areaPath, gradient)
                             drawPath(strokePath, color, style = stroke)
                         }
@@ -496,23 +530,24 @@ private fun ClientMetric(text: String, vararg values: String) {
         fontWeight = FontWeight.Medium,
         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
     )
-    val styledText = buildAnnotatedString {
-        append(text)
-        var searchStart = 0
-        for (value in values) {
-            val valueStart = text.indexOf(value, searchStart)
-            if (valueStart >= 0) {
-                addStyle(valueStyle, valueStart, valueStart + value.length)
-                searchStart = valueStart + value.length
-            }
-        }
-    }
     Text(
-        styledText,
+        text.highlightValues(valueStyle, *values),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Normal
     )
+}
+
+private fun String.highlightValues(style: SpanStyle, vararg values: String): AnnotatedString = buildAnnotatedString {
+    append(this@highlightValues)
+    var searchStart = 0
+    for (value in values) {
+        val valueStart = this@highlightValues.indexOf(value, searchStart)
+        if (valueStart < 0) continue
+        val valueEnd = valueStart + value.length
+        addStyle(style, valueStart, valueEnd)
+        searchStart = valueEnd
+    }
 }
 
 @Composable

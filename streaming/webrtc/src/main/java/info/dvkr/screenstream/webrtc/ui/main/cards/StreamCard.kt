@@ -301,7 +301,7 @@ private fun ShowQRCodeButton(
 
     if (showQRDialog.value) {
         var qrCodeSizePx by remember { mutableIntStateOf(0) }
-        ModalHost.current.Modal(title = null, onDismissRequest = { showQRDialog.value = false }) {
+        ModalHost.current.ContentDialog(onDismissRequest = { showQRDialog.value = false }) {
             Box(
                 modifier = Modifier
                     .sizeIn(maxWidth = 208.dp, maxHeight = 208.dp)

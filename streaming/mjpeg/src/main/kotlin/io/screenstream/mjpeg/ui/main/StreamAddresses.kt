@@ -505,7 +505,7 @@ private fun QrCodeDialog(
     onDismiss: () -> Unit,
 ) {
     var qrCodeSizePx by remember { mutableIntStateOf(0) }
-    ModalHost.current.Modal(title = null, onDismissRequest = onDismiss) {
+    ModalHost.current.ContentDialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier.semantics(mergeDescendants = true) {
                 dismiss {

@@ -2,6 +2,8 @@ package info.dvkr.screenstream.ui
 
 import android.os.Build
 import android.view.KeyEvent
+import androidx.activity.ComponentDialog
+import androidx.activity.findViewTreeOnBackPressedDispatcherOwner
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -38,9 +40,7 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.DialogWindowProvider
 import info.dvkr.screenstream.R
-import android.app.Dialog as AndroidDialog
 
 /** Presents caller-owned content in a dialog. A null [title] leaves the surface to the caller. */
 @Composable
@@ -121,7 +121,7 @@ internal fun AppDialog(
 @Composable
 internal fun HandleModalEscape(onEscape: () -> Unit) {
     // The dialog can receive a hardware key before any of its children gets focus.
-    val dialog = (LocalView.current.parent as? DialogWindowProvider)?.window?.callback as? AndroidDialog
+    val dialog = LocalView.current.findViewTreeOnBackPressedDispatcherOwner() as? ComponentDialog
     val currentOnEscape by rememberUpdatedState(onEscape)
     DisposableEffect(dialog) {
         dialog?.setOnKeyListener { _, keyCode, event ->

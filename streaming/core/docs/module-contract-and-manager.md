@@ -132,10 +132,12 @@ Each report carries a `StreamingModule.Status`: whether capture is streaming, wh
 
 The Controller owns its module UI. `InstanceContent` supplies that UI, its sections and separate capture button, to the app's layout inside the current admitted Controller's composition. When the requested instance is unavailable, the manager composes the app's fallback. Rendering changes are independent of the Controller's work and cleanup.
 
-Modules supply `Ui.sections` in display order and give each section a stable ID within its module instance. `Overview` covers connection details, operating mode, errors and statistics. `SettingsSearch` and `Settings` identify the search field and configuration sections. The app uses these roles to place sections; in its side-by-side layout, the current app keeps the leading `Overview` sections and the capture button in the main pane, shows the remaining sections in the side pane and pins a `SettingsSearch` section that comes first there.
+Modules supply `Ui.sections` in display order and give each section a stable ID within its module instance. `Overview` covers connection details, operating mode, errors and statistics. `SettingsSearch` and `Settings` identify the search field and configuration sections.
 
-The app binds a host for each pane with `Ui.ModalHost.Provide`, and section content reads that host through `Ui.ModalHost.current`. The app supplies the modal window and any title chrome. The module owns the content, visibility and actions, including what to do when the user requests dismissal. Modal content receives bounded height and owns its own padding and scrolling. A null title gives untitled content such as a QR preview. Removing a section does not request dismissal.
+In the combined layout, the app shows all sections in list order in one scroll area. In the side-by-side layout, the main pane shows the `Overview` sections and the capture button. The settings pane places `SettingsSearch` sections above its scroll area and shows `Settings` sections within it. Sections with the same role keep their list order.
 
-Keep drafts and scroll positions that must survive a switch between sheet and dialog in the modal caller.
+The app binds a host for each pane with `Ui.ModalHost.Provide`, and section content reads that host through `Ui.ModalHost.current`. The app supplies each modal window and its placement. `Modal` shows the title as an app-drawn heading and lets the app choose between a dialog and a sheet. `ContentDialog` always uses a dialog, and its content draws its own surface, such as a QR preview. The module owns the content, visibility and actions, including what to do when the user requests dismissal. Modal content receives bounded height and owns its own padding and scrolling. Removing a section does not request dismissal.
+
+Keep drafts and scroll positions that must survive a switch between sheet and dialog in the `Modal` caller.
 
 [Streaming Module Notifications](notifications.md) describes how the Service, the manager and the Controller each present their notifications through the app's provider.

@@ -16,8 +16,8 @@ import info.dvkr.screenstream.ads.AdMob
 import info.dvkr.screenstream.notification.StreamingModuleNotificationsImpl
 import info.dvkr.screenstream.review.attachAppReview
 import info.dvkr.screenstream.settings.AppSettings
-import info.dvkr.screenstream.ui.AppScreen
 import info.dvkr.screenstream.ui.AppTheme
+import info.dvkr.screenstream.ui.home.AppScreen
 import info.dvkr.screenstream.update.AppUpdate
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.compose.RuntimePermissionHost

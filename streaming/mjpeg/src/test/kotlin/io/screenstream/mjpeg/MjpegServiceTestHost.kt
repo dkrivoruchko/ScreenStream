@@ -106,8 +106,12 @@ internal class MjpegServiceTestHost(
             }
             manager = app.koin.get()
             startedManager = manager
-            manager.selectModule(MjpegStreamingModule.Id)
-            val intent = runBlocking { withTimeout(10.seconds) { launched.await() } }
+            val intent = runBlocking {
+                withTimeout(10.seconds) {
+                    manager.selectModule(MjpegStreamingModule.Id)
+                    launched.await()
+                }
+            }
             serviceController = Robolectric.buildService(MjpegStreamingModuleService::class.java, intent)
             attached = serviceController
             serviceController.create()

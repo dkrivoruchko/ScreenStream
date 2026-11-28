@@ -14,8 +14,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.computedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -48,7 +50,19 @@ internal fun MjpegContent(
     mjpegSettings: MjpegSettings,
     layout: @Composable (StreamingModule.Ui) -> Unit,
 ) {
-    val uiState by uiController.state.collectAsStateWithLifecycle()
+    val uiState = uiController.state.collectAsStateWithLifecycle()
+    // Observe only the fields needed by each scope.
+    val addressDetails by remember(uiState) {
+        computedStateOf {
+            val state = uiState.value
+            Triple(state.addressServers, state.appliedPin, state.hidePinOnCapture)
+        }
+    }
+    val hasClientEntries by remember(uiState) { computedStateOf { uiState.value.statistics.clients.isNotEmpty() } }
+    val suspensionProblem by remember(uiState) { computedStateOf { uiState.value.suspensionProblem } }
+    val editPolicy by remember(uiState) { computedStateOf { uiState.value.editPolicy } }
+    val captureAction by remember(uiState) { computedStateOf { uiState.value.action } }
+
     // Compose retained editors in the first restored frame, before the settings flow emits.
     var retainedNonSecretSettings by retain { mutableStateOf<MjpegSettings.Data?>(null) }
     val settingsData by mjpegSettings.data.collectAsStateWithLifecycle(initialValue = retainedNonSecretSettings)
@@ -62,43 +76,46 @@ internal fun MjpegContent(
     var showClientConnections by retain { mutableStateOf(false) }
     var expandedGroups by retain { mutableStateOf(emptySet<SettingSearchGroup>()) }
 
-    fun isGroupVisible(group: SettingSearchGroup): Boolean =
-        matchingSettings == null || matchingSettings.any { it.group == group }
-
-    fun setGroupExpanded(group: SettingSearchGroup, expanded: Boolean) {
-        expandedGroups = if (expanded) expandedGroups + group else expandedGroups - group
-    }
-
-    if (showClientConnections && uiState.statistics.clients.isEmpty()) {
+    if (showClientConnections && !hasClientEntries) {
         SideEffect(Unit) { showClientConnections = false }
     }
 
     val uiSections = buildList {
         add(Section("interfaces", Role.Overview) {
+            val (addressServers, appliedPin, hidePinOnCapture) = addressDetails
             StreamAddressesContent(
-                addressServers = uiState.addressServers,
-                appliedPin = uiState.appliedPin,
-                hidePinOnCapture = uiState.hidePinOnCapture,
+                addressServers = addressServers,
+                appliedPin = appliedPin,
+                hidePinOnCapture = hidePinOnCapture,
                 expanded = addressesExpanded,
                 onExpandedChange = { addressesExpanded = it },
                 onRetry = { serverId -> uiController.send(UiController.Command.RetryServer(serverId)) },
             )
         })
         add(Section("statistics", Role.Overview) {
-            val statistics = uiState.statistics
             StreamStatisticsContent(
-                statistics = statistics,
+                uiState = uiState,
                 expanded = statisticsExpanded,
                 onExpandedChange = { statisticsExpanded = it },
-                onShowFullList = {
+                onShowClientConnections = {
                     if (uiController.state.value.statistics.clients.isNotEmpty()) showClientConnections = true
                 },
             )
-            if (showClientConnections && statistics.clients.isNotEmpty()) {
-                ClientConnectionsEditor(statistics = statistics, onDismiss = { showClientConnections = false })
+            if (showClientConnections && hasClientEntries) {
+                val connections = remember(uiState) {
+                    computedStateOf {
+                        val statistics = uiState.value.statistics
+                        Pair(statistics.clients, statistics.clientBytesPerSecond)
+                    }
+                }.value
+                ClientConnectionsEditor(
+                    clients = connections.first,
+                    clientBytesPerSecond = connections.second,
+                    onDismiss = { showClientConnections = false },
+                )
             }
         })
-        uiState.suspensionProblem?.let { problem ->
+        suspensionProblem?.let { problem ->
             add(Section("suspension", Role.Overview) { SuspensionProblemMessage(problem) })
         }
         add(Section("settings-search", Role.SettingsSearch) {
@@ -111,15 +128,17 @@ internal fun MjpegContent(
                 })
             }
             for (group in SettingSearchGroup.entries) {
-                if (!isGroupVisible(group)) continue
+                if (matchingSettings?.none { it.group == group } == true) continue
                 add(Section("settings-${group.name.lowercase()}", Role.Settings) {
                     val expanded = group in expandedGroups
-                    val onExpandedChange: (Boolean) -> Unit = { setGroupExpanded(group, it) }
+                    val onExpandedChange: (Boolean) -> Unit = { isExpanded ->
+                        expandedGroups = if (isExpanded) expandedGroups + group else expandedGroups - group
+                    }
                     when (group) {
                         SettingSearchGroup.Image -> ImageSettingsGroup(
                             imageSettings = settings.image,
                             mjpegSettings = mjpegSettings,
-                            editPolicy = uiState.editPolicy,
+                            editPolicy = editPolicy,
                             visibleSettings = matchingSettings,
                             expanded = expanded,
                             onExpandedChange = onExpandedChange,
@@ -136,7 +155,7 @@ internal fun MjpegContent(
                         SettingSearchGroup.Connection -> ConnectionSettingsGroup(
                             networkSettings = settings.network,
                             mjpegSettings = mjpegSettings,
-                            editPolicy = uiState.editPolicy,
+                            editPolicy = editPolicy,
                             visibleSettings = matchingSettings,
                             expanded = expanded,
                             onExpandedChange = onExpandedChange,
@@ -153,7 +172,7 @@ internal fun MjpegContent(
                         SettingSearchGroup.Access -> AccessSettingsGroup(
                             accessSettings = settings.access,
                             mjpegSettings = mjpegSettings,
-                            editPolicy = uiState.editPolicy,
+                            editPolicy = editPolicy,
                             visibleSettings = matchingSettings,
                             expanded = expanded,
                             onExpandedChange = onExpandedChange,
@@ -169,14 +188,13 @@ internal fun MjpegContent(
 
         @Composable
         override fun CaptureActionButton(modifier: Modifier) {
-            val action = uiState.action
-            CaptureButton(action = action, modifier = modifier) {
-                val currentAction = uiController.state.value.action
-                if (currentAction != action) return@CaptureButton
-                when (currentAction) {
-                    is UiController.Action.Start -> if (currentAction.enabled) uiController.send(UiController.Command.Start)
+            val displayedAction = captureAction
+            CaptureButton(action = displayedAction, modifier = modifier) {
+                if (uiController.state.value.action != displayedAction) return@CaptureButton
+                when (displayedAction) {
+                    is UiController.Action.Start -> if (displayedAction.enabled) uiController.send(UiController.Command.Start)
                     UiController.Action.Busy -> Unit
-                    is UiController.Action.Stop -> uiController.send(UiController.Command.Stop(currentAction.attempt))
+                    is UiController.Action.Stop -> uiController.send(UiController.Command.Stop(displayedAction.attempt))
                 }
             }
         }

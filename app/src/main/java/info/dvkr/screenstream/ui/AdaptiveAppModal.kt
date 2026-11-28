@@ -21,7 +21,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,9 +45,7 @@ internal fun AdaptiveAppModal(
 ) {
     val windowSize = LocalWindowInfo.current.containerDpSize
     val isAtLeastMediumWidth = windowSize.width >= WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
-    val openedAsDialog = rememberSaveable {
-        dialogBounds != null || (isAtLeastMediumWidth && windowSize.height >= WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND.dp)
-    }
+    val isAtLeastMediumHeight = windowSize.height >= WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND.dp
     val onBackOrDismiss = onBack ?: onDismissRequest
     val titledContent: @Composable () -> Unit = {
         Column(Modifier.fillMaxWidth()) {
@@ -81,8 +78,7 @@ internal fun AdaptiveAppModal(
         }
     }
 
-    // A current fold pane requires a dialog even if this modal opened as a sheet.
-    if (dialogBounds != null || openedAsDialog) {
+    if (dialogBounds != null || (isAtLeastMediumWidth && isAtLeastMediumHeight)) {
         AppDialog(title = title, onDismissRequest = onBackOrDismiss, dialogBounds = dialogBounds, content = titledContent)
     } else {
         AppModalBottomSheet(

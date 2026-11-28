@@ -122,16 +122,25 @@ public interface StreamingModule {
         @Composable
         public fun CaptureActionButton(modifier: Modifier = Modifier)
 
-        /** Presents section-owned content using the app's current modal placement. */
+        /**
+         * Presents section-owned content using the app's current modal placement.
+         *
+         * The caller controls visibility and owns the content, its actions and dismissal handling.
+         * Content receives bounded height and handles its own padding and scrolling. `onDismissRequest`
+         * signals a user request to dismiss. Removing the content does not invoke it.
+         */
         public interface ModalHost {
             /**
-             * The caller controls visibility. A null [title] omits the header. [content] receives
-             * bounded height and handles its own padding and scrolling. Keep state that must survive
-             * a sheet and dialog transition in the caller. [onDismissRequest] signals a user request.
-             * Removing the content does not invoke it.
+             * Shows [content] below an app-drawn heading for [title], as a dialog or a sheet chosen by the
+             * app. Keep state that must survive a switch between sheet and dialog, such as drafts or scroll
+             * position, in the caller.
              */
             @Composable
-            public fun Modal(title: String?, onDismissRequest: () -> Unit, content: @Composable () -> Unit)
+            public fun Modal(title: String, onDismissRequest: () -> Unit, content: @Composable () -> Unit)
+
+            /** Always shows [content] as a dialog. [content] draws its own surface, such as a QR preview. */
+            @Composable
+            public fun ContentDialog(onDismissRequest: () -> Unit, content: @Composable () -> Unit)
 
             public companion object {
                 private val Local = compositionLocalOf<ModalHost> { error("ModalHost is not provided") }
